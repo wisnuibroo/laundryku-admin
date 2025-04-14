@@ -6,8 +6,8 @@ import { useNavigate } from "react-router-dom";
 function Login() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [formData, setFormData] = useState<{ username: string; password: string }>({
-    username: "",
-    password: "",
+    username: "ken",
+    password: "ken",
   });
 
   const navigate = useNavigate();
