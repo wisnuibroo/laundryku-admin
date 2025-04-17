@@ -6,8 +6,8 @@ import { useNavigate } from "react-router-dom";
 function Login() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [formData, setFormData] = useState<{ username: string; password: string }>({
-    username: "ken",
-    password: "ken",
+    username: "",
+    password: "",
   });
 
   const navigate = useNavigate();
@@ -67,8 +67,9 @@ function Login() {
               </button>
             </div>
 
-            <button
+            <button 
               type="submit"
+              onClick={(e) => handleSubmit(e)}
               className="w-full mt-6 py-3 bg-[#00ADB5] text-white rounded-full hover:bg-[#008C94] transition"
             >
               Login

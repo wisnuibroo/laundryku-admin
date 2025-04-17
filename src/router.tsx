@@ -4,7 +4,7 @@ import Dashboard from "./views/Dashboard";
 import DefaultLayout from "./components/DefaultLayout";
 import GuestLayout from "./components/GuestLayout";
 import NotFound from "./views/NotFound";
-// import Pesanan from "./views/Pesanan";
+import Pesanan from "./views/Pesanan";
 // import Register from "./views/register"; // Pastikan ini ada
 
 const router = createBrowserRouter([
@@ -17,9 +17,13 @@ const router = createBrowserRouter([
                 element: <Navigate to="/dashboard" />
             },
             {
-                path: "dashboard",
+                path: "/dashboard",
                 element: <Dashboard />
             },
+            {
+                path: "/pesanan",
+                element: <Pesanan />
+            }
         ]
     },
     {

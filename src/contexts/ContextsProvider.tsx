@@ -23,7 +23,7 @@ interface ContextProviderProps {
 
 export const ContextProvider = ({ children }: ContextProviderProps) => {
     const [user, setUser] = useState<{ name: string } | null>({ name: 'KENNN ' });
-    const [token, _setToken] = useState<string | null > (localStorage.getItem('ACCESS_TOKEN'));
+    const [token, _setToken] = useState<string | null > ('123');
 
     const setToken = (token: string | null) => {
         _setToken(token);

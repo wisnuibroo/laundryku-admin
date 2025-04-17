@@ -2,9 +2,13 @@ import { FaMotorcycle, FaComments, FaClipboardList, FaList } from "react-icons/f
 import { MdDashboard, MdHistory, MdSettings, MdMenu, MdClose, MdReceiptLong } from "react-icons/md";
 import { useState } from "react";
 import { ReactNode } from "react";
+import BtnQuickAccess from "../components/BtnQuickAccess";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const navigate = useNavigate();
     
     return (
         <div className="flex h-screen bg-gray-100">
@@ -29,11 +33,10 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-9">
                 {/* Menu Shortcut */}
-                    <Card icon={<FaMotorcycle size={32} />} title="Pesanan" />
-                    <Card icon={<MdReceiptLong size={32} />} title="Proses Pesanan" />
-                    <Card icon={<FaComments size={32} />} title="Pesan" />
-                    <Card icon={<FaClipboardList size={32} />} title="Tagihan" />
-
+                    <BtnQuickAccess icon={<FaMotorcycle size={32} />} title="Pesanan" onClick={() => { console.log("Pesanan diklik"); (navigate('/pesanan')) }} />
+                    <BtnQuickAccess icon={<MdReceiptLong size={32} />} title="Proses Pesanan" onClick={() => console.log("Proses Pesanan diklik")} />
+                    <BtnQuickAccess icon={<FaComments size={32} />} title="Pesan" onClick={() => console.log("Pesan diklik")} />
+                    <BtnQuickAccess icon={<FaClipboardList size={32} />} title="Tagihan" onClick={() => console.log("Tagihan diklik")} />
                 <div className="h-full">
                 {/* Laporan bulanan */}
                 <MonthlyReportCard
@@ -85,20 +88,7 @@ function SidebarItem({ icon, text, isOpen }: SidebarItemProps) {
       </div>
     );
   }
-  
-  type CardProps = {
-    icon: ReactNode;
-    title: string;
-  };
-  
-  function Card({ icon, title }: CardProps) {
-    return (
-      <div className="bg-[#00ADB5] text-white p-6 rounded-lg shadow-lg flex flex-col items-center justify-center">
-        {icon}
-        <p className="mt-2 text-lg font-semibold">{title}</p>
-      </div>
-    );
-  }
+
   type MonthlyReportCardProps = {
     title: string;
     icon: ReactNode;
