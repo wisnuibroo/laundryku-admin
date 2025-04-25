@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
+import Search from "../components/search";
 
 export default function Tagihan() {
  
@@ -12,6 +13,10 @@ export default function Tagihan() {
 
             <div className="flex-1 p-6">  
                 <h1 className="text-2xl font-semibold">Tagihan</h1>
+
+                <div className="mt-10">
+                  <Search/>
+                </div>
    
                 <div className="mt-6 bg-gray p-4  shadow rounded-lg">
                   <table className="w-full text-center">
