@@ -2,9 +2,9 @@ import { FaMotorcycle, FaComments, FaClipboardList, FaList } from "react-icons/f
 import {MdReceiptLong } from "react-icons/md";
 import { useState } from "react";
 import { ReactNode } from "react";
-import BtnQuickAccess from "../components/BtnQuickAccess";
+import BtnQuickAccess from "../../components/BtnQuickAccess";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar"; 
+import Sidebar from "../../components/Sidebar"; 
 
 export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -13,21 +13,18 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen bg-gray-100">
-            {/* Sidebar */}
+
             <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-            {/* Main Content */}
             <div className="flex-1 p-6">
                 <h1 className="text-2xl font-semibold">Dashboard</h1>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-9">
-                    {/* Menu Shortcut */}
                     <BtnQuickAccess icon={<FaMotorcycle size={32} />} title="Pesanan" onClick={() => { console.log("Pesanan diklik"); (navigate('/pesanan')) }} />
                     <BtnQuickAccess icon={<MdReceiptLong size={32} />} title="Proses Pesanan" onClick={() => console.log("Proses Pesanan diklik")} />
                     <BtnQuickAccess icon={<FaComments size={32} />} title="Pesan" onClick={() => console.log("Pesan diklik")} />
-                    <BtnQuickAccess icon={<FaClipboardList size={32} />} title="Tagihan" onClick={() => console.log("Tagihan diklik")} />
+                    <BtnQuickAccess icon={<FaClipboardList size={32} />} title="Tagihan" onClick={() =>  { console.log("Tagihan diklik"); (navigate('/tagihan')) }} />
                     <div className="h-full">
-                        {/* Laporan bulanan */}
                         <MonthlyReportCard
                             title="Laporan Bulanan"
                             icon={<FaList size={24} />}
