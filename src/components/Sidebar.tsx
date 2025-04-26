@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         <SidebarItem icon={<Icon icon="mdi:motorbike" width="24" height="24" />} text="Pesanan" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="mdi:history" width="24" height="24" />} text="Riwayat" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="mdi:message-text" width="24" height="24" />} text="Pesan" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="mdi:clipboard-list" width="24" height="24" />} text="Tagihan" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="solar:bill-list-bold" width="24" height="24" />} text="Tagihan" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="mdi:cog" width="24" height="24" />} text="Pengaturan" isOpen={isOpen} />
       </div>
     </aside>
