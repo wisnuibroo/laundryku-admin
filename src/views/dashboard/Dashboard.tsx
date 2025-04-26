@@ -3,7 +3,8 @@ import BtnQuickAccess from "../../components/BtnQuickAccess";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import { Icon } from "@iconify/react";
-import MonthlyReportCard from "../../components/monthly-report-card";
+import PemasukanCard from "../../components/PemasukanCard";
+import MonthlyReportCard from "../../components/MonthlyCard";
 
 export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,11 +27,7 @@ export default function Dashboard() {
                         icon={<Icon icon="mdi:local-laundry-service" width={60} />}
                         title="Proses Pesanan"
                     />
-                    <BtnQuickAccess
-                        icon={<Icon icon="mdi:message-text" width={60} />}
-                        title="Pesan"
-                        onClick={() => console.log("Pesan diklik")}
-                    />
+                   
                     <BtnQuickAccess
                         icon={<Icon icon="solar:bill-list-bold" width={60} />}
                         title="Tagihan"
@@ -50,6 +47,18 @@ export default function Dashboard() {
                                 { label: "Selesai", value: "1" },
                             ]}
                         />
+                    </div>
+
+
+                    <div className="justify-end ">
+                       <PemasukanCard
+                           title="Pemasukan"
+                           icon={<Icon icon="fluent:wallet-credit-card-32-filled" width={30} />}
+                           data={[
+                               { value: "Rp. 470.000" },
+                           ]}
+                           waktu="Minggu ini"
+                       />
                     </div>
                 </div>
 
@@ -73,6 +82,7 @@ export default function Dashboard() {
                 </div>
             </div>
         </div>
+        
     );
 }
 
