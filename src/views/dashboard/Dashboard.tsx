@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ReactNode } from "react";
 import BtnQuickAccess from "../../components/BtnQuickAccess";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import { Icon } from "@iconify/react";
+import PemasukanCard from "../../components/PemasukanCard";
+import MonthlyReportCard from "../../components/MonthlyCard";
 
 export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -20,21 +21,13 @@ export default function Dashboard() {
                     <BtnQuickAccess
                         icon={<Icon icon="streamline:transfer-motorcycle-solid" width={60} />}
                         title="Pesanan"
-                        onClick={() => {
-                            console.log("Pesanan diklik");
-                            navigate("/pesanan");
-                        }}
+                        onClick={() => navigate("/pesanan")}
                     />
                     <BtnQuickAccess
                         icon={<Icon icon="mdi:local-laundry-service" width={60} />}
                         title="Proses Pesanan"
-                        onClick={() => console.log("Proses Pesanan diklik")}
                     />
-                    <BtnQuickAccess
-                        icon={<Icon icon="mdi:message-text" width={60} />}
-                        title="Pesan"
-                        onClick={() => console.log("Pesan diklik")}
-                    />
+                   
                     <BtnQuickAccess
                         icon={<Icon icon="solar:bill-list-bold" width={60} />}
                         title="Tagihan"
@@ -46,15 +39,26 @@ export default function Dashboard() {
                     <div className="h-full">
                         <MonthlyReportCard
                             title="Laporan Bulanan"
-                            icon={<Icon icon="mdi:format-list-bulleted" width={24} />}
+                            icon={<Icon icon="streamline:task-list-solid" width={24} />}
                             data={[
-                                { label: "Total Pesanan", value: "52" },
-                                { label: "Diterima", value: "52" },
-                                { label: "Diproses", value: "12" },
-                                { label: "Selesai", value: "43" },
-                                { label: "Pemasukan", value: "Rp.000.000" },
+                                { label: "Total Pesanan", value: "3" },
+                                { label: "Diterima", value: "0" },
+                                { label: "Diproses", value: "2" },
+                                { label: "Selesai", value: "1" },
                             ]}
                         />
+                    </div>
+
+
+                    <div className="justify-end ">
+                       <PemasukanCard
+                           title="Pemasukan"
+                           icon={<Icon icon="fluent:wallet-credit-card-32-filled" width={30} />}
+                           data={[
+                               { value: "Rp. 470.000" },
+                           ]}
+                           waktu="Minggu ini"
+                       />
                     </div>
                 </div>
 
@@ -78,33 +82,7 @@ export default function Dashboard() {
                 </div>
             </div>
         </div>
+        
     );
 }
 
-type MonthlyReportCardProps = {
-    title: string;
-    icon: ReactNode;
-    data: { label: string; value: string }[];
-};
-
-function MonthlyReportCard({ title, icon, data }: MonthlyReportCardProps) {
-    return (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full">
-            {/* Header */}
-            <div className="bg-[#00ADB5] text-white px-4 py-3 flex justify-between items-center">
-                <h3 className="font-semibold text-lg">{title}</h3>
-                <div className="text-white">{icon}</div>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 space-y-2">
-                {data.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm text-gray-600">
-                        <span>{item.label}</span>
-                        <span className="text-blue-500 font-semibold">{item.value}</span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
