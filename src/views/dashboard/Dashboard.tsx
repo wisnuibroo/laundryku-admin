@@ -1,39 +1,58 @@
-import { FaMotorcycle, FaComments, FaClipboardList, FaList } from "react-icons/fa";
-import {MdReceiptLong } from "react-icons/md";
 import { useState } from "react";
 import { ReactNode } from "react";
 import BtnQuickAccess from "../../components/BtnQuickAccess";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../../components/Sidebar"; 
+import Sidebar from "../../components/Sidebar";
+import { Icon } from "@iconify/react";
 
 export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
     const navigate = useNavigate();
 
     return (
         <div className="flex h-screen bg-gray-100">
-
             <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             <div className="flex-1 p-6">
                 <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-9">
-                    <BtnQuickAccess icon={<FaMotorcycle size={32} />} title="Pesanan" onClick={() => { console.log("Pesanan diklik"); (navigate('/pesanan')) }} />
-                    <BtnQuickAccess icon={<MdReceiptLong size={32} />} title="Proses Pesanan" onClick={() => console.log("Proses Pesanan diklik")} />
-                    <BtnQuickAccess icon={<FaComments size={32} />} title="Pesan" onClick={() => console.log("Pesan diklik")} />
-                    <BtnQuickAccess icon={<FaClipboardList size={32} />} title="Tagihan" onClick={() =>  { console.log("Tagihan diklik"); (navigate('/tagihan')) }} />
+                <div className="grid  lg:grid-cols-5 gap-9 mt-10 ">
+                    <BtnQuickAccess
+                        icon={<Icon icon="streamline:transfer-motorcycle-solid" width={60} />}
+                        title="Pesanan"
+                        onClick={() => {
+                            console.log("Pesanan diklik");
+                            navigate("/pesanan");
+                        }}
+                    />
+                    <BtnQuickAccess
+                        icon={<Icon icon="mdi:local-laundry-service" width={60} />}
+                        title="Proses Pesanan"
+                        onClick={() => console.log("Proses Pesanan diklik")}
+                    />
+                    <BtnQuickAccess
+                        icon={<Icon icon="mdi:message-text" width={60} />}
+                        title="Pesan"
+                        onClick={() => console.log("Pesan diklik")}
+                    />
+                    <BtnQuickAccess
+                        icon={<Icon icon="solar:bill-list-bold" width={60} />}
+                        title="Tagihan"
+                        onClick={() => {
+                            console.log("Tagihan diklik");
+                            navigate("/tagihan");
+                        }}
+                    />
                     <div className="h-full">
                         <MonthlyReportCard
                             title="Laporan Bulanan"
-                            icon={<FaList size={24} />}
+                            icon={<Icon icon="mdi:format-list-bulleted" width={24} />}
                             data={[
                                 { label: "Total Pesanan", value: "52" },
                                 { label: "Diterima", value: "52" },
                                 { label: "Diproses", value: "12" },
                                 { label: "Selesai", value: "43" },
-                                { label: "Pemasukan", value: 'Rp.000.000' },
+                                { label: "Pemasukan", value: "Rp.000.000" },
                             ]}
                         />
                     </div>
@@ -47,8 +66,11 @@ export default function Dashboard() {
                             <p className="font-semibold">Kenas Akia</p>
                             <p className="text-gray-500 text-sm">08112071740</p>
                         </div>
-                        <p className="text-gray-400 text-xs">Mitra Kost, Jl. Bae-Besito, Besito Kulon, Jurang, <br />Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333</p>
-                        <div className="pr-3 rounded-lg flex flex-col items-end ">
+                        <p className="text-gray-400 text-xs">
+                            Mitra Kost, Jl. Bae-Besito, Besito Kulon, Jurang, <br />
+                            Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
+                        </p>
+                        <div className="pr-3 rounded-lg flex flex-col items-end">
                             <p className="text-gray-600">18-2-2025</p>
                             <p className="text-gray-600">Rp. 100.000</p>
                         </div>
