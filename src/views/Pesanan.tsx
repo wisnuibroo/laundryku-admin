@@ -1,10 +1,15 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
-import Search from "../components/search";
+import StatusButton from "../components/StatusButton";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 export default function Pesanan() {
  
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const handleClick = () => {
+      console.log("Tombol di klik!");
+    };
 
   
     return (
@@ -14,10 +19,13 @@ export default function Pesanan() {
             <div className="flex-1 p-6">  
                 <h1 className="text-2xl font-semibold">Pesanan</h1>
 
-                <div className="mt-10 ">
-                  <Search/>
-                </div>
-   
+
+                <div className="mt-10 flex">
+                 <StatusButton title="Di ambil" onClick={handleClick} className="mx-2" />
+                 <StatusButton title="Di cuci" onClick={handleClick} className="mx-2" />
+                 <StatusButton title="Selesai" onClick={handleClick} className="mx-2" />
+               </div>
+               
                 <div className="mt-6 bg-gray-100 p-4  shadow rounded-[10px]">
                   <table className="w-full text-center">
                     <thead>
