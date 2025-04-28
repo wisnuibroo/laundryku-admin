@@ -24,8 +24,8 @@ export default function Dashboard() {
                         onClick={() => navigate("/pesanan")}
                     />
                     <BtnQuickAccess
-                        icon={<Icon icon="mdi:local-laundry-service" width={60} />}
-                        title="Proses Pesanan"
+                        icon={<Icon icon="material-symbols:history" width={60} />}
+                        title="Riwayat"
                     />
                    
                     <BtnQuickAccess
