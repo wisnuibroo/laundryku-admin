@@ -4,8 +4,14 @@ import Dashboard from "./views/dashboard/Dashboard";
 import DefaultLayout from "./components/DefaultLayout";
 import GuestLayout from "./components/GuestLayout";
 import NotFound from "./views/NotFound";
-import Pesanan from "./views/Pesanan";
 import Tagihan from "./views/Tagihan";
+import DicuciPage from "./views/pesanan/DicuciPage";
+import DiambilPage from "./views/pesanan/DiambilPage";
+import PesananPage from "./views/pesanan/PesananPage";
+import SelesaiPage from "./views/pesanan/SelesaiPage";
+
+
+
 // import Register from "./views/register"; // Pastikan ini ada
 
 const router = createBrowserRouter([
@@ -23,7 +29,19 @@ const router = createBrowserRouter([
             },
             {
                 path: "/pesanan",
-                element: <Pesanan />
+                element: <PesananPage />
+            },
+            {
+                path: "/pesanan/diambil",
+                element: <DiambilPage />
+            },
+            {
+                path: "/pesanan/dicuci",
+                element: <DicuciPage />
+            },
+            {
+                path: "/pesanan/selesai",
+                element: <SelesaiPage />
             },
             {
                 path: "/tagihan",
