@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -13,12 +14,11 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         <Icon icon={isOpen ? "mdi:close" : "mdi:menu"} width="24" height="24" />
       </button>
       <div className="flex flex-col space-y-6">
-        <SidebarItem icon={<Icon icon="mdi:view-dashboard" width="24" height="24" />} text="Dashboard" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="mdi:motorbike" width="24" height="24" />} text="Pesanan" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="mdi:history" width="24" height="24" />} text="Riwayat" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="mdi:message-text" width="24" height="24" />} text="Pesan" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="solar:bill-list-bold" width="24" height="24" />} text="Tagihan" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="mdi:cog" width="24" height="24" />} text="Pengaturan" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="mdi:view-dashboard" width="24" height="24" />} text="Dashboard" to="/dashboard" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="streamline:transfer-motorcycle-solid" width="24" height="24" />} text="Pesanan" to="/pesanan" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="mdi:history" width="24" height="24" />} text="Riwayat" to="/" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="solar:bill-list-bold" width="24" height="24" />} text="Tagihan" to="/tagihan" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="mdi:cog" width="24" height="24" />} text="Pengaturan" to="/pengaturan" isOpen={isOpen} />
       </div>
     </aside>
   );
@@ -27,14 +27,20 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 type SidebarItemProps = {
   icon: ReactNode;
   text: string;
+  to: string;
   isOpen: boolean;
 };
 
-function SidebarItem({ icon, text, isOpen }: SidebarItemProps) {
+function SidebarItem({ icon, text, to, isOpen }: SidebarItemProps) {
+  const navigate = useNavigate();
+
   return (
-    <div className="flex items-center space-x-2">
+    <button
+      onClick={() => navigate(to)}
+      className="flex items-center space-x-2 hover:opacity-80 transition-all duration-200 text-left"
+    >
       {icon}
       {isOpen && <span>{text}</span>}
-    </div>
+    </button>
   );
 }
