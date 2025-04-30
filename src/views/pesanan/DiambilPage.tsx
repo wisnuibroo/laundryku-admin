@@ -1,15 +1,13 @@
 import { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import StatusButton from "../components/StatusButton";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import Sidebar from "../../components/Sidebar";
+import StatusButton from "../../components/StatusButton";
 
-export default function Pesanan() {
+export default function DiambilPage() {
  
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    const handleClick = () => {
-      console.log("Tombol di klik!");
-    };
+     
 
   
     return (
@@ -21,9 +19,9 @@ export default function Pesanan() {
 
 
                 <div className="mt-10 flex">
-                 <StatusButton title="Di ambil" onClick={handleClick} className="mx-2" />
-                 <StatusButton title="Di cuci" onClick={handleClick} className="mx-2" />
-                 <StatusButton title="Selesai" onClick={handleClick} className="mx-2" />
+                 <StatusButton title="Di ambil" onClick={""} className="mx-2" />
+                 <StatusButton title="Di cuci" onClick={"/pesanan/dicuci"} className="mx-2" />
+                 <StatusButton title="Selesai" onClick={"/pesanan/selesai"} className="mx-2" />
                </div>
                
                 <div className="mt-6 bg-gray-100 p-4  shadow rounded-[10px]">
