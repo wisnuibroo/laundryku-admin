@@ -9,6 +9,7 @@ import DicuciPage from "./views/pesanan/DicuciPage";
 import DiambilPage from "./views/pesanan/DiambilPage";
 import PesananPage from "./views/pesanan/PesananPage";
 import SelesaiPage from "./views/pesanan/SelesaiPage";
+import RiwayatPage from "./views/RiwayatPage";
 
 
 
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
             {
                 path: "/tagihan",
                 element: <Tagihan />
+            },
+            {
+                path: "/riwayat",
+                element: <RiwayatPage />
             }
         ]
     },

@@ -26,15 +26,13 @@ export default function Dashboard() {
                     <BtnQuickAccess
                         icon={<Icon icon="material-symbols:history" width={60} />}
                         title="Riwayat"
+                        onClick={() => navigate("/riwayat")}
                     />
                    
                     <BtnQuickAccess
                         icon={<Icon icon="solar:bill-list-bold" width={60} />}
                         title="Tagihan"
-                        onClick={() => {
-                            console.log("Tagihan diklik");
-                            navigate("/tagihan");
-                        }}
+                        onClick={() => navigate("/tagihan")}
                     />
                     <div className="h-full">
                         <MonthlyReportCard

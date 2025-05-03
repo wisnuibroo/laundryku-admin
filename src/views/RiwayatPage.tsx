@@ -1,12 +1,10 @@
 import { useState } from "react";
-import Sidebar from "../../components/Sidebar";
-import StatusButton from "../../components/StatusButton";
+import Sidebar from "../components/Sidebar";
+import Search from "../components/search";
 
-export default function DiambilPage() {
+export default function RiwayatPage() {
  
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-     
 
   
     return (
@@ -14,15 +12,12 @@ export default function DiambilPage() {
             <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             <div className="flex-1 p-6">  
-                <h1 className="text-2xl font-semibold">Pesanan</h1>
+                <h1 className="text-2xl font-semibold">Riwayat</h1>
 
-
-                <div className="mt-10 flex">
-                 <StatusButton title="Di ambil" onClick={""} className="mx-2" />
-                 <StatusButton title="Di cuci" onClick={"/pesanan/dicuci"} className="mx-2" />
-                 <StatusButton title="Selesai" onClick={"/pesanan/selesai"} className="mx-2" />
-               </div>
-               
+                <div className="mt-10 ">
+                  <Search/>
+                </div>
+   
                 <div className="mt-6 bg-gray-100 p-4  shadow rounded-[10px]">
                   <table className="w-full text-center">
                     <thead>
@@ -37,28 +32,28 @@ export default function DiambilPage() {
 
 
                     <tbody>
-                      <tr className="bg-white rounded-[10px] text-sm text-black-600">  
-                        <td className="py-3 px-4 rounded-l-[19px]">1</td>  
-                        <td className="py-3 px-4">Kenas Akia</td>         
+                      <tr className="bg-white rounded-[10px] text-sm text-black-600">
+                        <td className="py-3 px-4 rounded-l-[19px]">1</td>
+                        <td className="py-3 px-4">Stop yapping</td>
                         <td className="py-3 px-4">08112071740</td>
                         <td className="py-3 px-4">
                           Mitra Kost, Jl. Bae-Besito, Besito Kulon, Jurang,<br />
                           Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
                         </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">16-07-2025</td>
+                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
                       </tr>
 
 
                     <div className="mt-6"/> 
                       <tr className="bg-white rounded-[10px] text-sm text-black-600">
                         <td className="py-3 px-4 rounded-l-[19px]">2</td>
-                        <td className="py-3 px-4">Nabil Buriq</td>
+                        <td className="py-3 px-4">udh yapinggnya?</td>
                         <td className="py-3 px-4">08974107410</td>
                         <td className="py-3 px-4=">
                           Jl. Bae-Gribig,Gribig,<br />
                           Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
                         </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">23-05-2025</td>
+                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
                       </tr>
 
                     <div className="mt-6"/> 
@@ -70,7 +65,7 @@ export default function DiambilPage() {
                           Jl. Bae-Gribig,Gribig,<br />
                           Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
                         </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">01-03-2024</td>
+                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
                       </tr>
 
                     </tbody>

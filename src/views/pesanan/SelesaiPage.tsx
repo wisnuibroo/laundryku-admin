@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Icon } from "@iconify/react/dist/iconify.js";
 import Sidebar from "../../components/Sidebar";
 import StatusButton from "../../components/StatusButton";
 
