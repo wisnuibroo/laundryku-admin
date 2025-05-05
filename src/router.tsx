@@ -10,6 +10,7 @@ import PesananPage from "./views/pesanan/PesananPage";
 import SelesaiPage from "./views/pesanan/SelesaiPage";
 import RiwayatPage from "./views/RiwayatPage";
 import TagihanPage from "./views/TagihanPage";
+import SettingsPage from "./views/settings/SettingsPage";
 
 
 
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
             {
                 path: "/riwayat",
                 element: <RiwayatPage />
+            },
+            {
+                path: "/settings",
+                element: <SettingsPage />
             }
         ]
     },
