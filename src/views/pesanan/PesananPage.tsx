@@ -2,25 +2,30 @@ import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import { getUrl } from "../../data/service/ApiService";
 import { Pesanan } from "../../data/model/Pesanan";
+import Search from "../../components/search";
+import { Icon } from '@iconify/react';
  
 
 export default function PesananPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pesanan, setPesanan] = useState<Pesanan[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [showFilter, setShowFilter] = useState<boolean>(false);
 
   useEffect(() => {
     getUrl(setPesanan);
   }, []);
 
   // Buat parameter baru yang memetconst [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);akan data pesanan ke format yang sudah siap pakai di UI
-  const dataPesanan = pesanan.map((item: Pesanan, index: number) => ({
+  const filteredPesanan = filterStatus ? pesanan.filter((item: Pesanan) => item.status.toLowerCase() === filterStatus.toLowerCase()) : pesanan;
+  const dataPesanan = filteredPesanan.map((item: Pesanan, index: number) => ({
     no: index + 1,
     id: item.id,
     id_user: item.id_user,
     alamat: item.alamat,
     tanggal: item.tanggal_pesanan,
-    name: (item as any).user.name || item.name,
-    phone: (item as any).user.phone || item.phone,
+    name: (item as any).user?.name || item.name,
+    phone: (item as any).user?.phone || item.phone,
     status: item.status,
     total_harga: item.total_harga,
     jenis_pembayaran: item.jenis_pembayaran,
@@ -36,8 +41,31 @@ export default function PesananPage() {
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-semibold">Pesanan</h1>
 
-      
-
+        <div className="mt-10 flex items-center gap-3">
+            <Search/>
+            <div className="relative">
+              <button type="button" className="ml-1 p-2 rounded bg-gray-100 hover:bg-gray-300 transition-colors flex items-center gap-2 text-black shadow" aria-label="Filter" onClick={() => setShowFilter(!showFilter)}>
+                <Icon icon="mdi:filter-variant" width="24" height="24" />
+              </button>
+              {showFilter && (
+                <div className="absolute top-full left-0 mt-2 bg-white border rounded shadow-lg z-10 p-3">
+                  <div className="mb-2 font-semibold">Filter Status</div>
+                  <select
+                    className="border rounded px-2 py-1 w-40"
+                    value={filterStatus}
+                    onChange={e => { setFilterStatus(e.target.value); setShowFilter(false); }}
+                  >
+                    <option value="">Semua Status</option>
+                    <option value="Menunggu">Menunggu</option>
+                    <option value="Diproses">Diproses</option>
+                    <option value="Selesai">Selesai</option>
+                    <option value="Diambil">Diambil</option>
+                  </select>
+                </div>
+              )}
+            </div>
+        </div>
+   
         <div className="mt-6 bg-gray-100 p-4 shadow rounded-[10px]">
           <table className="w-full text-center">
             <thead>
@@ -48,7 +76,11 @@ export default function PesananPage() {
                 <th className="py-2 px-4">Alamat</th>
                 <th className="py-2 px-4">Tanggal Pesan</th>
                 <th className="py-2 px-4">Catatan</th>
-                <th className="py-2 px-4">Status</th>
+                <th className="py-2 px-4 relative">
+                  <div className="flex items-center justify-center gap-1">
+                    Status
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
