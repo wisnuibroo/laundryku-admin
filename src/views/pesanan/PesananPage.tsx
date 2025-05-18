@@ -4,21 +4,32 @@ import { getUrl } from "../../data/service/ApiService";
 import { Pesanan } from "../../data/model/Pesanan";
 import Search from "../../components/search";
 import { Icon } from '@iconify/react';
- 
 
 export default function PesananPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pesanan, setPesanan] = useState<Pesanan[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [showFilter, setShowFilter] = useState<boolean>(false);
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
 
   useEffect(() => {
     getUrl(setPesanan);
   }, []);
 
-  // Buat parameter baru yang memetconst [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);akan data pesanan ke format yang sudah siap pakai di UI
   const filteredPesanan = filterStatus ? pesanan.filter((item: Pesanan) => item.status.toLowerCase() === filterStatus.toLowerCase()) : pesanan;
-  const dataPesanan = filteredPesanan.map((item: Pesanan, index: number) => ({
+  const searchedPesanan = searchKeyword
+    ? filteredPesanan.filter((item: Pesanan) => {
+        const keyword = searchKeyword.toLowerCase();
+        return (
+          (item.name && item.name.toLowerCase().includes(keyword)) ||
+          ((item as any).user?.name && (item as any).user?.name.toLowerCase().includes(keyword)) ||
+          (item.phone && item.phone.toLowerCase().includes(keyword)) ||
+          ((item as any).user?.phone && (item as any).user?.phone.toLowerCase().includes(keyword)) ||
+          (item.alamat && item.alamat.toLowerCase().includes(keyword))
+        );
+      })
+    : filteredPesanan;
+  const dataPesanan = searchedPesanan.map((item: Pesanan, index: number) => ({
     no: index + 1,
     id: item.id,
     id_user: item.id_user,
@@ -31,41 +42,38 @@ export default function PesananPage() {
     jenis_pembayaran: item.jenis_pembayaran,
     catatan: item.catatan
   }));
-  
-  
 
   return (
     <div className="flex h-screen bg-white-100">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-semibold">Pesanan</h1>
-
+        
         <div className="mt-10 flex items-center gap-3">
-            <Search/>
-            <div className="relative">
-              <button type="button" className="ml-1 p-2 rounded bg-gray-100 hover:bg-gray-300 transition-colors flex items-center gap-2 text-black shadow" aria-label="Filter" onClick={() => setShowFilter(!showFilter)}>
-                <Icon icon="mdi:filter-variant" width="24" height="24" />
-              </button>
-              {showFilter && (
-                <div className="absolute top-full left-0 mt-2 bg-white border rounded shadow-lg z-10 p-3">
-                  <div className="mb-2 font-semibold">Filter Status</div>
-                  <select
-                    className="border rounded px-2 py-1 w-40"
-                    value={filterStatus}
-                    onChange={e => { setFilterStatus(e.target.value); setShowFilter(false); }}
-                  >
-                    <option value="">Semua Status</option>
-                    <option value="Menunggu">Menunggu</option>
-                    <option value="Diproses">Diproses</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Diambil">Diambil</option>
-                  </select>
-                </div>
-              )}
-            </div>
+          <Search value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} />
+
+          <div className="relative">
+            <button type="button" className="ml-1 p-2 rounded bg-gray-100 hover:bg-gray-300 transition-colors flex items-center gap-2 text-black shadow" aria-label="Filter" onClick={() => setShowFilter(!showFilter)}>
+              <Icon icon="mdi:filter-variant" width="24" height="24" />
+            </button>
+            {showFilter && (
+              <div className="absolute top-full left-0 mt-2 bg-white border rounded shadow-lg z-10 p-3">
+                <div className="mb-2 font-semibold">Filter Status</div>
+                <select
+                  className="border rounded px-2 py-1 w-40"
+                  value={filterStatus}
+                  onChange={e => { setFilterStatus(e.target.value); setShowFilter(false); }}
+                >
+                  <option value="">Semua Status</option>
+                  <option value="Menunggu">Menunggu</option>
+                  <option value="Diproses">Diproses</option>
+                  <option value="Selesai">Selesai</option>
+                  <option value="Diambil">Diambil</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
-   
         <div className="mt-6 bg-gray-100 p-4 shadow rounded-[10px]">
           <table className="w-full text-center">
             <thead>
