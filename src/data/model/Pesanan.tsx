@@ -9,6 +9,8 @@ export interface Pesanan {
   total_harga: string;
   jenis_pembayaran: string;
   tgl_langganan_berakhir: string;
+  name: string;
+  phone: string;
   alamat: string;
   waktu_ambil: string;
   catatan: string;
@@ -25,6 +27,8 @@ export class PesananImpl implements Pesanan {
     public total_harga: string,
     public jenis_pembayaran: string,
     public tgl_langganan_berakhir: string,
+    public name: string,
+    public phone: string,
     public alamat: string,
     public waktu_ambil: string,
     public catatan: string,
@@ -41,6 +45,8 @@ export class PesananImpl implements Pesanan {
       json['total_harga'],
       json['jenis_pembayaran'],
       json['tgl_langganan_berakhir'],
+      json['user'],
+      json['user'],
       json['alamat'],
       json['waktu_ambil'],
       json['catatan'],
@@ -58,6 +64,8 @@ export class PesananImpl implements Pesanan {
       total_harga: this.total_harga,
       jenis_pembayaran: this.jenis_pembayaran,
       tgl_langganan_berakhir: this.tgl_langganan_berakhir,
+      name: this.name,
+      phone: this.phone,
       alamat: this.alamat,
       waktu_ambil: this.waktu_ambil,
       catatan: this.catatan,

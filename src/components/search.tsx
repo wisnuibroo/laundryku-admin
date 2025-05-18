@@ -1,6 +1,12 @@
 import { Icon } from '@iconify/react';
+import React from 'react';
 
-export default function Search( ) {
+interface SearchProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+export default function Search({ value, onChange }: SearchProps) {
   return (
     <div className="w-full md:w-1/4 ">
       <form className="flex items-center"> 
@@ -14,6 +20,8 @@ export default function Search( ) {
             className="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white "
             placeholder="Cari..."
             required
+            value={value}
+            onChange={onChange}
           />
         </div>
       </form>
