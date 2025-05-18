@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
-import StatusButton from "../../components/StatusButton";
 import { getUrl } from "../../data/service/ApiService";
 import { Pesanan } from "../../data/model/Pesanan";
  
@@ -15,16 +14,18 @@ export default function PesananPage() {
 
   // Buat parameter baru yang memetconst [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);const [pesanan, setPesanan] = useState([]);akan data pesanan ke format yang sudah siap pakai di UI
   const dataPesanan = pesanan.map((item: Pesanan, index: number) => ({
-  no: index + 1,
-  id: item.id,
-  id_user: item.id_user,
-  alamat: item.alamat,
-  tanggal: item.tanggal_pesanan,
-  status: item.status,
-  total_harga: item.total_harga,
-  jenis_pembayaran: item.jenis_pembayaran,
-  catatan: item.catatan
-}));
+    no: index + 1,
+    id: item.id,
+    id_user: item.id_user,
+    alamat: item.alamat,
+    tanggal: item.tanggal_pesanan,
+    name: (item as any).user.name || item.name,
+    phone: (item as any).user.phone || item.phone,
+    status: item.status,
+    total_harga: item.total_harga,
+    jenis_pembayaran: item.jenis_pembayaran,
+    catatan: item.catatan
+  }));
   
   
 
@@ -42,6 +43,8 @@ export default function PesananPage() {
             <thead>
               <tr className="bg-gray-10 text-gray-600 text-sm">
                 <th className="py-2 px-4">No</th>
+                <th className="py-2 px-4">Name</th>
+                <th className="py-2 px-4">No.Hp</th>
                 <th className="py-2 px-4">Alamat</th>
                 <th className="py-2 px-4">Tanggal Pesan</th>
                 <th className="py-2 px-4">Catatan</th>
@@ -53,6 +56,8 @@ export default function PesananPage() {
                 dataPesanan.map((item) => (
                   <tr key={item.id} className="bg-white rounded-[10px] text-sm text-black-600">
                     <td className="py-3 px-4 rounded-l-[19px]">{item.no}</td>
+                    <td className="py-3 px-4">{item.name}</td>
+                    <td className="py-3 px-4">{item.phone}</td>
                     <td className="py-3 px-4">{item.alamat}</td>
                     <td className="py-3 px-4">{item.tanggal}</td>
                     <td className="py-3 px-4">{item.catatan}</td>
@@ -61,7 +66,7 @@ export default function PesananPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-4 text-gray-500">
+                  <td colSpan={10} className="py-4 text-gray-500">
                     Belum ada pesanan.
                   </td>
                 </tr>
