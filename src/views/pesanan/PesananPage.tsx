@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
-import { getUrl } from "../../data/service/ApiService";
+import { getUrl, updateStatusPesanan } from "../../data/service/ApiService";
 import { Pesanan } from "../../data/model/Pesanan";
 import Search from "../../components/search";
 import { Icon } from '@iconify/react';
+import Lottie from "lottie-react";
+import animasiData from "../../assets/Animation - 1739535831442.json";
 
 export default function PesananPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,9 +13,15 @@ export default function PesananPage() {
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [showFilter, setShowFilter] = useState<boolean>(false);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   useEffect(() => {
-    getUrl(setPesanan);
+    setLoading(true);
+    getUrl((data) => {
+      setPesanan(data);
+      setLoading(false);
+    });
   }, []);
 
   const filteredPesanan = filterStatus ? pesanan.filter((item: Pesanan) => item.status.toLowerCase() === filterStatus.toLowerCase()) : pesanan;
@@ -35,13 +43,24 @@ export default function PesananPage() {
     id_user: item.id_user,
     alamat: item.alamat,
     tanggal: item.tanggal_pesanan,
-    name: (item as any).user?.name || item.name,
-    phone: (item as any).user?.phone || item.phone,
+    name: (item as any).user.name,
+    phone: (item as any).user.phone,
     status: item.status,
     total_harga: item.total_harga,
     jenis_pembayaran: item.jenis_pembayaran,
     catatan: item.catatan
   }));
+
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    setStatusUpdateLoading(true);
+    const success = await updateStatusPesanan(id, newStatus);
+    if (success) {
+      setPesanan((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
+    } else {
+      alert("Gagal mengupdate status pesanan");
+    }
+    setStatusUpdateLoading(false);
+  };
 
   return (
     <div className="flex h-screen bg-white-100">
@@ -65,10 +84,10 @@ export default function PesananPage() {
                   onChange={e => { setFilterStatus(e.target.value); setShowFilter(false); }}
                 >
                   <option value="">Semua Status</option>
-                  <option value="Menunggu">Menunggu</option>
+                  <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
                   <option value="Diproses">Diproses</option>
                   <option value="Selesai">Selesai</option>
-                  <option value="Diambil">Diambil</option>
+                  <option value="Dikembalikan">Dikembalikan</option>mjdfddf
                 </select>
               </div>
             )}
@@ -92,24 +111,48 @@ export default function PesananPage() {
               </tr>
             </thead>
             <tbody>
-              {dataPesanan.length > 0 ? (
-                dataPesanan.map((item) => (
-                  <tr key={item.id} className="bg-white rounded-[10px] text-sm text-black-600">
-                    <td className="py-3 px-4 rounded-l-[19px]">{item.no}</td>
-                    <td className="py-3 px-4">{item.name}</td>
-                    <td className="py-3 px-4">{item.phone}</td>
-                    <td className="py-3 px-4">{item.alamat}</td>
-                    <td className="py-3 px-4">{item.tanggal}</td>
-                    <td className="py-3 px-4">{item.catatan}</td>
-                    <td className="py-3 px-4 rounded-r-[19px]">{item.status}</td>
-                  </tr>
-                ))
-              ) : (
+              {loading ? (
                 <tr>
-                  <td colSpan={10} className="py-4 text-gray-500">
-                    Belum ada pesanan.
+                  <td colSpan={10} className="py-8 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-32 h-32 mx-auto">
+                        <Lottie animationData={animasiData} loop={true} />
+                      </div>
+                      <span className="text-gray-500 text-lg mt-1">Loading...</span>
+                    </div>
                   </td>
                 </tr>
+              ) : (
+                dataPesanan.length > 0 ? (
+                  dataPesanan.map((item) => (
+                    <tr key={item.id} className="bg-white rounded-[10px] text-sm text-black-600">
+                      <td className="py-3 px-4 rounded-l-[19px]">{item.no}</td>
+                      <td className="py-3 px-4">{item.name}</td>
+                      <td className="py-3 px-4">{item.phone}</td>
+                      <td className="py-3 px-4">{item.alamat}</td>
+                      <td className="py-3 px-4">{item.tanggal}</td>
+                      <td className="py-3 px-4">{item.catatan}</td>
+                      <td className="py-3 px-4">
+                      <select
+                          className="border rounded px-2 py-1"
+                          value={item.status}
+                          disabled={statusUpdateLoading}
+                          onChange={(e) => handleStatusChange(item.id, e.target.value)}>
+                          <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+                          <option value="Diproses">Diproses</option>
+                          <option value="Selesai">Selesai</option>
+                          <option value="Dikembalikan">Dikembalikan</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="py-4 text-gray-500">
+                      Belum ada pesanan.
+                    </td>
+                  </tr>
+                )
               )}
             </tbody>
           </table>
