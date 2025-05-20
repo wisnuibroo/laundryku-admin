@@ -14,7 +14,6 @@ export const getUrl = async (setPesanan: React.Dispatch<React.SetStateAction<Pes
   } catch (error) {
     console.error("Gagal mengambil data pesanan:", error);
     setPesanan([]);
-    // Tambahkan notifikasi error ke user jika diperlukan
   }
 };
 
@@ -28,6 +27,22 @@ export const updateStatusPesanan = async (id: number, status: string): Promise<b
       alert("Error: " + JSON.stringify(error.response.data));
     } else {
       console.error("Gagal mengupdate status pesanan:", error);
+      alert("Error: " + error.message);
+    }
+    return false;
+  }
+};
+
+export const updateHargaPesanan = async (id: number, total_harga: number): Promise<boolean> => {
+  try {
+    const response = await axios.put(`https://laundryku.rplrus.com/api/pesanan/${id}`, { total_harga });
+    return response.status === 200;
+  } catch (error: any) {
+    if (error.response) {
+      console.error("Gagal mengupdate harga pesanan:", error.response.data);
+      alert("Error: " + JSON.stringify(error.response.data));
+    } else {
+      console.error("Gagal mengupdate harga pesanan:", error);
       alert("Error: " + error.message);
     }
     return false;

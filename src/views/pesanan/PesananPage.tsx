@@ -6,6 +6,7 @@ import Search from "../../components/search";
 import { Icon } from '@iconify/react';
 import Lottie from "lottie-react";
 import animasiData from "../../assets/Animation - 1739535831442.json";
+import { useNavigate } from "react-router-dom";
 
 export default function PesananPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,6 +16,7 @@ export default function PesananPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -56,6 +58,9 @@ export default function PesananPage() {
     const success = await updateStatusPesanan(id, newStatus);
     if (success) {
       setPesanan((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
+      if (newStatus === "Selesai") {
+        navigate("/tagihan");
+      }
     } else {
       alert("Gagal mengupdate status pesanan");
     }

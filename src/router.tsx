@@ -4,13 +4,11 @@ import Dashboard from "./views/dashboard/Dashboard";
 import DefaultLayout from "./components/DefaultLayout";
 import GuestLayout from "./components/GuestLayout";
 import NotFound from "./views/NotFound";
-import DicuciPage from "./views/pesanan/DicuciPage";
-import DiambilPage from "./views/pesanan/DiambilPage";
 import PesananPage from "./views/pesanan/PesananPage";
-import SelesaiPage from "./views/pesanan/SelesaiPage";
 import RiwayatPage from "./views/RiwayatPage";
-import TagihanPage from "./views/TagihanPage";
+
 import SettingsPage from "./views/settings/SettingsPage";
+import TagihanPage from "./views/tagihan/TagihanPage";
 
 
 
@@ -36,18 +34,6 @@ const router = createBrowserRouter([
             {
                 path: "/pesanan",
                 element: <PesananPage />
-            },
-            {
-                path: "/pesanan/diambil",
-                element: <DiambilPage />
-            },
-            {
-                path: "/pesanan/dicuci",
-                element: <DicuciPage />
-            },
-            {
-                path: "/pesanan/selesai",
-                element: <SelesaiPage />
             },
             {
                 path: "/tagihan",
