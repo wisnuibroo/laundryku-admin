@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react';
 import Lottie from "lottie-react";
 import animasiData from "../../assets/Animation - 1739535831442.json";
 import { useNavigate } from "react-router-dom";
+ import { useStateContext } from "../../contexts/ContextsProvider";
 
 export default function PesananPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -16,15 +17,32 @@ export default function PesananPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const navigate = useNavigate();
 
+  const { user } = useStateContext();
+
   useEffect(() => {
-    setLoading(true);
-    getUrl((data) => {
-      setPesanan(data);
-      setLoading(false);
-    });
-  }, []);
+    const fetchPesanan = async () => {
+      if (!user?.id_laundry) {
+        console.error("ID Laundry tidak ditemukan");
+        setPesanan([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        await getUrl(setPesanan, Number(user.id_laundry));
+      } catch (error) {
+        console.error("Error fetching pesanan:", error);
+        setPesanan([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPesanan();
+  }, [user?.id_laundry]);
 
   const filteredPesanan = filterStatus ? pesanan.filter((item: Pesanan) => item.status.toLowerCase() === filterStatus.toLowerCase()) : pesanan;
   const searchedPesanan = searchKeyword
@@ -39,7 +57,21 @@ export default function PesananPage() {
         );
       })
     : filteredPesanan;
-  const dataPesanan = searchedPesanan.map((item: Pesanan, index: number) => ({
+
+  // Sort data by tanggal_pesanan (newest first)
+  const sortedPesanan = [...searchedPesanan].sort((a, b) => {
+    return new Date(b.tanggal_pesanan).getTime() - new Date(a.tanggal_pesanan).getTime();
+  });
+
+  // Get current items for pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedPesanan.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const dataPesanan = currentItems.map((item: Pesanan, index: number) => ({
     no: index + 1,
     id: item.id,
     id_user: item.id_user,
@@ -92,75 +124,108 @@ export default function PesananPage() {
                   <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
                   <option value="Diproses">Diproses</option>
                   <option value="Selesai">Selesai</option>
-                  <option value="Dikembalikan">Dikembalikan</option>mjdfddf
+                  <option value="Dikembalikan">Dikembalikan</option>
                 </select>
               </div>
             )}
           </div>
         </div>
-        <div className="mt-6 bg-gray-100 p-4 shadow rounded-[10px]">
-          <table className="w-full text-center">
-            <thead>
-              <tr className="bg-gray-10 text-gray-600 text-sm">
-                <th className="py-2 px-4">No</th>
-                <th className="py-2 px-4">Name</th>
-                <th className="py-2 px-4">No.Hp</th>
-                <th className="py-2 px-4">Alamat</th>
-                <th className="py-2 px-4">Tanggal Pesan</th>
-                <th className="py-2 px-4">Catatan</th>
-                <th className="py-2 px-4 relative">
-                  <div className="flex items-center justify-center gap-1">
-                    Status
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} className="py-8 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-32 h-32 mx-auto">
-                        <Lottie animationData={animasiData} loop={true} />
-                      </div>
-                      <span className="text-gray-500 text-lg mt-1">Loading...</span>
+
+        <div className="mt-6 bg-gray-100 p-4 shadow rounded-[10px] overflow-x-auto max-h-[calc(100vh-250px)]">
+          <div className="min-w-[1000px]">
+            <table className="w-full text-center">
+              <thead>
+                <tr className="bg-gray-10 text-gray-600 text-sm">
+                  <th className="py-2 px-4">No</th>
+                  <th className="py-2 px-4">Name</th>
+                  <th className="py-2 px-4">No.Hp</th>
+                  <th className="py-2 px-4">Alamat</th>
+                  <th className="py-2 px-4">Tanggal Pesan</th>
+                  <th className="py-2 px-4">Catatan</th>
+                  <th className="py-2 px-4 relative">
+                    <div className="flex items-center justify-center gap-1">
+                      Status
                     </div>
-                  </td>
+                  </th>
                 </tr>
-              ) : (
-                dataPesanan.length > 0 ? (
-                  dataPesanan.map((item) => (
-                    <tr key={item.id} className="bg-white rounded-[10px] text-sm text-black-600">
-                      <td className="py-3 px-4 rounded-l-[19px]">{item.no}</td>
-                      <td className="py-3 px-4">{item.name}</td>
-                      <td className="py-3 px-4">{item.phone}</td>
-                      <td className="py-3 px-4">{item.alamat}</td>
-                      <td className="py-3 px-4">{item.tanggal}</td>
-                      <td className="py-3 px-4">{item.catatan}</td>
-                      <td className="py-3 px-4">
-                      <select
-                          className="border rounded px-2 py-1"
-                          value={item.status}
-                          disabled={statusUpdateLoading}
-                          onChange={(e) => handleStatusChange(item.id, e.target.value)}>
-                          <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
-                          <option value="Diproses">Diproses</option>
-                          <option value="Selesai">Selesai</option>
-                          <option value="Dikembalikan">Dikembalikan</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+              </thead>
+              <tbody>
+                {loading ? (
                   <tr>
-                    <td colSpan={10} className="py-4 text-gray-500">
-                      Belum ada pesanan.
+                    <td colSpan={10} className="py-8 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-32 h-32 mx-auto">
+                          <Lottie animationData={animasiData} loop={true} />
+                        </div>
+                        <span className="text-gray-500 text-lg mt-1">Loading...</span>
+                      </div>
                     </td>
                   </tr>
-                )
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  dataPesanan.length > 0 ? (
+                    dataPesanan.map((item) => (
+                      <tr key={item.id} className="bg-white rounded-[10px] text-sm text-black-600">
+                        <td className="py-3 px-4 rounded-l-[5px]">{item.no}</td>
+                        <td className="py-3 px-4">{item.name}</td>
+                        <td className="py-3 px-4">{item.phone}</td>
+                        <td className="py-3 px-4">{item.alamat}</td>
+                        <td className="py-3 px-4">{item.tanggal}</td>
+                        <td className="py-3 px-4">{item.catatan}</td>
+                        <td className="py-3 px-4 rounded-r-[5px]">
+                          <select
+                            className="border rounded px-2 py-1"
+                            value={item.status}
+                            disabled={statusUpdateLoading}
+                            onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                          >
+                            <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+                            <option value="Diproses">Diproses</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Dikembalikan">Dikembalikan</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="py-4 text-gray-500">
+                        Belum ada pesanan.
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            {!loading && dataPesanan.length > 0 && (
+              <div className="flex justify-center mt-4 gap-2">
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-300' : 'bg-[#00ADB5] text-white hover:bg-[#008C94]'}`}
+                >
+                  &lt;
+                </button>
+                {Array.from({ length: Math.ceil(sortedPesanan.length / itemsPerPage) }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => paginate(index + 1)}
+                    className={`px-3 py-1 rounded ${currentPage === index + 1 ? 'bg-[#00ADB5] text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === Math.ceil(sortedPesanan.length / itemsPerPage)}
+                  className={`px-3 py-1 rounded ${currentPage === Math.ceil(sortedPesanan.length / itemsPerPage) ? 'bg-gray-300' : 'bg-[#00ADB5] text-white hover:bg-[#008C94]'}`}
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
