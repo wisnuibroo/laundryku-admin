@@ -14,7 +14,7 @@ import SettingsPage from "./views/settings/SettingsPage";
 
 
 
-// import Register from "./views/register"; // Pastikan ini ada
+// import Register from "./views/register";
 
 const router = createBrowserRouter([
     {
@@ -24,10 +24,6 @@ const router = createBrowserRouter([
             {
                 path: "/",
                 element: <Navigate to="/dashboard" />
-            },
-            {
-                path: "/login",
-                element: <Login />
             },
             {
                 path: "/dashboard",
@@ -68,7 +64,7 @@ const router = createBrowserRouter([
         element: <GuestLayout />,
         children: [
             {
-                path: "",
+                path: "/login",
                 element: <Login />
             },
         ]

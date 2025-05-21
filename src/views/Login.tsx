@@ -2,11 +2,16 @@ import { useState, ChangeEvent, FormEvent } from "react";
 import { Icon } from "@iconify/react";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { useStateContext } from "../contexts/ContextsProvider";
+import axiosInstance from "../utils/axios";
 
-export default function Login() {
+export default function AdminLogin() {
+  const { setUser, setToken, setUserType } = useStateContext();
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [formData, setFormData] = useState<{ username: string; password: string }>({
-    username: "",
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [formData, setFormData] = useState<{ name: string; password: string }>({
+    name: "",
     password: "",
   });
 
@@ -16,14 +21,49 @@ export default function Login() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log("Login dengan:", formData);
+    setError("");
+    setLoading(true);
 
-    if (formData.username && formData.password) {
-      navigate("/dashboard");
-    } else {
-      alert("Username dan password harus diisi!");
+    if (!formData.name || !formData.password) {
+      setError("Username dan password harus diisi!");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Log data nu dikirim ka server
+      console.log('Login Request Data:', {
+        name: formData.name,
+        password: formData.password
+      });
+
+      const response = await axiosInstance.post('/admin/login', {
+        name: formData.name,
+        password: formData.password
+      });
+
+      // Log response ti server
+      console.log('Login Response Data:', response.data);
+
+      const { admin, token } = response.data;
+      
+      // Set admin data as user in context
+      setUser(admin);
+      setToken(token);
+      setUserType('admin'); // Set user type as admin
+      navigate("/admin/dashboard");
+    } catch (err: any) {
+      console.error('Error:', err);
+      const message = err.response?.data?.message || err.response?.data?.error || "Server error, cobian heula engke deui!";
+      if (err.response?.status === 500) {
+        setError("Aya masalah di server, mangga cobian heula engke deui!");
+        return;
+      }
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,17 +79,17 @@ export default function Login() {
             />
           </div>
 
-          <h1 className="text-3xl font-bold  text-[#00ADB5] mb-6 text-center">Login</h1>
+          <h1 className="text-3xl font-bold text-[#00ADB5] mb-6 text-center">Admin Login</h1>
 
           <form onSubmit={handleSubmit}>
             <div className="relative mt-4">
-              <Icon icon="mdi:email" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
+              <Icon icon="mdi:account" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
               <input
                 type="text"
-                name="username"
-                value={formData.username}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
-                placeholder="Masukkan Email"
+                placeholder="Masukkan Name Admin"
                 className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5]"
               />
             </div>
@@ -73,13 +113,29 @@ export default function Login() {
               </button>
             </div>
 
+            {error && (
+              <div className="mt-4 text-red-500 text-sm text-center">
+                {error}
+              </div>
+            )}
+
             <button 
               type="submit"
-              className="w-full mt-6 py-3 bg-[#00ADB5] text-white rounded-full hover:bg-[#008C94] transition"
+              disabled={loading}
+              className={`w-full mt-6 py-3 bg-[#00ADB5] text-white rounded-full transition ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#008C94]'}`}
             >
-              Login
+              {loading ? 'Mencoba Login...' : 'Login'}
             </button>
           </form>
+
+          {/* <div className="mt-4 text-center">
+            <button
+              onClick={() => navigate('/login')}
+              className="text-[#00ADB5] hover:text-[#008C94] text-sm"
+            >
+              Login sebagai User biasa?
+            </button>
+          </div> */}
         </div>
       </div>
     </div>
