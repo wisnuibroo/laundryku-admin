@@ -25,9 +25,15 @@ export default function PesananPage() {
 
   useEffect(() => {
     const fetchPesanan = async () => {
+      if (!user?.id_laundry) {
+        console.error("ID Laundry tidak ditemukan");
+        setPesanan([]);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        await getUrl(setPesanan);
+        await getUrl(setPesanan, Number(user.id_laundry));
       } catch (error) {
         console.error("Error fetching pesanan:", error);
         setPesanan([]);
@@ -36,7 +42,7 @@ export default function PesananPage() {
       }
     };
     fetchPesanan();
-  }, []);
+  }, [user?.id_laundry]);
 
   const filteredPesanan = filterStatus ? pesanan.filter((item: Pesanan) => item.status.toLowerCase() === filterStatus.toLowerCase()) : pesanan;
   const searchedPesanan = searchKeyword
