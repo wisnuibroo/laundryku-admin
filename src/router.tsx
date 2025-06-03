@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "./views/Login";
-import Dashboard from "./views/dashboard/Dashboard";
+
 import DefaultLayout from "./components/DefaultLayout";
 import GuestLayout from "./components/GuestLayout";
 import NotFound from "./views/NotFound";
@@ -9,6 +9,7 @@ import RiwayatPage from "./views/RiwayatPage";
 
 import SettingsPage from "./views/settings/SettingsPage";
 import TagihanPage from "./views/tagihan/TagihanPage";
+import Dashboard from "./views/dashboard/admin/Dashboard";
 
 
 
@@ -21,10 +22,10 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                element: <Navigate to="/dashboard" />
+                element: <Navigate to="dashboard/admin" />
             },
             {
-                path: "/dashboard",
+                path: "/dashboard/admin",
                 element: <Dashboard />
             },
             {

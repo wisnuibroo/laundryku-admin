@@ -15,7 +15,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       </button>
       <div className="flex flex-col space-y-6">
         <SidebarItem icon={<Icon icon="mdi:view-dashboard" width="24" height="24" />} text="Dashboard" to="/dashboard" isOpen={isOpen} />
-        <SidebarItem icon={<Icon icon="streamline:transfer-motorcycle-solid" width="24" height="24" />} text="Pesanan" to="/pesanan" isOpen={isOpen} />
+        <SidebarItem icon={<Icon icon="solar:box-linear" width="24" height="24" />} text="Pesanan" to="/pesanan" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="mdi:history" width="24" height="24" />} text="Riwayat" to="/riwayat" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="solar:bill-list-bold" width="24" height="24" />} text="Tagihan" to="/tagihan" isOpen={isOpen} />
         <SidebarItem icon={<Icon icon="mdi:cog" width="24" height="24" />} text="Settings" to="/settings" isOpen={isOpen} />
