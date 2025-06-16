@@ -17,10 +17,10 @@ interface User {
 interface StateContextType {
     user: User | null;
     token: string | null;
-    userType: 'user' | 'admin' | null;
+    userType: 'user' | 'admin' | 'owner' | null;
     setUser: Dispatch<SetStateAction<User | null>>;
     setToken: (token: string | null) => void;
-    setUserType: Dispatch<SetStateAction<'user' | 'admin' | null>>;
+    setUserType: Dispatch<SetStateAction<'user' | 'admin' | 'owner' | null>>;
 }
 
 // Nilai default untuk context
@@ -40,8 +40,8 @@ interface ContextProviderProps {
 
 export const ContextProvider = ({ children }: ContextProviderProps) => {
     const [user, setUser] = useState<User | null>(null);
-    const [userType, setUserType] = useState<'user' | 'admin' | null>(
-        localStorage.getItem('USER_TYPE') as 'user' | 'admin' | null
+    const [userType, setUserType] = useState<'user' | 'admin' | 'owner' | null>(
+        localStorage.getItem('USER_TYPE') as 'user' | 'admin' | 'owner' | null
     );
     const [token, _setToken] = useState<string | null>(localStorage.getItem('ACCESS_TOKEN') || null);
 
@@ -57,12 +57,9 @@ export const ContextProvider = ({ children }: ContextProviderProps) => {
     };
 
     // Buat custom setUserType yang juga update localStorage
-    const customSetUserType: Dispatch<SetStateAction<'user' | 'admin' | null>> = (value) => {
+    const customSetUserType: Dispatch<SetStateAction<'user' | 'admin' | 'owner' | null>> = (value) => {
         setUserType(value);
-        
-        // Handle jika value adalah function atau langsung value
         const newValue = typeof value === 'function' ? value(userType) : value;
-        
         if (newValue) {
             localStorage.setItem('USER_TYPE', newValue);
         } else {
