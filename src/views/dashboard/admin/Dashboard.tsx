@@ -13,7 +13,7 @@ export default function Dashboard() {
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       <div className="flex-1">
-        <nav className="w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
+        <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
             <img src={logo} alt="Laundry Logo" className="w-7 h-7 object-contain" />
             <span className="text-lg font-bold text-gray-900">Laundry Admin</span>
