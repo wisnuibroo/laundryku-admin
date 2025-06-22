@@ -10,6 +10,7 @@ import RiwayatPage from "./views/RiwayatPage";
 import SettingsPage from "./views/settings/SettingsPage";
 import TagihanPage from "./views/tagihan/TagihanPage";
 import Dashboard from "./views/dashboard/admin/Dashboard";
+import EmployeesPage from "./views/dashboard/owner/Dashboard";
 
 
 
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
                 element: <Dashboard />
             },
             {
+                path: "/dashboard/owner",
+                element: <EmployeesPage />
+            },
+            {
                 path: "/pesanan",
                 element: <PesananPage />
             },
@@ -43,7 +48,9 @@ const router = createBrowserRouter([
             {
                 path: "/settings",
                 element: <SettingsPage />
-            }
+            },
+           
+          
         ]
     },
     {
