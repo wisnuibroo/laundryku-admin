@@ -58,7 +58,7 @@ export default function AdminLogin() {
     } catch (err: any) {
       const message = err.response?.data?.message || err.response?.data?.error || "Server error, cobian heula engke deui!";
       if (err.response?.status === 500) {
-        setError("Aya masalah di server, mangga cobian heula engke deui!");
+        setError("ada masalah di server, silakan coba lagi nanti!");
         return;
       }
       setError(message);

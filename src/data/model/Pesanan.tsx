@@ -15,6 +15,11 @@ export interface Pesanan {
   waktu_ambil: string;
   catatan: string;
   info_pesanan: string;
+  user?: {
+    id: number;
+    name: string;
+    phone: string;
+  };
 }
 
 export class PesananImpl implements Pesanan {
@@ -32,7 +37,12 @@ export class PesananImpl implements Pesanan {
     public alamat: string,
     public waktu_ambil: string,
     public catatan: string,
-    public info_pesanan: string
+    public info_pesanan: string,
+    public user?: {
+      id: number;
+      name: string;
+      phone: string;
+    }
   ) {}
 
   static fromJson(json: Record<string, any>): PesananImpl {
@@ -45,12 +55,17 @@ export class PesananImpl implements Pesanan {
       json['total_harga'],
       json['jenis_pembayaran'],
       json['tgl_langganan_berakhir'],
-      json['user'],
-      json['user'],
+      json['name'],
+      json['phone'],
       json['alamat'],
       json['waktu_ambil'],
       json['catatan'],
-      json['info_pesanan']
+      json['info_pesanan'],
+      json['user'] ? {
+        id: parseInt(json['user']['id'].toString()),
+        name: json['user']['name'],
+        phone: json['user']['phone']
+      } : undefined
     );
   }
 
@@ -69,7 +84,8 @@ export class PesananImpl implements Pesanan {
       alamat: this.alamat,
       waktu_ambil: this.waktu_ambil,
       catatan: this.catatan,
-      info_pesanan: this.info_pesanan
+      info_pesanan: this.info_pesanan,
+      user: this.user
     };
   }
 }

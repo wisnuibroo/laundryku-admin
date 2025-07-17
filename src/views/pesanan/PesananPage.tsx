@@ -26,7 +26,6 @@ export default function PesananPage() {
   useEffect(() => {
     const fetchPesanan = async () => {
       if (!user?.id_laundry) {
-        console.error("ID Laundry tidak ditemukan");
         setPesanan([]);
         setLoading(false);
         return;
@@ -34,9 +33,9 @@ export default function PesananPage() {
       setLoading(true);
       try {
         await getUrl(setPesanan, Number(user.id_laundry));
-      } catch (error) {
-        console.error("Error fetching pesanan:", error);
+      } catch (error: any) {
         setPesanan([]);
+        alert(error.message || 'Gagal nyandak data pesanan');
       } finally {
         setLoading(false);
       }
@@ -87,16 +86,17 @@ export default function PesananPage() {
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     setStatusUpdateLoading(true);
-    const success = await updateStatusPesanan(id, newStatus);
-    if (success) {
+    try {
+      await updateStatusPesanan(id, newStatus);
       setPesanan((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
       if (newStatus === "Selesai") {
         navigate("/tagihan");
       }
-    } else {
-      alert("Gagal mengupdate status pesanan");
+    } catch (error: any) {
+      alert(error.message || 'Gagal ngarobah status pesanan');
+    } finally {
+      setStatusUpdateLoading(false);
     }
-    setStatusUpdateLoading(false);
   };
 
   return (

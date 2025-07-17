@@ -14,13 +14,6 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Log request data
-    console.log('Request Data:', {
-      url: config.url,
-      method: config.method,
-      data: config.data,
-      headers: config.headers
-    });
     return config;
   },
   (error) => {
@@ -31,48 +24,29 @@ axiosInstance.interceptors.request.use(
 // Add a response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Log response data
-    console.log('Response Data:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
     return response;
   },
   (error) => {
     if (error.response) {
-      // Log detailed error response
-      console.error('Error Response:', {
-        url: error.config.url,
-        method: error.config.method,
-        requestData: error.config.data,
-        status: error.response.status,
-        responseData: error.response.data,
-        headers: error.config.headers
-      });
+      const { status, data } = error.response;
+      const errorMessage = data?.message || data?.error || 'Aya masalah di server';
 
-      switch (error.response.status) {
+      switch (status) {
         case 401:
           localStorage.removeItem('ACCESS_TOKEN');
           window.location.href = '/login';
           break;
         case 422:
-          console.error('Validation Error:', error.response.data);
-          break;
+          throw new Error(`Validasi gagal: ${errorMessage}`);
         case 500:
-          console.error('Server Error:', error.response.data);
-          break;
+          throw new Error(`Server error: ${errorMessage}`);
         default:
-          console.error('API Error:', error.response.data);
+          throw new Error(`API error: ${errorMessage}`);
       }
     } else if (error.request) {
-      console.error('Network Error:', {
-        url: error.config.url,
-        method: error.config.method,
-        requestData: error.config.data
-      });
+      throw new Error('Koneksi ka server gagal, mangga cek koneksi internet anjeun!');
     } else {
-      console.error('Error:', error.message);
+      throw new Error(error.message || 'Aya kasalahan nu teu dipikawanoh');
     }
     return Promise.reject(error);
   }

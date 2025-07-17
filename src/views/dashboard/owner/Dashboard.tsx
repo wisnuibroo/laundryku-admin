@@ -1,76 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from "chart.js";
 
 import Sidebar from "../../../components/Sidebar";
 import CardStat from "../../../components/CardStat";
 import logo from "../../../assets/logo.png";
+import { getStatistik, StatistikData } from "../../../data/service/ApiService";
+// import My_EmployeeTabs from "../../../components/My_EmployeeTabs"; // uncomment if you have this component
 
-import { My_EmployeeSearch } from "../../../components/EmployeeSearch";
-import { My_EmployeeDialog } from "../../../components/EmployeeDialog";
-import { My_EmployeeList } from "../../../components/EmployeeList";
-import { My_EmployeeTabs } from "../../../components/EmployeeTap";
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-export default function EmployeesPage() {
+export default function OwnerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    position: "",
-    salary: "",
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+  const [stats, setStats] = useState<StatistikData>({
+    total_pendapatan: 0,
+    total_pesanan: 0,
+    total_pelanggan: 0,
+    pesanan_per_bulan: [],
+    pendapatan_per_bulan: []
   });
 
-  const employees = [
-    {
-      id: 1,
-      name: "Siti Nurhaliza",
-      email: "siti@laundry.com",
-      phone: "081234567890",
-      position: "Supervisor",
-      salary: 4500000,
-      joinDate: "2023-01-15",
-      status: "active",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 2,
-      name: "Ahmad Fauzi",
-      email: "ahmad@laundry.com",
-      phone: "081234567891",
-      position: "Operator Mesin",
-      salary: 3500000,
-      joinDate: "2023-03-20",
-      status: "active",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 3,
-      name: "Maya Sari",
-      email: "maya@laundry.com",
-      phone: "081234567892",
-      position: "Customer Service",
-      salary: 3200000,
-      joinDate: "2023-05-10",
-      status: "active",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 4,
-      name: "Budi Santoso",
-      email: "budi@laundry.com",
-      phone: "081234567893",
-      position: "Delivery",
-      salary: 3000000,
-      joinDate: "2023-07-01",
-      status: "active",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
+  const [searchTerm, setSearchTerm] = useState("");
+  const [employees, setEmployees] = useState<Array<{
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    position: string;
+    salary: number;
+    joinDate: string;
+    status: string;
+    avatar: string;
+  }>>([
     {
       id: 5,
       name: "Rina Wati",
@@ -115,7 +100,7 @@ export default function EmployeesPage() {
       status: "active",
       avatar: "/placeholder.svg?height=40&width=40",
     },
-  ];
+  ]);
 
   const filteredEmployees = employees.filter((emp) =>
     [emp.name, emp.position, emp.email].some((field) =>
@@ -123,24 +108,107 @@ export default function EmployeesPage() {
     )
   );
 
-   
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (!user.id_laundry) {
+          throw new Error("ID Laundry tidak ditemukan");
+        }
+        const data = await getStatistik(user.id_laundry);
+        setStats(data);
+        setError("");
+      } catch (error: any) {
+        setError(error.message || "Gagal mengambil data statistik");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+  const pesananChartData = {
+    labels: stats.pesanan_per_bulan.map((d) => d.bulan),
+    datasets: [
+      {
+        label: "Jumlah Pesanan",
+        data: stats.pesanan_per_bulan.map((d) => d.jumlah),
+        borderColor: "#222831",
+        backgroundColor: "rgba(34, 40, 49, 0.1)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const pendapatanChartData = {
+    labels: stats.pendapatan_per_bulan.map((d) => d.bulan),
+    datasets: [
+      {
+        label: "Pendapatan (Rp)",
+        data: stats.pendapatan_per_bulan.map((d) => d.jumlah),
+        borderColor: "#00ADB5",
+        backgroundColor: "rgba(0, 173, 181, 0.1)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#222831]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500 text-center">
+          <Icon icon="material-symbols:error" className="text-4xl mb-2" />
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar tetap di kiri */}
-      <div className="flex h-screen bg-gray-100">
-         <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      </div>
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-      {/* Konten utama digeser 64 (width sidebar) */}
-      <div className="flex-1  overflow-auto">
-        {/* Navbar */}
+      <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
-
           <div className="flex items-center gap-2">
             <img src={logo} alt="Laundry Logo" className="w-7 h-7 object-contain" />
             <span className="text-lg font-bold text-gray-900">Laundry Owner</span>
             <span className="ml-2 px-2 py-0.5 bg-green-100 text-xs text-gray-700 rounded">
-              Manajemen Karyawan
+              Dashboard
             </span>
           </div>
           <div className="flex items-center gap-6">
@@ -155,47 +223,77 @@ export default function EmployeesPage() {
         </nav>
 
         <div className="p-6">
+          {/* Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-           <CardStat
+            <CardStat
               icon={<Icon icon="streamline-cyber:money-bag-1" width={24} />}
               label="Total Pendapatan"
-              value="Rp. 130.000"
+              value={formatCurrency(stats.total_pendapatan)}
               subtitle="Bulan ini"
               iconColor="#222831"
             />
             <CardStat
               icon={<Icon icon="solar:box-linear" width={24} />}
               label="Total Pesanan"
-              value="30"
+              value={stats.total_pesanan.toString()}
               subtitle="Bulan ini"
               iconColor="#222831"
             />
             <CardStat
               icon={<Icon icon="stash:user-group-duotone" width={24} />}
               label="Total Pelanggan"
-              value="30"
+              value={stats.total_pelanggan.toString()}
               subtitle="Pelanggan Aktif"
               iconColor="#222831"
             />
-       
-         
           </div>
-{/* Tab Analitik */}
-<My_EmployeeTabs
-  isAddDialogOpen={isAddDialogOpen}
-  setIsAddDialogOpen={setIsAddDialogOpen}
-  newEmployee={newEmployee}
-  setNewEmployee={setNewEmployee}
-  searchTerm={searchTerm}
-  setSearchTerm={setSearchTerm}
-  filteredEmployees={filteredEmployees}
-/>
 
+          {/* Grafik */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Tren Pesanan</h3>
+              <Line data={pesananChartData} options={chartOptions} />
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Tren Pendapatan</h3>
+              <Line data={pendapatanChartData} options={chartOptions} />
+            </div>
+          </div>
 
- 
- 
+          {/* Manajemen Karyawan */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">Manajemen Karyawan</h3>
+            <input
+              type="text"
+              placeholder="Cari nama, posisi, atau email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded"
+            />
 
-       
+            <ul className="space-y-2">
+              {filteredEmployees.map((emp) => (
+                <li
+                  key={emp.id}
+                  className="flex justify-between items-center p-4 border rounded hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-4">
+                    <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full" />
+                    <div>
+                      <p className="font-semibold">{emp.name}</p>
+                      <p className="text-sm text-gray-500">{emp.position}</p>
+                    </div>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="text-gray-700">{emp.email}</p>
+                    <p className={`font-medium ${emp.status === "active" ? "text-green-600" : "text-red-500"}`}>
+                      {emp.status}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
