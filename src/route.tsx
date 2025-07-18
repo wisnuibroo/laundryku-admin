@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createHashRouter, Navigate } from "react-router-dom";
 import Login from "./views/Login";
 
 import DefaultLayout from "./components/DefaultLayout";
@@ -17,7 +17,8 @@ import TambahPesananPage from "./views/pesanan/TambahPesananPage";
 
 // import Register from "./views/register";
 
-const route = createBrowserRouter([
+// Menggunakan HashRouter untuk menghindari masalah refresh pada deployment
+const route = createHashRouter([
     {
         path: "/",
         element: <DefaultLayout />,

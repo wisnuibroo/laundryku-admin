@@ -6,10 +6,17 @@ import { RouterProvider } from 'react-router-dom'
 import route from './route.tsx'
 import { ContextProvider } from './contexts/ContextsProvider.tsx'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ContextProvider>
-      <RouterProvider router={route}/>
-    </ContextProvider>
-  </StrictMode>,
-)
+// Pastikan elemen root ada sebelum merender aplikasi
+const rootElement = document.getElementById('root')
+
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <ContextProvider>
+        <RouterProvider router={route}/>
+      </ContextProvider>
+    </StrictMode>,
+  )
+} else {
+  console.error('Elemen root tidak ditemukan!')
+}

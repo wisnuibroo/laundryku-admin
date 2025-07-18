@@ -1,22 +1,29 @@
 import axios from 'axios';
 
+const ACCESS_TOKEN = 'ACCESS_TOKEN';
+const USER_TYPE = 'USER_TYPE';
+const USER_DATA = 'USER_DATA';
+
 const axiosInstance = axios.create({
   baseURL: 'https://laundryku.rplrus.com/api',
+  timeout: 15000, // 15 detik timeout
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('ACCESS_TOKEN');
+    const token = localStorage.getItem(ACCESS_TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -33,21 +40,41 @@ axiosInstance.interceptors.response.use(
 
       switch (status) {
         case 401:
-          localStorage.removeItem('ACCESS_TOKEN');
-          window.location.href = '/login';
+          // Hapus semua data autentikasi
+          localStorage.removeItem(ACCESS_TOKEN);
+          localStorage.removeItem(USER_TYPE);
+          localStorage.removeItem(USER_DATA);
+          // Gunakan format hash router
+          window.location.href = '/#/login';
           break;
         case 422:
-          throw new Error(`Validasi gagal: ${errorMessage}`);
+          console.error(`Validasi gagal: ${errorMessage}`);
+          return Promise.reject({
+            errors: data?.errors || { general: [errorMessage] },
+          });
         case 500:
-          throw new Error(`Server error: ${errorMessage}`);
+          console.error(`Server error: ${errorMessage}`);
+          return Promise.reject({
+            errors: { general: [`Server error: ${errorMessage}`] },
+          });
         default:
-          throw new Error(`API error: ${errorMessage}`);
+          console.error(`API error (${status}): ${errorMessage}`);
+          return Promise.reject({
+            errors: { general: [errorMessage] },
+          });
       }
     } else if (error.request) {
-      throw new Error('Koneksi ka server gagal, mangga cek koneksi internet anjeun!');
+      console.error('Network error - no response:', error.request);
+      return Promise.reject({
+        errors: { general: ['Koneksi ka server gagal, mangga cek koneksi internet anjeun!'] },
+      });
     } else {
-      throw new Error(error.message || 'Aya kasalahan nu teu dipikawanoh');
+      console.error('Error:', error.message);
+      return Promise.reject({
+        errors: { general: [error.message || 'Aya kasalahan nu teu dipikawanoh'] },
+      });
     }
+    
     return Promise.reject(error);
   }
 );
