@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useStateContext } from "../contexts/ContextsProvider";
 import axiosInstance from "../utils/axios";
 
-export default function AdminLogin() {
+export default function Login() {
   const { setUser, setToken, setUserType } = useStateContext();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -43,7 +43,7 @@ export default function AdminLogin() {
         setUser(admin);
         setToken(token);
         setUserType('admin');
-        navigate("/admin/dashboard");
+        navigate("/dashboard/admin");
       } else {
         const response = await axiosInstance.post('/owner/login', {
           name: formData.name,

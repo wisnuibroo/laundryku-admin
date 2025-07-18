@@ -11,19 +11,20 @@ import SettingsPage from "./views/settings/SettingsPage";
 import TagihanPage from "./views/tagihan/TagihanPage";
 import Dashboard from "./views/dashboard/admin/Dashboard";
 import EmployeesPage from "./views/dashboard/owner/Dashboard";
+import TambahPesananPage from "./views/pesanan/TambahPesananPage";
 
 
 
 // import Register from "./views/register";
 
-const router = createBrowserRouter([
+const route = createBrowserRouter([
     {
         path: "/",
         element: <DefaultLayout />,
         children: [
             {
                 path: "/",
-                element: <Navigate to="dashboard/admin" />
+                element: <Navigate to="/login" />
             },
             {
                 path: "/dashboard/admin",
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
                 element: <PesananPage />
             },
             {
+                path: "/pesanan/tambah",
+                element: <TambahPesananPage />
+            },
+            {
                 path: "/tagihan",
                 element: <TagihanPage />
             },
@@ -48,6 +53,10 @@ const router = createBrowserRouter([
             {
                 path: "/settings",
                 element: <SettingsPage />
+            },
+           {
+                path: "/login",
+                element: <Login />
             },
            
           
@@ -70,4 +79,4 @@ const router = createBrowserRouter([
 ]);
 
 
-export default router;
+export default route;

@@ -35,27 +35,13 @@ export default function DefaultLayout() {
   return (
     <div id="defaultLayout">
       {/* Sidebar */}
-      <aside>
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/dashboard"> dan </Link>
-        <Link to="/users">Users</Link>
-      </aside>
-      <div className="content">
-        {/* Header */}
-        <header>
-          <div>
-            {user?.name}
-            <a href="#" onClick={onLogout} className="btn-logout">
-              Logout
-            </a>
-          </div>
-        </header>
+     
 
         {/* Content */}
         <main>
           <Outlet />
         </main>
       </div>
-    </div>
+
   );
 }
