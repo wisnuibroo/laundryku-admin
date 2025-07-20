@@ -1,4 +1,4 @@
-import axiosInstance from "../../utils/axios";
+import axiosInstance from "../../lib/axios";
 import { Pesanan } from "../model/Pesanan";
 
 export interface Person {

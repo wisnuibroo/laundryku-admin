@@ -114,7 +114,8 @@ export default function OwnerDashboard() {
       try {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
         if (!user.id_laundry) {
-          throw new Error("ID Laundry tidak ditemukan");
+          throw new Error("ID Laundry tidak ditemukan"),
+          console.log('ID Tidak ditemukan')
         }
         const data = await getStatistik(user.id_laundry);
         setStats(data);
