@@ -13,6 +13,7 @@ import Dashboard from "./views/dashboard/admin/Dashboard";
 import EmployeesPage from "./views/dashboard/owner/Dashboard";
 import TambahPesananPage from "./views/pesanan/TambahPesananPage";
 import OwnerDashboard from "./views/dashboard/owner/Dashboard";
+import KelolaKaryawan from "./views/dashboard/owner/KelolaKaryawan";
 
 
 
@@ -53,17 +54,21 @@ const route = createBrowserRouter([
         element: <TambahPesananPage />
       },
       {
-        path: "/tagihan",
-        element: <TagihanPage />
+        path: "/dashboard/owner/kelolakaryawan",
+        element: <KelolaKaryawan />
       },
-      {
-        path: "/riwayat",
-        element: <RiwayatPage />
-      },
-      {
-        path: "/settings",
-        element: <SettingsPage />
-      }
+      // {
+      //   path: "/tagihan",
+      //   element: <TagihanPage />
+      // },
+      // {
+      //   path: "/riwayat",
+      //   element: <RiwayatPage />
+      // },
+      // {
+      //   path: "/settings",
+      //   element: <SettingsPage />
+      // }
     ]
   },
   {
