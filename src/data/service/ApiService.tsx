@@ -79,3 +79,25 @@ export const getStatistik = async (id_laundry: number): Promise<StatistikData> =
     throw new Error(error.message || "Gagal mengambil data statistik");
   }
 };
+
+interface TambahKaryawanInput {
+  name: string;
+  phone: string;
+  alamat: string;
+  catatan?: string;
+  total_harga: number;
+  jenis_pembayaran: string;
+  id_laundry: number;
+}
+
+export const tambahKaryawan = async (data: TambahKaryawanInput): Promise<void> => {
+  try {
+    const response = await axiosInstance.post("/", data);
+    if (response.status !== 201 && response.status !== 200) {
+      throw new Error("Gagal menambahkan pesanan");
+    }
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || "Gagal menambahkan pesanan";
+    throw new Error(errorMessage);
+  }
+};

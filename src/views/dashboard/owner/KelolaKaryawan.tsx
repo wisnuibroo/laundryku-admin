@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function KelolaKaryawan() {
   const navigate = useNavigate();
+  const [openDialog, setOpenDialog] = useState(false);
+
   const [searchText, setSearchText] = useState("");
   const [employees, setEmployees] = useState<Array<{
     id: number;
@@ -161,13 +163,43 @@ export default function KelolaKaryawan() {
            </div>
          
          
-            <button
-      onClick={() => navigate("/karyawan/tambah")}
-      className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition"
-    >
-      <Icon icon="tabler:user-plus" className="w-5 h-5" />
-      <span className="font-semibold">Tambah Karyawan</span>
-    </button>
+          <button
+              onClick={() => setOpenDialog(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition">
+            <Icon icon="tabler:user-plus" className="w-5 h-5" />
+            <span className="font-semibold">Tambah Karyawan</span>
+          </button>
+
+      {openDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-md">
+            <h2 className="text-xl font-bold mb-4">Tambah Karyawan</h2>
+            <form>
+              <input
+                type="text"
+                placeholder="Nama"
+                className="w-full border p-2 rounded mb-3"/>
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full border p-2 rounded mb-3"/>
+              <input
+                type="password"
+                placeholder="Password"
+                className="w-full border p-2 rounded mb-3"/>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenDialog(false)}
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
          </div>
 
 
@@ -194,9 +226,7 @@ export default function KelolaKaryawan() {
               ))}
             </ul>
           </div>
+       </div>
     </div>
-    </div>
-
-    
   );
 }
