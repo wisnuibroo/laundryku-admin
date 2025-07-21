@@ -13,6 +13,9 @@ import Dashboard from "./views/dashboard/admin/Dashboard";
 import EmployeesPage from "./views/dashboard/owner/Dashboard";
 import TambahPesananPage from "./views/pesanan/TambahPesananPage";
 import OwnerDashboard from "./views/dashboard/owner/Dashboard";
+import KelolaKaryawanPage from "./views/dashboard/owner/KelolaKaryawanPage";
+import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
+import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
 
 
 
@@ -53,17 +56,30 @@ const route = createBrowserRouter([
         element: <TambahPesananPage />
       },
       {
-        path: "/tagihan",
-        element: <TagihanPage />
+        path: "/dashboard/owner/kelolakaryawan",
+        element: <KelolaKaryawanPage />
       },
       {
-        path: "/riwayat",
-        element: <RiwayatPage />
+        path: "/dashboard/owner/tagihan/belum-bayar",
+        element: <TagihanBlmByrPage />
       },
       {
-        path: "/settings",
-        element: <SettingsPage />
-      }
+        path: "/dashboard/owner/tagihan/lunas",
+        element: <TagihanLunasPage />
+      },
+
+      // {
+      //   path: "/tagihan",
+      //   element: <TagihanPage />
+      // },
+      // {
+      //   path: "/riwayat",
+      //   element: <RiwayatPage />
+      // },
+      // {
+      //   path: "/settings",
+      //   element: <SettingsPage />
+      // }
     ]
   },
   {
