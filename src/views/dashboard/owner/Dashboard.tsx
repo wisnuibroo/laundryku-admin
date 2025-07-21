@@ -155,6 +155,7 @@ export default function OwnerDashboard() {
             title="Tagihan Belum Bayar"
             subtitle="Kelola pembayaran"
             bgColor="#E53935"
+            to="/dashboard/owner/tagihan/belum-bayar"
           />
           <CardManage
             icon="mdi:check-circle-outline"

@@ -2,11 +2,10 @@ import { Icon } from "@iconify/react";
 import CardStat from "../../../components/CardStat";
 import { useState, useEffect } from "react";
 import Search from "../../../components/search";
-import { Button } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
 
 
-export default function KelolaKaryawan() {
+export default function KelolaKaryawanPage() {
   const navigate = useNavigate();
   const [openDialog, setOpenDialog] = useState(false);
 
