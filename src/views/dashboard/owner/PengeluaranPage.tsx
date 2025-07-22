@@ -210,12 +210,12 @@ function formatRupiah(number: number) {
         <div className="flex gap-4 mb-6">
           <button
             onClick={() => navigate("/dashboard/owner/laporan-keuangan")}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-blue-700 text-white font-semibold shadow">
+            className="flex items-center gap-2 px-4 py-2 rounded border border-gray-300 bg-white text-black font-semibold shadow">
             <Icon icon="mdi:credit-card-outline" width={18} />Bulanan
           </button>
           <button
             onClick={() => navigate("/dashboard/owner/laporan-pengeluaran")}
-            className="flex items-center gap-2 px-4 py-2 rounded border border-gray-300 bg-white text-black font-semibold shadow">
+            className="flex items-center gap-2 px-4 py-2 rounded bg-red-700 text-white font-semibold shadow">
             <Icon icon="mdi:credit-card-outline" width={18} />Pengeluaran
           </button>
         </div>
@@ -227,9 +227,9 @@ function formatRupiah(number: number) {
        
          <button
            onClick={() => setOpenDialog(true)}
-           className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition"
+           className="flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition"
          >
-           <Icon icon="tabler:user-plus" className="w-5 h-5" />
+           <Icon icon="ic:sharp-plus" className="w-5 h-5" />
            <span className="font-semibold">Tambah Pengeluaran</span>
          </button>
        </div>
