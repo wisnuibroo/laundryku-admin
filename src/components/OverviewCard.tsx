@@ -37,12 +37,12 @@ const OverviewCard = () => {
               Ringkasan pesanan hari ini
             </p>
             <div className="space-y-3">
-              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-yellow-100">
+              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-blue-100">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                  ⏰ Pending
+                  ⏰ Diproses
                 </div>
-                <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-900">
-                  23
+                <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500 text-white">
+                  12
                 </div>
               </div>
               <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-green-100">
@@ -51,14 +51,6 @@ const OverviewCard = () => {
                 </div>
                 <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white">
                   319
-                </div>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-red-100">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                  ⚠️ Tagihan Belum Bayar
-                </div>
-                <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white">
-                  12
                 </div>
               </div>
             </div>

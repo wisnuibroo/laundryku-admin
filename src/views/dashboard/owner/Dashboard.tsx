@@ -147,14 +147,14 @@ export default function OwnerDashboard() {
             icon="mdi:account-plus"
             title="Kelola Karyawan"
             subtitle="Tambah & kelola tim"
-            bgColor="#0065F8"
+            bgColor="#9B35EC"
             to="/dashboard/owner/kelolakaryawan"
           />
            <CardManage
             icon="uil:chart-bar"
             title="Laporan Keuangan"
             subtitle="Analisis bisnis"
-            bgColor="#43A047"
+            bgColor="#217ccc"
             to="/dashboard/owner/laporan-keuangan"
           />
           <CardManage
@@ -166,10 +166,11 @@ export default function OwnerDashboard() {
           />
          
           <CardManage
-            icon="weui:setting-filled"
-            title="Pengaturan"
-            subtitle="Analisis bisnis"
-            bgColor="#9B35EC"
+            icon="mdi:check-bold"
+            title="Lunas"
+            subtitle="Pembayaran"
+            bgColor="#43A047"
+            to="/dashboard/owner/tagihan/lunas"
           />
         </div>
  

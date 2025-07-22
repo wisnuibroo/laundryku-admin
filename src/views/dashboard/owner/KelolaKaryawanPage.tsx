@@ -15,9 +15,6 @@ export default function KelolaKaryawanPage() {
     name: string;
     email: string;
     phone: string;
-    position: string;
-    salary: number;
-    joinDate: string;
     status: string;
     avatar: string;
   }>>([
@@ -26,9 +23,6 @@ export default function KelolaKaryawanPage() {
       name: "Rina Wati",
       email: "rina@laundry.com",
       phone: "081234567894",
-      position: "Operator Setrika",
-      salary: 3200000,
-      joinDate: "2023-08-15",
       status: "inactive",
       avatar: "/placeholder.svg?height=40&width=40",
     },
@@ -37,9 +31,6 @@ export default function KelolaKaryawanPage() {
       name: "Dedi Kurniawan",
       email: "dedi@laundry.com",
       phone: "081234567895",
-      position: "Operator Mesin",
-      salary: 3500000,
-      joinDate: "2023-09-01",
       status: "active",
       avatar: "/placeholder.svg?height=40&width=40",
     },
@@ -48,9 +39,6 @@ export default function KelolaKaryawanPage() {
       name: "Lina Marlina",
       email: "lina@laundry.com",
       phone: "081234567896",
-      position: "Quality Control",
-      salary: 3800000,
-      joinDate: "2023-10-10",
       status: "active",
       avatar: "/placeholder.svg?height=40&width=40",
     },
@@ -59,9 +47,6 @@ export default function KelolaKaryawanPage() {
       name: "Rudi Hartono",
       email: "rudi@laundry.com",
       phone: "081234567897",
-      position: "Maintenance",
-      salary: 4000000,
-      joinDate: "2023-11-01",
       status: "active",
       avatar: "/placeholder.svg?height=40&width=40",
     },
@@ -95,7 +80,7 @@ export default function KelolaKaryawanPage() {
   
 
   const filteredEmployees = employees.filter((emp) =>
-    [emp.name, emp.position, emp.email].some((field) =>
+    [emp.name, emp.email].some((field) =>
       field.toLowerCase().includes(searchText.toLowerCase())
     )
   );
@@ -178,6 +163,10 @@ export default function KelolaKaryawanPage() {
                 type="text"
                 placeholder="Nama"
                 className="w-full border p-2 rounded mb-3"/>
+                <input
+                type="text"
+                placeholder="Nomor HP"
+                className="w-full border p-2 rounded mb-3"/>
               <input
                 type="email"
                 placeholder="Email"
@@ -193,7 +182,7 @@ export default function KelolaKaryawanPage() {
                   className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Simpan</button>
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tambahkan</button>
               </div>
             </form>
           </div>
@@ -212,7 +201,7 @@ export default function KelolaKaryawanPage() {
                     <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full" />
                     <div>
                       <p className="font-semibold">{emp.name}</p>
-                      <p className="text-sm text-gray-500">{emp.position}</p>
+                      <p className="font-light text-sm">{emp.phone}</p>
                     </div>
                   </div>
                   <div className="text-right text-sm">

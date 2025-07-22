@@ -71,8 +71,8 @@ export default function Login() {
     try {
       if (isLogin) {
         if (role === "admin") {
-          const response = await axiosInstance.post("/admin/login", {
-            name: formData.name,
+          const response = await axiosInstance.post("/owner/login", {
+            email: formData.name,
             password: formData.password,
           })
           const { admin, token } = response.data
