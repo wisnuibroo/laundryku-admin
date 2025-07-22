@@ -176,7 +176,7 @@ export default function TagihanBlmByrPage() {
           </button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow mt-5">
+        <div className="bg-white p-6 rounded-lg shadow mt-5 border">
           <h3 className="text-3xl font-semibold">Tagihan Belum Bayar (Dikelompokkan per Pelanggan)</h3>
           <h2>Klik nama pelanggan untuk melihat detail tagihan</h2>
 

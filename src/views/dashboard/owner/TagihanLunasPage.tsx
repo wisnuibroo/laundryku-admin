@@ -180,7 +180,7 @@ export default function TagihanLunasPage() {
           </button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow mt-5">
+        <div className="bg-white p-6 rounded-lg shadow mt-5 border">
           <h3 className="text-3xl font-semibold">Riwayat Tagihan Lunas</h3>
           <h2>Daftar semua pembayaran yang sudah diterima</h2>
 
