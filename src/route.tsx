@@ -16,6 +16,7 @@ import OwnerDashboard from "./views/dashboard/owner/Dashboard";
 import KelolaKaryawanPage from "./views/dashboard/owner/KelolaKaryawanPage";
 import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
 import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
+import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 
 
 
@@ -55,6 +56,11 @@ const route = createBrowserRouter([
         path: "/pesanan/tambah",
         element: <TambahPesananPage />
       },
+      {
+        path: "/dashboard/owner/laporan-keuangan",
+        element: <LaporanKeunganPage />
+      },
+
       {
         path: "/dashboard/owner/kelolakaryawan",
         element: <KelolaKaryawanPage />
