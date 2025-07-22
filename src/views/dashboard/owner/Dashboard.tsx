@@ -18,7 +18,8 @@ import {
 import Sidebar from "../../../components/Sidebar";
 import CardStat from "../../../components/CardStat";
 import logo from "../../../assets/logo.png";
-import { getStatistik, StatistikData } from "../../../data/service/ApiService";
+import ownerService from "../../../data/service/ownerService";
+import { useStateContext } from "../../../contexts/ContextsProvider";
 import CardManage from "../../../components/CardManage";
 import OverviewSection from "../../../components/OverviewCard";
 // import My_EmployeeTabs from "../../../components/My_EmployeeTabs"; // uncomment if you have this component
@@ -33,17 +34,36 @@ ChartJS.register(
   Legend
 );
 
+interface DashboardStats {
+  total_pesanan: number;
+  total_pendapatan: number;
+  pesanan_by_status: {
+    baru: number;
+    proses: number;
+    selesai: number;
+    diambil: number;
+    dibatalkan: number;
+  };
+  pesanan_terbaru: any[];
+}
+
 export default function OwnerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [stats, setStats] = useState<StatistikData>({
-    total_pendapatan: 0,
+  const { user, token } = useStateContext();
+  const [stats, setStats] = useState<DashboardStats>({
     total_pesanan: 0,
-    total_pelanggan: 0,
-    pesanan_per_bulan: [],
-    pendapatan_per_bulan: []
+    total_pendapatan: 0,
+    pesanan_by_status: {
+      baru: 0,
+      proses: 0,
+      selesai: 0,
+      diambil: 0,
+      dibatalkan: 0
+    },
+    pesanan_terbaru: []
   });
 
  
@@ -52,22 +72,23 @@ export default function OwnerDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        if (!user.id_laundry) {
-          throw new Error("ID Laundry tidak ditemukan"),
-          console.log('ID Tidak ditemukan')
+        if (!token) {
+          navigate('/login');
+          return;
         }
-        const data = await getStatistik(user.id_laundry);
+        
+        const data = await ownerService.getDashboardStats();
         setStats(data);
         setError("");
       } catch (error: any) {
+        console.error('Error fetching dashboard stats:', error);
         setError(error.message || "Gagal mengambil data statistik");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [token, navigate]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -126,16 +147,16 @@ export default function OwnerDashboard() {
             />
             <CardStat
               icon={<Icon icon="stash:user-group-duotone" width={24} />}
-              label="Karyawan Aktif"
-              value={stats.total_pelanggan.toString()}
-              subtitle="Sedang Bekerja"
+              label="Pesanan Baru"
+              value={stats.pesanan_by_status.baru.toString()}
+              subtitle="Menunggu Proses"
               iconColor="#9929EA"
             />
             <CardStat
               icon={<Icon icon="material-symbols:warning-outline-rounded" width={24} />}
-              label="Tagihan Pending"
-              value={stats.total_pelanggan.toString()}
-              subtitle="Rp."
+              label="Pesanan Proses"
+              value={stats.pesanan_by_status.proses.toString()}
+              subtitle="Sedang Dikerjakan"
               iconColor="#EB5B00"
             />
           </div>

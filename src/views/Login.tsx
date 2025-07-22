@@ -71,7 +71,7 @@ export default function Login() {
     try {
       if (isLogin) {
         if (role === "admin") {
-          const response = await axiosInstance.post("/owner/login", {
+          const response = await axiosInstance.post("/admin/login", {
             email: formData.name,
             password: formData.password,
           })
@@ -86,7 +86,12 @@ export default function Login() {
             password: formData.password,
           })
           const { owner, token } = response.data
-          setUser(owner)
+          // Tambahkan id_laundry yang sama dengan owner id untuk kompatibilitas
+          const ownerWithLaundryId = {
+            ...owner,
+            id_laundry: owner.id
+          }
+          setUser(ownerWithLaundryId)
           setToken(token)
           setUserType("owner")
           navigate("/dashboard/owner")
