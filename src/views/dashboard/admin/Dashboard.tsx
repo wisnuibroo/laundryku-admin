@@ -250,28 +250,6 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) =>
-                  setDateRange((prev) => ({ ...prev, start: e.target.value }))
-                }
-                className="px-2 py-1 border rounded text-sm"
-              />
-              <span className="text-gray-500">-</span>
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) =>
-                  setDateRange((prev) => ({ ...prev, end: e.target.value }))
-                }
-                className="px-2 py-1 border rounded text-sm"
-              />
-            </div>
-            <button className="text-gray-500 hover:text-gray-700">
-              <Icon icon="mdi:bell-outline" width={22} />
-            </button>
             <div className="flex items-center gap-2">
               <Icon
                 icon="mdi:account-circle-outline"
@@ -437,15 +415,7 @@ export default function Dashboard() {
                         <td className="px-4 py-3">
                           Rp {item.jumlah_harga?.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3">{item.status}</td>
-                        <td className="px-4 py-3">
-                          {new Date(item.created_at).toLocaleDateString('id-ID', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </td>
-                        <td className="px-4 py-3">
+                         <td className="px-4 py-3">
                           <select
                             value={item.status}
                             disabled={false}
@@ -458,6 +428,19 @@ export default function Dashboard() {
                             <option value="dikembalikan">Dikembalikan</option>
                           </select>
                         </td>
+                        <td className="px-4 py-3">
+                          {new Date(item.created_at).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+
+
+
+
+      
+    
                       </tr>
                     ))
                   ) : (
