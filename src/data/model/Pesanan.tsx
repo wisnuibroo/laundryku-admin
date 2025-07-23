@@ -2,69 +2,81 @@ import { useState } from "react";
 
 export interface Pesanan {
   id: number;
-  id_user: number;
-  id_laundry: number;
-  tanggal_pesanan: string;
-  status: string;
-  total_harga: string;
-  jenis_pembayaran: string;
-  tgl_langganan_berakhir: string;
-  name: string;
-  phone: string;
+  id_owner: number;
+  id_admin?: number;
+  nama_pelanggan: string;
+  nomor: string;
   alamat: string;
-  waktu_ambil: string;
-  catatan: string;
-  info_pesanan: string;
-  user?: {
+  layanan: string;
+  berat?: number;
+  jumlah_harga?: number;
+  status: "pending" | "diproses" | "selesai" | "dikembalikan";
+  jenis_pembayaran?: "cash" | "transfer";
+  created_at: string;
+  updated_at: string;
+  owner?: {
     id: number;
-    name: string;
-    phone: string;
+    username: string;
+    nama_laundry: string;
+  };
+  admin?: {
+    id: number;
+    username: string;
+    nama_laundry: string;
   };
 }
 
 export class PesananImpl implements Pesanan {
   constructor(
     public id: number,
-    public id_user: number,
-    public id_laundry: number,
-    public tanggal_pesanan: string,
-    public status: string,
-    public total_harga: string,
-    public jenis_pembayaran: string,
-    public tgl_langganan_berakhir: string,
-    public name: string,
-    public phone: string,
+    public id_owner: number,
+    public nama_pelanggan: string,
+    public nomor: string,
     public alamat: string,
-    public waktu_ambil: string,
-    public catatan: string,
-    public info_pesanan: string,
-    public user?: {
+    public layanan: string,
+    public status: "pending" | "diproses" | "selesai" | "dikembalikan",
+    public created_at: string,
+    public updated_at: string,
+    public id_admin?: number,
+    public berat?: number,
+    public jumlah_harga?: number,
+    public jenis_pembayaran?: "cash" | "transfer",
+    public owner?: {
       id: number;
-      name: string;
-      phone: string;
+      username: string;
+      nama_laundry: string;
+    },
+    public admin?: {
+      id: number;
+      username: string;
+      nama_laundry: string;
     }
   ) {}
 
   static fromJson(json: Record<string, any>): PesananImpl {
     return new PesananImpl(
       parseInt(json['id'].toString()),
-      parseInt(json['id_user'].toString()),
-      parseInt(json['id_laundry'].toString()),
-      json['tanggal_pesanan'],
-      json['status'],
-      json['total_harga'],
-      json['jenis_pembayaran'],
-      json['tgl_langganan_berakhir'],
-      json['name'],
-      json['phone'],
+      parseInt(json['id_owner'].toString()),
+      json['nama_pelanggan'],
+      json['nomor'],
       json['alamat'],
-      json['waktu_ambil'],
-      json['catatan'],
-      json['info_pesanan'],
-      json['user'] ? {
-        id: parseInt(json['user']['id'].toString()),
-        name: json['user']['name'],
-        phone: json['user']['phone']
+      json['layanan'],
+      json['status'],
+      json['created_at'],
+      json['updated_at'],
+      json['id_admin'] ? parseInt(json['id_admin'].toString()) : undefined,
+      json['berat'] ? parseFloat(json['berat'].toString()) : undefined,
+      json['jumlah_harga'] ? parseFloat(json['jumlah_harga'].toString()) : undefined,
+      json['jenis_pembayaran'],
+      json['owner'] ? {
+        id: parseInt(json['owner']['id'].toString()),
+        username: json['owner']['username'],
+        nama_laundry: json['owner']['nama_laundry']
+      } : undefined,
+      json['admin'] ? {
+        id: parseInt(json['admin']['id'].toString()),
+        username: json['admin']['username'],
+        nama_laundry: json['admin']['nama_laundry']
       } : undefined
     );
   }
@@ -72,22 +84,23 @@ export class PesananImpl implements Pesanan {
   toJson(): Record<string, any> {
     return {
       id: this.id,
-      id_user: this.id_user,
-      id_laundry: this.id_laundry,
-      tanggal_pesanan: this.tanggal_pesanan,
-      status: this.status,
-      total_harga: this.total_harga,
-      jenis_pembayaran: this.jenis_pembayaran,
-      tgl_langganan_berakhir: this.tgl_langganan_berakhir,
-      name: this.name,
-      phone: this.phone,
+      id_owner: this.id_owner,
+      id_admin: this.id_admin,
+      nama_pelanggan: this.nama_pelanggan,
+      nomor: this.nomor,
       alamat: this.alamat,
-      waktu_ambil: this.waktu_ambil,
-      catatan: this.catatan,
-      info_pesanan: this.info_pesanan,
-      user: this.user
+      layanan: this.layanan,
+      berat: this.berat,
+      jumlah_harga: this.jumlah_harga,
+      status: this.status,
+      jenis_pembayaran: this.jenis_pembayaran,
+      created_at: this.created_at,
+      updated_at: this.updated_at,
+      owner: this.owner,
+      admin: this.admin
     };
   }
-}
+  }
+
 
 const [pesanan, setPesanan] = useState<Pesanan[]>([]);

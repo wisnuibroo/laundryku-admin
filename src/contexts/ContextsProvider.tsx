@@ -4,17 +4,13 @@ const ACCESS_TOKEN = "ACCESS_TOKEN";
 const USER_TYPE = "USER_TYPE";
 const USER_DATA = "USER_DATA";
 
-// Tipe data untuk user/admin
-interface User {
-    id?: number;
-    name: string;
-    email?: string;
-    phone?: string;
-    id_laundry?: number;
-    laundry?: {
-        id: number;
-        name: string;
-    };
+// Tipe data untuk user/admin/owner
+export interface User {
+    id: number;
+    name?: string;        // untuk admin
+    username?: string;    // untuk owner
+    email: string;
+    nama_laundry?: string; // untuk owner
 }
 
 // Tipe data untuk konteks

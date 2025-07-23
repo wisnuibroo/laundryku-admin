@@ -86,12 +86,7 @@ export default function Login() {
             password: formData.password,
           })
           const { owner, token } = response.data
-          // Tambahkan id_laundry yang sama dengan owner id untuk kompatibilitas
-          const ownerWithLaundryId = {
-            ...owner,
-            id_laundry: owner.id
-          }
-          setUser(ownerWithLaundryId)
+          setUser(owner)
           setToken(token)
           setUserType("owner")
           navigate("/dashboard/owner")

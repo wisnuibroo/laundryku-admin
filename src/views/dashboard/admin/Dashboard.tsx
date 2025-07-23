@@ -14,12 +14,13 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import Sidebar from "../../../components/Sidebar";
 import CardStat from "../../../components/CardStat";
 import logo from "../../../assets/logo.png";
 import { getUrl, updateStatusPesanan } from "../../../data/service/ApiService";
 import { useStateContext } from "../../../contexts/ContextsProvider";
 import { Pesanan } from "../../../data/model/Pesanan";
+import TambahPesananPage from "../../pesanan/TambahPesananPage";
+import { getPesanan } from "../../../data/service/pesananService";
 
 ChartJS.register(
   CategoryScale,
@@ -50,23 +51,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchPesanan = async () => {
-      if (!user?.id_laundry) {
-        setError("ID Laundry teu kapanggih");
+      if (!user?.id) {
+        setError("ID Owner tidak ditemukan");
         setLoading(false);
         return;
       }
       try {
-        await getUrl(setPesanan, Number(user.id_laundry));
+        const data = await getPesanan(Number(user.id));
+        setPesanan(data);
         setError("");
       } catch (error: any) {
-        setError(error.message || "Gagal nyandak data pesanan");
+        setError(error.message || "Gagal mengambil data pesanan");
         setPesanan([]);
       } finally {
         setLoading(false);
       }
     };
     fetchPesanan();
-  }, [user?.id_laundry]);
+  }, [user?.id]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -92,42 +94,64 @@ export default function Dashboard() {
     }));
   };
 
-  const filteredPesanan = pesanan.filter((p) => {
-    const orderDate = new Date(p.tanggal_pesanan);
-    const startDate = new Date(dateRange.start);
-    const endDate = new Date(dateRange.end);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
-    const matchesDate = orderDate >= startDate && orderDate <= endDate;
-    const matchesStatus = filterStatus ? p.status.toLowerCase() === filterStatus.toLowerCase() : true;
-    const keyword = searchKeyword.toLowerCase();
-    const matchesKeyword =
-      p.user?.name.toLowerCase().includes(keyword) ||
-      p.alamat.toLowerCase().includes(keyword) ||
-      p.catatan.toLowerCase().includes(keyword);
-    return matchesDate && matchesStatus && (searchKeyword ? matchesKeyword : true);
-  });
+  // Pastikan pesanan adalah array sebelum menggunakan filter
+  const filteredPesanan = Array.isArray(pesanan)
+    ? pesanan.filter((p) => {
+        const orderDate = new Date(p.created_at);
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        const matchesDate = orderDate >= startDate && orderDate <= endDate;
+        const matchesStatus = filterStatus
+          ? p.status.toLowerCase() === filterStatus.toLowerCase()
+          : true;
+        const keyword = searchKeyword.toLowerCase();
+        const matchesKeyword =
+          p.nama_pelanggan.toLowerCase().includes(keyword) ||
+          p.alamat.toLowerCase().includes(keyword) ||
+          p.nomor.toLowerCase().includes(keyword) ||
+          p.layanan.toLowerCase().includes(keyword);
+        return (
+          matchesDate &&
+          matchesStatus &&
+          (searchKeyword ? matchesKeyword : true)
+        );
+      })
+    : [];
 
-const handleStatusChange = async (id: number, newStatus: string) => {
+  const handleStatusChange = async (
+    id: number,
+    newStatus: "pending" | "diproses" | "selesai" | "dikembalikan"
+  ) => {
     try {
       await updateStatusPesanan(id, newStatus);
-      setPesanan((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
-      );
-      if (newStatus === "Selesai") navigate("/tagihan");
+      setPesanan((prev) => {
+        if (Array.isArray(prev)) {
+          return prev.map((item) =>
+            item.id === id ? { ...item, status: newStatus } : item
+          );
+        }
+        return [];
+      });
+      if (newStatus === "selesai") navigate("/tagihan");
     } catch (error: any) {
       alert(error.message || "Gagal mengubah status");
     }
   };
 
-  const totalPesanan = filteredPesanan.length;
-  const menungguKonfirmasi = filteredPesanan.filter(
-    (p) => p.status === "Menunggu Konfirmasi"
-  ).length;
-  const dalamProses = filteredPesanan.filter(
-    (p) => p.status === "Diproses"
-  ).length;
-  const selesai = filteredPesanan.filter((p) => p.status === "Selesai").length;
+  const totalPesanan = Array.isArray(filteredPesanan)
+    ? filteredPesanan.length
+    : 0;
+  const menungguKonfirmasi = Array.isArray(filteredPesanan)
+    ? filteredPesanan.filter((p) => p.status === "pending").length
+    : 0;
+  const dalamProses = Array.isArray(filteredPesanan)
+    ? filteredPesanan.filter((p) => p.status === "diproses").length
+    : 0;
+  const selesai = Array.isArray(filteredPesanan)
+    ? filteredPesanan.filter((p) => p.status === "selesai").length
+    : 0;
 
   const getMonthlyData = () => {
     const months = [];
@@ -141,13 +165,15 @@ const handleStatusChange = async (id: number, newStatus: string) => {
         month: "short",
         year: "numeric",
       });
-      const count = filteredPesanan.filter((p) => {
-        const orderDate = new Date(p.tanggal_pesanan);
-        return (
-          orderDate.getMonth() === currentDate.getMonth() &&
-          orderDate.getFullYear() === currentDate.getFullYear()
-        );
-      }).length;
+      const count = Array.isArray(filteredPesanan)
+        ? filteredPesanan.filter((p) => {
+            const orderDate = new Date(p.created_at);
+            return (
+              orderDate.getMonth() === currentDate.getMonth() &&
+              orderDate.getFullYear() === currentDate.getFullYear()
+            );
+          }).length
+        : 0;
       months.push(month);
       counts.push(count);
       currentDate.setMonth(currentDate.getMonth() + 1);
@@ -189,6 +215,17 @@ const handleStatusChange = async (id: number, newStatus: string) => {
         },
       },
     },
+  };
+
+  const refreshPesanan = async () => {
+    if (user?.id) {
+      try {
+        const data = await getPesanan(Number(user.id));
+        setPesanan(data);
+      } catch (error: any) {
+        console.error("Error refreshing pesanan:", error);
+      }
+    }
   };
 
   return (
@@ -286,122 +323,157 @@ const handleStatusChange = async (id: number, newStatus: string) => {
             </div>
 
             <div className="bg-white shadow-md rounded-lg p-4">
-  <div className="flex justify-between items-center">
-    <div>
-      <h1 className="text-3xl font-bold text-black">Manajemen Pesanan</h1>
-      <p className="text-gray-500">Kelola semua pesanan laundry pelanggan</p>
-    </div>
-  </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-black">
+                    Manajemen Pesanan
+                  </h1>
+                  <p className="text-gray-500">
+                    Kelola semua pesanan laundry pelanggan
+                  </p>
+                </div>
+              </div>
 
-  <div className="flex justify-between mt-4">
-    <div className="flex items-center gap-2 w-full max-w-xl">
-      <input
-        type="text"
-        placeholder="Cari pesanan..."
-        value={searchKeyword}
-        onChange={(e) => setSearchKeyword(e.target.value)}
-        className="border rounded px-3 py-2 w-full text-sm"
-      />
-      <div className="relative">
-        <button
-          onClick={() => setShowFilter(!showFilter)}
-          className="flex items-center gap-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 text-sm"
-        >
-          Filter
-        </button>
-        {showFilter && (
-          <div className="absolute mt-2 bg-white border rounded shadow-lg z-10 p-3 w-48">
-            <div className="mb-2 font-semibold text-sm">Filter Status</div>
-            <select
-              className="border rounded px-2 py-1 w-full text-sm"
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                setShowFilter(false);
-              }}
-            >
-              <option value="">Semua Status</option>
-              <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
-              <option value="Diproses">Diproses</option>
-              <option value="Selesai">Selesai</option>
-              <option value="Dikembalikan">Dikembalikan</option>
-            </select>
-          </div>
-        )}
-      </div>
-    </div>
+              <div className="flex justify-between mt-4">
+                <div className="flex items-center gap-2 w-full max-w-xl">
+                  <input
+                    type="text"
+                    placeholder="Cari pesanan..."
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    className="border rounded px-3 py-2 w-full text-sm"
+                  />
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowFilter(!showFilter)}
+                      className="flex items-center gap-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 text-sm"
+                    >
+                      Filter
+                    </button>
+                    {showFilter && (
+                      <div className="absolute mt-2 bg-white border rounded shadow-lg z-10 p-3 w-48">
+                        <div className="mb-2 font-semibold text-sm">
+                          Filter Status
+                        </div>
+                        <select
+                          className="border rounded px-2 py-1 w-full text-sm"
+                          value={filterStatus}
+                          onChange={(e) => {
+                            setFilterStatus(e.target.value);
+                            setShowFilter(false);
+                          }}
+                        >
+                          <option value="">Semua Status</option>
+                          <option value="pending">Menunggu Konfirmasi</option>
+                          <option value="diproses">Diproses</option>
+                          <option value="selesai">Selesai</option>
+                          <option value="dikembalikan">Dikembalikan</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-    <button
-      onClick={() => setShowModal(true)}
-      className="bg-[#1f1f1f] hover:bg-[#3d3d3d] text-white px-4 py-2 rounded shadow text-sm font-semibold"
-    >
-      + Pesanan Baru
-    </button>
-  </div>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="bg-[#1f1f1f] hover:bg-[#3d3d3d] text-white px-4 py-2 rounded shadow text-sm font-semibold"
+                >
+                  + Pesanan Baru
+                </button>
 
-  <table className="min-w-full table-auto mt-6">
-    <thead className="bg-gray-100 text-gray-700 text-sm">
-      <tr>
-        <th className="px-4 py-2 text-left">ID</th>
-        <th className="px-4 py-2 text-left">Pelanggan</th>
-        <th className="px-4 py-2 text-left">Alamat</th>
-        <th className="px-4 py-2 text-left">Catatan</th>
-        <th className="px-4 py-2 text-left">Berat</th>
-        <th className="px-4 py-2 text-left">Harga</th>
-        <th className="px-4 py-2 text-left">Status</th>
-        <th className="px-4 py-2 text-left">Tanggal</th>
-        <th className="px-4 py-2 text-left">Aksi</th>
-      </tr>
-    </thead>
-    <tbody>
-      {loading ? (
-        <tr>
-          <td colSpan={9} className="text-center py-10">
-            <p>Memuat pesanan...</p>
-          </td>
-        </tr>
-      ) : filteredPesanan.length > 0 ? (
-        filteredPesanan.map((item) => (
-          <tr key={item.id} className="border-t text-sm">
-            <td className="px-4 py-3">ORD-{String(item.id).padStart(3, "0")}</td>
-            <td className="px-4 py-3">
-              <div className="font-medium">{item.user?.name || "Unknown"}</div>
-              <div className="text-gray-500">{item.user?.phone || "-"}</div>
-            </td>
-            <td className="px-4 py-3">{item.alamat}</td>
-            <td className="px-4 py-3">{item.catatan}</td>
-            <td className="px-4 py-3">-</td>
-            <td className="px-4 py-3">Rp {item.total_harga?.toLocaleString()}</td>
-            <td className="px-4 py-3">
-              <select
-                value={item.status}
-                disabled={false}
-                onChange={(e) => {}}
-                className="border px-2 py-1 rounded text-sm"
-              >
-                <option value="Menunggu Konfirmasi">Menunggu</option>
-                <option value="Diproses">Proses</option>
-                <option value="Selesai">Selesai</option>
-                <option value="Dikembalikan">Dikembalikan</option>
-              </select>
-            </td>
-            <td className="px-4 py-3">{item.tanggal_pesanan}</td>
-            <td className="px-4 py-3">
-              <button className="text-gray-500 hover:text-black">...</button>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan={9} className="text-center py-6 text-gray-500">
-            Tidak ada pesanan.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
-          </> 
+                {/* Modal Tambah Pesanan */}
+                {showModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+                      <TambahPesananPage
+                        isModal={true}
+                        onClose={() => setShowModal(false)}
+                        onAdded={() => {
+                          setShowModal(false);
+                          refreshPesanan(); // Gunakan function refresh yang baru
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <table className="min-w-full table-auto mt-6">
+                <thead className="bg-gray-100 text-gray-700 text-sm">
+                  <tr>
+                    <th className="px-4 py-2 text-left">ID</th>
+                    <th className="px-4 py-2 text-left">Pelanggan</th>
+                    <th className="px-4 py-2 text-left">Alamat</th>
+                    <th className="px-4 py-2 text-left">Layanan</th>
+                    <th className="px-4 py-2 text-left">Berat</th>
+                    <th className="px-4 py-2 text-left">Harga</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Tanggal</th>
+                    <th className="px-4 py-2 text-left">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10">
+                        <p>Memuat pesanan...</p>
+                      </td>
+                    </tr>
+                  ) : filteredPesanan.length > 0 ? (
+                    filteredPesanan.map((item) => (
+                      <tr key={item.id} className="border-t text-sm">
+                        <td className="px-4 py-3">
+                          ORD-{String(item.id).padStart(3, "0")}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">
+                            {item.nama_pelanggan || "Unknown"}
+                          </div>
+                          <div className="text-gray-500">{item.nomor}</div>
+                        </td>
+                        <td className="px-4 py-3">{item.alamat}</td>
+                        <td className="px-4 py-3">{item.layanan}</td>
+                        <td className="px-4 py-3">{item.berat} kg</td>
+                        <td className="px-4 py-3">
+                          Rp {item.jumlah_harga?.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">{item.status}</td>
+                        <td className="px-4 py-3">
+                          {new Date(item.created_at).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={item.status}
+                            disabled={false}
+                            onChange={(e) => {}}
+                            className="border px-2 py-1 rounded text-sm"
+                          >
+                            <option value="pending">Menunggu</option>
+                            <option value="diproses">Proses</option>
+                            <option value="selesai">Selesai</option>
+                            <option value="dikembalikan">Dikembalikan</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="text-center py-6 text-gray-500"
+                      >
+                        Tidak ada pesanan.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

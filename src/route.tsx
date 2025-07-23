@@ -4,7 +4,7 @@ import Login from "./views/Login";
 import DefaultLayout from "./components/DefaultLayout";
 import GuestLayout from "./components/GuestLayout";
 import NotFound from "./views/NotFound";
-import PesananPage from "./views/pesanan/PesananPage";
+// import PesananPage from "./views/pesanan/PesananPage";
 import RiwayatPage from "./views/RiwayatPage";
 
 import SettingsPage from "./views/settings/SettingsPage";
@@ -49,10 +49,10 @@ const route = createBrowserRouter([
         path: "/dashboard/owner",
         element: <OwnerDashboard />
       },
-      {
-        path: "/pesanan",
-        element: <PesananPage />
-      },
+      // {
+      //   path: "/pesanan",
+      //   element: <PesananPage />
+      // },
       {
         path: "/pesanan/tambah",
         element: <TambahPesananPage />
