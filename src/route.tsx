@@ -11,14 +11,15 @@ import SettingsPage from "./views/settings/SettingsPage";
 import TagihanPage from "./views/tagihan/TagihanPage";
 import Dashboard from "./views/dashboard/admin/Dashboard";
 import EmployeesPage from "./views/dashboard/owner/Dashboard";
-import TambahPesananPage from "./views/pesanan/TambahPesananPage";
+
 import OwnerDashboard from "./views/dashboard/owner/Dashboard";
 import KelolaKaryawanPage from "./views/dashboard/owner/KelolaKaryawanPage";
 import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
 import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
 import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
-
+import TambahPesananPopup from "./components/TambahPesananPopup";
+ 
 
 
 // import Register from "./views/register";
@@ -55,7 +56,7 @@ const route = createBrowserRouter([
       // },
       {
         path: "/pesanan/tambah",
-        element: <TambahPesananPage />
+        element: <TambahPesananPopup />
       },
       {
         path: "/dashboard/owner/laporan-keuangan",
