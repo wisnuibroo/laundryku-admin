@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import Sidebar from "../../components/Sidebar";
 import { useStateContext } from "../../contexts/ContextsProvider";
 import { addPesanan } from "../../data/service/pesananService";
+import Notification from "../../components/Notification";
 
 interface TambahPesananPageProps {
   onClose?: () => void;
@@ -17,39 +18,40 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
   const [phone, setPhone] = useState("");
   const [alamat, setAlamat] = useState("");
   const [layanan, setLayanan] = useState("");
-  const [totalHarga, setTotalHarga] = useState(0);
-  const [jenisPembayaran, setJenisPembayaran] = useState("cash");
-  const [berat, setBerat] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error"
+  });
 
   const { user } = useStateContext();
   const navigate = useNavigate();
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, show: false }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user?.id) {
-      alert("User tidak ditemukan");
+      setNotification({
+        show: true,
+        message: "User tidak ditemukan",
+        type: "error"
+      });
       return;
     }
 
     if (!nama || !phone || !alamat || !layanan) {
-      alert("Validasi gagal: Data yang dimasukkan tidak lengkap/salah!");
+      setNotification({
+        show: true,
+        message: "Validasi gagal: Data yang dimasukkan tidak lengkap/salah!",
+        type: "error"
+      });
       return;
     }
-
-    console.log("User data:", user);
-    console.log("Sending data:", {
-      id_owner: Number(user.id),
-      nama_pelanggan: nama,
-      nomor: phone,
-      alamat: alamat,
-      layanan: layanan,
-      berat: berat,
-      jumlah_harga: totalHarga,
-      jenis_pembayaran: jenisPembayaran,
-      status: "pending"
-    });
 
     setLoading(true);
     
@@ -60,31 +62,31 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
         nomor: phone,
         alamat: alamat,
         layanan: layanan,
-        berat: berat,
-        jumlah_harga: totalHarga,
-        jenis_pembayaran: jenisPembayaran as 'cash' | 'transfer',
         status: "pending"
       });
       
-      alert("Pesanan berhasil ditambahkan!");
+      setNotification({
+        show: true,
+        message: "Pesanan berhasil ditambahkan!",
+        type: "success"
+      });
       
       // Reset form
       setNama("");
       setPhone("");
       setAlamat("");
       setLayanan("");
-      setTotalHarga(0);
-      setBerat(0);
-      setJenisPembayaran("cash");
       
       if (onAdded) {
         onAdded();
-      } else {
-        navigate("/pesanan");
       }
     } catch (error: any) {
       console.error("Error adding pesanan:", error);
-      alert(error.message || "Gagal menambahkan pesanan");
+      setNotification({
+        show: true,
+        message: error.message || "Gagal menambahkan pesanan",
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
@@ -101,6 +103,8 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
           className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           required
           disabled={loading}
+          placeholder="Masukkan nama pelanggan"
+          autoComplete="off"
         />
       </div>
 
@@ -113,6 +117,8 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
           className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           required
           disabled={loading}
+          placeholder="Masukkan nomor telepon"
+          autoComplete="off"
         />
       </div>
 
@@ -125,10 +131,12 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
           rows={3}
           required
           disabled={loading}
+          placeholder="Masukkan alamat pelanggan"
+          autoComplete="off"
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-6">
         <label className="block text-sm font-medium mb-1">Layanan *</label>
         <textarea
           value={layanan}
@@ -137,45 +145,9 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
           rows={2}
           required
           disabled={loading}
+          placeholder="Masukkan jenis layanan"
+          autoComplete="off"
         />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Berat (kg)</label>
-        <input
-          type="number"
-          value={berat}
-          onChange={(e) => setBerat(Number(e.target.value))}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-          min={0}
-          step={0.1}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Total Harga</label>
-        <input
-          type="number"
-          value={totalHarga}
-          onChange={(e) => setTotalHarga(Number(e.target.value))}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-          min={0}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-1">Jenis Pembayaran</label>
-        <select
-          value={jenisPembayaran}
-          onChange={(e) => setJenisPembayaran(e.target.value)}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-          disabled={loading}
-        >
-          <option value="cash">Cash</option>
-          <option value="transfer">Transfer</option>
-        </select>
       </div>
 
       <div className="flex justify-end gap-2">
@@ -191,10 +163,10 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
         )}
         <button
           type="submit"
-          className="bg-[#00ADB5] hover:bg-[#009BA1] text-white px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-[#1f1f1f] hover:bg-[#3d3d3d] text-white px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={loading}
         >
-          {loading ? "Menyimpan..." : "Simpan Pesanan"}
+          {loading ? "Menyimpan..." : "Tambahkan Pesanan"}
         </button>
       </div>
     </form>
@@ -213,6 +185,12 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
       )}
       <h1 className="text-2xl font-bold text-black mb-4">Tambah Pesanan Baru</h1>
       <FormContent />
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={closeNotification}
+      />
     </div>
   ) : (
     <div className="flex h-screen bg-white">
@@ -222,6 +200,12 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
         <div className="bg-white p-6 rounded-lg shadow-md max-w-xl">
           <FormContent />
         </div>
+        <Notification
+          show={notification.show}
+          message={notification.message}
+          type={notification.type}
+          onClose={closeNotification}
+        />
       </div>
     </div>
   );

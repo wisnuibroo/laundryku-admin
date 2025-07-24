@@ -207,7 +207,7 @@ export default function Login() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder={isLogin ? (role === "admin" ? "Username Admin" : "Email Owner") : "Username Owner"}
+                placeholder={isLogin ? (role === "admin" ? "Email Admin" : "Email Owner") : "Username Owner"}
                 className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
               />
             </div>
@@ -315,7 +315,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full mt-6 py-3 bg-[#222831] text-white rounded-full transition ${loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#008C94]"}`}
+              className={`w-full mt-6 py-3 bg-[#222831] text-white rounded-full transition ${loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#3d3d3d]"}`}
             >
               {loading
                 ? isLogin
@@ -366,10 +366,6 @@ export default function Login() {
               </li>
               <li className="flex items-center gap-2">
                 <Icon icon="mdi:check-circle-outline" className="text-green-500" />
-                Cetak nota & label
-              </li>
-              <li className="flex items-center gap-2">
-                <Icon icon="mdi:check-circle-outline" className="text-green-500" />
                 Manajemen pelanggan
               </li>
             </ul>
@@ -392,10 +388,6 @@ export default function Login() {
                 <Icon icon="mdi:chart-bar" className="text-blue-500" />
                 Manajemen karyawan
               </li>
-              <li className="flex items-center gap-2">
-                <Icon icon="mdi:chart-bar" className="text-blue-500" />
-                Analisis performa
-              </li>
             </ul>
           </div>
         </div>
@@ -412,16 +404,6 @@ export default function Login() {
           <Icon icon="mdi:shield-check-outline" className="text-green-500 text-3xl mb-2" />
           <span className="font-bold text-lg">100%</span>
           <span className="text-xs text-gray-500">Keamanan</span>
-        </div>
-        <div className="bg-white rounded-xl shadow flex flex-col items-center py-6">
-          <Icon icon="mdi:star-outline" className="text-yellow-400 text-3xl mb-2" />
-          <span className="font-bold text-lg">4.9</span>
-          <span className="text-xs text-gray-500">Rating</span>
-        </div>
-        <div className="bg-white rounded-xl shadow flex flex-col items-center py-6">
-          <Icon icon="mdi:account-multiple-outline" className="text-blue-500 text-3xl mb-2" />
-          <span className="font-bold text-lg">500+</span>
-          <span className="text-xs text-gray-500">Pelanggan</span>
         </div>
       </div>
     </div>
