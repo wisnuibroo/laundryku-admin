@@ -21,8 +21,9 @@ import logo from "../../../assets/logo.png";
 import { getUrl, updateStatusPesanan } from "../../../data/service/ApiService";
 import { useStateContext } from "../../../contexts/ContextsProvider";
 import { Pesanan } from "../../../data/model/Pesanan";
-import TambahPesananPage from "../../pesanan/TambahPesananPage";
 import { getPesanan, deletePesanan } from "../../../data/service/pesananService";
+import TambahPesananPopup from "../../../components/TambahPesananPopup";
+ 
 
 ChartJS.register(
   CategoryScale,
@@ -375,7 +376,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-4">
+            <div className="bg-white shadow-md rounded-lg p-4 mt-8">
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-black">
@@ -440,7 +441,7 @@ export default function Dashboard() {
                 {showModal && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
-                      <TambahPesananPage
+                      <TambahPesananPopup
                         isModal={true}
                         onClose={() => setShowModal(false)}
                         onAdded={() => {

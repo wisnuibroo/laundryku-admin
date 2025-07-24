@@ -1,19 +1,17 @@
-import { useState, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import Sidebar from "../../components/Sidebar";
-import { useStateContext } from "../../contexts/ContextsProvider";
-import { addPesanan } from "../../data/service/pesananService";
-import Notification from "../../components/Notification";
+import { useStateContext } from "../contexts/ContextsProvider";
+import Notification from "./Notification";
+import { addPesanan } from "../data/service/pesananService";
 
-interface TambahPesananPageProps {
+interface TambahPesananPopupProps {
   onClose?: () => void;
   onAdded?: () => void;
   isModal?: boolean;
 }
 
-export default function TambahPesananPage({ onClose, onAdded, isModal = false }: TambahPesananPageProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+export default function TambahPesananPopup({ onClose, onAdded, isModal = false }: TambahPesananPopupProps) {
   const [nama, setNama] = useState("");
   const [phone, setPhone] = useState("");
   const [alamat, setAlamat] = useState("");
@@ -32,7 +30,7 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
     setNotification(prev => ({ ...prev, show: false }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user?.id) {
@@ -47,39 +45,35 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
     if (!nama || !phone || !alamat || !layanan) {
       setNotification({
         show: true,
-        message: "Validasi gagal: Data yang dimasukkan tidak lengkap/salah!",
+        message: "Validasi gagal: Data tidak lengkap",
         type: "error"
       });
       return;
     }
 
     setLoading(true);
-    
     try {
       await addPesanan({
         id_owner: Number(user.id),
         nama_pelanggan: nama,
         nomor: phone,
-        alamat: alamat,
-        layanan: layanan,
+        alamat,
+        layanan,
         status: "pending"
       });
-      
+
       setNotification({
         show: true,
         message: "Pesanan berhasil ditambahkan!",
         type: "success"
       });
-      
-      // Reset form
+
       setNama("");
       setPhone("");
       setAlamat("");
       setLayanan("");
-      
-      if (onAdded) {
-        onAdded();
-      }
+
+      if (onAdded) onAdded();
     } catch (error: any) {
       console.error("Error adding pesanan:", error);
       setNotification({
@@ -90,9 +84,9 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, nama, phone, alamat, layanan, onAdded]);
 
-  const FormContent = () => (
+  const formContent = useMemo(() => (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Nama Pelanggan *</label>
@@ -170,7 +164,7 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
         </button>
       </div>
     </form>
-  );
+  ), [nama, phone, alamat, layanan, loading, isModal, onClose, handleSubmit]);
 
   return isModal ? (
     <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto relative">
@@ -184,28 +178,33 @@ export default function TambahPesananPage({ onClose, onAdded, isModal = false }:
         </button>
       )}
       <h1 className="text-2xl font-bold text-black mb-4">Tambah Pesanan Baru</h1>
-      <FormContent />
-      <Notification
-        show={notification.show}
-        message={notification.message}
-        type={notification.type}
-        onClose={closeNotification}
-      />
-    </div>
-  ) : (
-    <div className="flex h-screen bg-white">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <div className="flex-1 p-6 overflow-y-auto">
-        <h1 className="text-2xl font-bold text-black mb-4">Tambah Pesanan Baru</h1>
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-xl">
-          <FormContent />
-        </div>
+      {formContent}
+
+      {notification.show && (
         <Notification
           show={notification.show}
           message={notification.message}
           type={notification.type}
           onClose={closeNotification}
         />
+      )}
+    </div>
+  ) : (
+    <div className="flex h-screen bg-white">
+      <div className="flex-1 p-6 overflow-y-auto">
+        <h1 className="text-2xl font-bold text-black mb-4">Tambah Pesanan Baru</h1>
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-xl">
+          {formContent}
+        </div>
+
+        {notification.show && (
+          <Notification
+            show={notification.show}
+            message={notification.message}
+            type={notification.type}
+            onClose={closeNotification}
+          />
+        )}
       </div>
     </div>
   );
