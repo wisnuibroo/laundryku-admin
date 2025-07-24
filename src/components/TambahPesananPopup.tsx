@@ -51,6 +51,15 @@ export default function TambahPesananPopup({ onClose, onAdded, isModal = false }
       return;
     }
 
+    if (!/^08[0-9]{7,11}$/.test(phone)) {
+  setNotification({
+    show: true,
+    message: "Nomor telepon harus diawali dengan 08 dan maksimal 13 digit angka.",
+    type: "error"
+  });
+  return;
+}
+
     setLoading(true);
     try {
       await addPesanan({
@@ -103,18 +112,25 @@ export default function TambahPesananPopup({ onClose, onAdded, isModal = false }
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">No. Telepon *</label>
+          <label className="block text-sm font-medium mb-1">Nomor Hp (Whatsapp) *</label>
         <input
           type="text"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+        
+            // cuman tak olehi angka, maksimal 13 karakter, dan awalan 08
+           if (/^[0-9]*$/.test(value) && value.length <= 13) {
+               setPhone(value); // tidak perlu validasi 08 di sini
+             }
+          }}
           className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           required
           disabled={loading}
-          placeholder="Masukkan nomor telepon"
+          placeholder="Contoh: 081234 567890"
           autoComplete="off"
-        />
-      </div>
+          />
+     </div>
 
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Alamat *</label>
