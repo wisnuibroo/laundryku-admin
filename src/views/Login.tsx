@@ -310,7 +310,16 @@ export default function Login() {
               </div>
             )}
 
-            {error && <div className="mt-4 text-red-500 text-sm text-center">{error}</div>}
+            {error && (
+              <div
+                className={`mt-4 text-sm text-center ${
+                  error.includes("berhasil") ? "text-blue-500" : "text-red-500"
+                }`}
+              >
+                {error}
+              </div>
+            )}
+
 
             <button
               type="submit"
@@ -390,20 +399,19 @@ export default function Login() {
               </li>
             </ul>
           </div>
-        </div>
-      </div>
+          <div className=" grid grid-cols-2 gap-4">
+  <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
+    <Icon icon="mdi:clock-outline" className="text-orange-400 text-3xl mb-2 " />
+    <span className="font-bold text-lg">24/7</span>
+    <span className="text-xs text-gray-500">Layanan</span>
+  </div>
+  <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
+    <Icon icon="mdi:shield-check-outline" className="text-green-500 text-3xl mb-2" />
+    <span className="font-bold text-lg">100%</span>
+    <span className="text-xs text-gray-500">Keamanan</span>
+  </div>
+</div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 w-full max-w-5xl">
-        <div className="bg-white rounded-xl shadow flex flex-col items-center py-6">
-          <Icon icon="mdi:clock-outline" className="text-orange-400 text-3xl mb-2" />
-          <span className="font-bold text-lg">24/7</span>
-          <span className="text-xs text-gray-500">Layanan</span>
-        </div>
-        <div className="bg-white rounded-xl shadow flex flex-col items-center py-6">
-          <Icon icon="mdi:shield-check-outline" className="text-green-500 text-3xl mb-2" />
-          <span className="font-bold text-lg">100%</span>
-          <span className="text-xs text-gray-500">Keamanan</span>
         </div>
       </div>
     </div>
