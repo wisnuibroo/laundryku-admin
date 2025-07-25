@@ -23,7 +23,7 @@ export default function TambahPesananPopup({ onClose, onAdded, isModal = false }
     type: "success" as "success" | "error"
   });
 
-  const { user } = useStateContext();
+  const { user, userType } = useStateContext();
   const navigate = useNavigate();
 
   const closeNotification = () => {
@@ -62,14 +62,24 @@ export default function TambahPesananPopup({ onClose, onAdded, isModal = false }
 
     setLoading(true);
     try {
-      await addPesanan({
+      // Menyiapkan data pesanan
+      const pesananData: any = {
         id_owner: Number(user.id),
         nama_pelanggan: nama,
         nomor: phone,
         alamat,
         layanan,
         status: "pending"
-      });
+      };
+      
+      // Jika user adalah admin, tambahkan id_admin
+      // Ini memastikan bahwa id_admin diisi dengan id user yang login jika userType adalah admin
+      // Hal ini memungkinkan untuk memfilter pesanan berdasarkan id_admin di backend
+      if (userType === 'admin' && user && user.id) {
+        pesananData.id_admin = Number(user.id);
+      }
+      
+      await addPesanan(pesananData);
 
       setNotification({
         show: true,
@@ -93,7 +103,7 @@ export default function TambahPesananPopup({ onClose, onAdded, isModal = false }
     } finally {
       setLoading(false);
     }
-  }, [user?.id, nama, phone, alamat, layanan, onAdded]);
+  }, [user?.id, userType, nama, phone, alamat, layanan, onAdded]);
 
   const formContent = useMemo(() => (
     <form onSubmit={handleSubmit}>
