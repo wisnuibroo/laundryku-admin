@@ -160,7 +160,6 @@ export default function TagihanBlmByrPage() {
           <CardStat icon={<Icon icon="stash:user-group-duotone" width={24} />} label="Total Pelanggan" value={stats.total_pelanggan.toString()} subtitle="Punya tagihan" iconColor="#DC2525" />
           <CardStat icon={<Icon icon="mdi:person-outline" width={24} />} label="Total Tagihan" value={stats.total_tagihan.toString()} subtitle="Belum bayar" iconColor="#DC2525" />
           <CardStat icon={<Icon icon="material-symbols:person-add-outline-rounded" width={24} />} label="Nilai Tagihan" value={`Rp ${stats.nilai_tagihan.toLocaleString("id-ID")}`} subtitle="Total outstanding" iconColor="#DC2525" />
-          <CardStat icon={<Icon icon="tabler:star" width={24} />} label="Overdue" value={stats.overduedate.toString()} subtitle="Lewat jatuh tempo" iconColor="#DC2525" />
         </div>
 
         <div className="flex gap-4 mb-6">

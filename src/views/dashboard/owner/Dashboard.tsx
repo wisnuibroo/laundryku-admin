@@ -119,9 +119,6 @@ export default function OwnerDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-700">
-              <Icon icon="mdi:bell-outline" width={22} />
-            </button>
             <div className="flex items-center gap-2">
               <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
               <span className="text-sm text-gray-700">Owner</span>
@@ -195,9 +192,7 @@ export default function OwnerDashboard() {
           />
         </div>
  
-        <div className="">
-          <OverviewSection/>
-        </div>
+        
           
 
          
