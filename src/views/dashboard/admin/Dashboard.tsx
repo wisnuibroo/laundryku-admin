@@ -310,7 +310,7 @@ export default function Dashboard() {
         isOpen={isSidebarOpen}
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       /> */}
-      <div className="flex-1 p-6 overflow-y-auto max-h-[calc(100vh-88px)]">
+      <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
             <img
@@ -344,8 +344,8 @@ export default function Dashboard() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
           </div>
         ) : (
-          <>
-            <div className="grid lg:grid-cols-4 gap-6 mt-10">
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <CardStat
                 icon={<Icon icon="solar:box-linear" width={24} />}
                 label="Total Pesanan"
@@ -375,8 +375,7 @@ export default function Dashboard() {
                 iconColor="#27AE60"
               />
             </div>
-
-            <div className="bg-white shadow-md rounded-lg p-4 mt-8">
+            <div className="bg-white shadow-md rounded-lg p-4  border">
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-black">
@@ -568,7 +567,7 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
-          </>
+          </div>
         )}
       </div>
 
