@@ -310,7 +310,16 @@ export default function Login() {
               </div>
             )}
 
-            {error && <div className="mt-4 text-red-500 text-sm text-center">{error}</div>}
+            {error && (
+              <div
+                className={`mt-4 text-sm text-center ${
+                  error.includes("berhasil") ? "text-blue-500" : "text-red-500"
+                }`}
+              >
+                {error}
+              </div>
+            )}
+
 
             <button
               type="submit"
