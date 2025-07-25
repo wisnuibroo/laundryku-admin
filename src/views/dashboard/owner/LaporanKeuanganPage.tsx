@@ -200,7 +200,6 @@ export default function LaporanKeuanganPage() {
           <CardStat icon={<Icon icon="tdesign:money" width={24} />} label="Total Pendapatan" value={`Rp ${stats.total_pendapatan.toLocaleString("id-ID")}`} subtitle="Dari tagihan lunas" iconColor="#06923E" />
           <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Total Pengeluaran" value={`Rp ${stats.total_pengeluaran.toLocaleString("id-ID")}`} subtitle="Operasional & gaji" iconColor="#ED3500" />
           <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Laba Bersih" value={`Rp ${stats.laba_bersih.toLocaleString("id-ID")}`} subtitle="Margin 20%" iconColor="#0065F8" />
-          <CardStat icon={<Icon icon="healthicons:money-bag-outline" width={24} />} label="Rata-rata" value={`Rp ${stats.rata_rata.toLocaleString("id-ID")}`} subtitle="Per pembayaran" iconColor="#9B35EC" />
         </div>
 
         <div className="flex gap-4 mb-6">

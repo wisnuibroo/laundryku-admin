@@ -212,20 +212,7 @@ export default function KelolaKaryawanPage() {
           subtitle="Sedang Bekerja"
           iconColor="#EB5B00"
         />
-        <CardStat
-          icon={<Icon icon="material-symbols:person-add-outline-rounded" width={24} />}
-          label="Karyawan Baru"
-          value={stats.karyawan_baru.toString()}
-          subtitle="Bulan ini"
-          iconColor="#0065F8"
-        />
-        <CardStat
-          icon={<Icon icon="tabler:star" width={24} />}
-          label="Rata-rata Rating"
-          value={stats.ratarataRating.toString()}
-          subtitle="Performa Karyawan"
-          iconColor="#FFCC00"
-        />
+         
       </div>
 
           <div className="bg-white p-6 rounded-lg shadow mt-5">

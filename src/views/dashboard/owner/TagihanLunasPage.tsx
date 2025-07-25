@@ -168,7 +168,6 @@ export default function TagihanLunasPage() {
           <CardStat icon={<Icon icon="hugeicons:task-01" width={24} />} label="Total Tagihan" value={stats.total_tagihan.toString()} subtitle="Sudah lunas" iconColor="#06923E" />
           <CardStat icon={<Icon icon="tdesign:money" width={24} />} label="Total Pendapatan" value={`Rp ${stats.total_pendapatan.toLocaleString("id-ID")}`} subtitle="Dari tagihan lunas" iconColor="#06923E" />
           <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Pembayaran Hari Ini" value={stats.pembayaran_hari_ini.toString()} subtitle="Transaksi hari ini" iconColor="#0065F8" />
-          <CardStat icon={<Icon icon="healthicons:money-bag-outline" width={24} />} label="Rata-rata" value={`Rp ${stats.rata_rata.toLocaleString("id-ID")}`} subtitle="Per pembayaran" iconColor="#9B35EC" />
         </div>
 
         <div className="flex gap-4 mb-6">
