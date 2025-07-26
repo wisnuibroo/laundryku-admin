@@ -23,7 +23,7 @@ import { useStateContext } from "../../../contexts/ContextsProvider";
 import { Pesanan } from "../../../data/model/Pesanan";
 import { getPesanan, deletePesanan } from "../../../data/service/pesananService";
 import TambahPesananPopup from "../../../components/TambahPesananPopup";
- 
+import EditPesananPopup from "../../../components/EditPesananPopup";
 
 ChartJS.register(
   CategoryScale,
@@ -48,7 +48,10 @@ export default function Dashboard() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilter, setShowFilter] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showTambahPesanan, setShowTambahPesanan] = useState(false);
+  const [showEditPesanan, setShowEditPesanan] = useState<number | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
   const [deleteModal, setDeleteModal] = useState({
     show: false,
     id: 0,
@@ -303,12 +306,13 @@ export default function Dashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // Hapus data dari localStorage
+    navigate("/login"); // Arahkan ke halaman login
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* <Sidebar
-        isOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-      /> */}
       <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
@@ -324,17 +328,28 @@ export default function Dashboard() {
               Admin Dashboard
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Icon
-                icon="mdi:account-circle-outline"
-                width={22}
-                className="text-gray-700"
-              />
-              <span className="text-sm text-gray-700">
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu((prev) => !prev)}
+              className="flex items-center gap-2 focus:outline-none"
+            >
+              <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
+              <span className="text-sm font-medium text-gray-700">
                 {user?.name || "Admin"}
               </span>
-            </div>
+              <Icon icon={showUserMenu ? "mdi:chevron-up" : "mdi:chevron-down"} width={18} className="text-gray-500" />
+            </button>
+          
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-40 bg-red-600 rounded-md shadow-lg z-50 border border-white">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-red-700 rounded-md "
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </nav>
 
@@ -429,146 +444,163 @@ export default function Dashboard() {
                 </div>
 
                 <button
-                  onClick={() => setShowModal(true)}
+                  onClick={() => setShowTambahPesanan(true)}
                   className="bg-[#1f1f1f] hover:bg-[#3d3d3d] text-white px-4 py-2 rounded shadow text-sm font-semibold"
                 >
                   + Pesanan Baru
                 </button>
-
-                {/* Modal Tambah Pesanan */}
-                {showModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
-                      <TambahPesananPopup
-                        isModal={true}
-                        onClose={() => setShowModal(false)}
-                        onAdded={() => {
-                          setShowModal(false);
-                          refreshPesanan(); // Gunakan function refresh yang baru
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-6">
                 <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Berat</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {loading ? (
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan={9} className="text-center py-10">
-                        <div className="flex flex-col items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-                          <p className="text-gray-500">Memuat pesanan...</p>
-                        </div>
-                      </td>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Berat</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
-                  ) : filteredPesanan.length > 0 ? (
-                    filteredPesanan.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                        <td className="px-4 py-3">
-                          ORD-{String(item.id).padStart(3, "0")}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium">
-                            {item.nama_pelanggan || "Unknown"}
-                          </div>
-                          <div className="text-gray-500">{item.nomor}</div>
-                        </td>
-                        <td className="px-4 py-3">{item.alamat}</td>
-                        <td className="px-4 py-3">{item.layanan}</td>
-                        <td className="px-4 py-3">{item.berat} kg</td>
-                        <td className="px-4 py-3">
-                          Rp {item.jumlah_harga?.toLocaleString()}
-                        </td>
-                         <td className="px-4 py-3">
-                          <select
-                            value={item.status}
-                            disabled={loading}
-                            onChange={(e) => handleStatusChange(item.id, e.target.value as "pending" | "diproses" | "selesai" )}
-                            className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                            style={{
-                              backgroundColor: 
-                                item.status === "pending" ? "#FEF3C7" : 
-                                item.status === "diproses" ? "#DBEAFE" : 
-                                item.status === "selesai" ? "#D1FAE5" : "",
-                              borderColor: 
-                                item.status === "pending" ? "#F59E0B" : 
-                                item.status === "diproses" ? "#3B82F6" : 
-                                item.status === "selesai" ? "#10B981" : "",
-                              color: 
-                                item.status === "pending" ? "#92400E" : 
-                                item.status === "diproses" ? "#1E40AF" : 
-                                item.status === "selesai" ? "#065F46" : ""
-                            }}
-                          >
-                            <option value="pending">Menunggu</option>
-                            <option value="diproses">Proses</option>
-                            <option value="selesai">Selesai</option>
-                          </select>
-                        </td>
-                        <td className="px-4 py-3">
-                          {new Date(item.created_at).toLocaleDateString('id-ID', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex space-x-2">
-                            <button 
-                              className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
-                              title="Lihat Detail"
-                              onClick={() => navigate(`/pesanan/${item.id}`)}
-                            >
-                              <Icon icon="mdi:eye" width="18" />
-                            </button>
-                            <button 
-                              className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
-                              title="Hapus Pesanan"
-                              onClick={() => handleDeletePesanan(item.id, item.nama_pelanggan)}
-                            >
-                              <Icon icon="mdi:trash" width="18" />
-                            </button>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+                            <p className="text-gray-500">Memuat pesanan...</p>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={9}
-                        className="text-center py-10"
-                      >
-                        <div className="flex flex-col items-center justify-center">
-                          <Icon icon="mdi:package-variant-remove" width="40" className="text-gray-400 mb-2" />
-                          <p className="text-gray-500 font-medium">Tidak ada pesanan ditemukan</p>
-                          <p className="text-gray-400 text-sm mt-1">Coba ubah filter atau tambahkan pesanan baru</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    ) : filteredPesanan.length > 0 ? (
+                      filteredPesanan.map((item) => (
+                        <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                          <td className="px-4 py-3">
+                            ORD-{String(item.id).padStart(3, "0")}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium">
+                              {item.nama_pelanggan || "Unknown"}
+                            </div>
+                            <div className="text-gray-500">{item.nomor}</div>
+                          </td>
+                          <td className="px-4 py-3">{item.alamat}</td>
+                          <td className="px-4 py-3">{item.layanan}</td>
+                          <td className="px-4 py-3">{item.berat} kg</td>
+                          <td className="px-4 py-3">
+                            Rp {item.jumlah_harga?.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={item.status}
+                              disabled={loading}
+                              onChange={(e) => handleStatusChange(item.id, e.target.value as "pending" | "diproses" | "selesai" )}
+                              className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                              style={{
+                                backgroundColor: 
+                                  item.status === "pending" ? "#FEF3C7" : 
+                                  item.status === "diproses" ? "#DBEAFE" : 
+                                  item.status === "selesai" ? "#D1FAE5" : "",
+                                borderColor: 
+                                  item.status === "pending" ? "#F59E0B" : 
+                                  item.status === "diproses" ? "#3B82F6" : 
+                                  item.status === "selesai" ? "#10B981" : "",
+                                color: 
+                                  item.status === "pending" ? "#92400E" : 
+                                  item.status === "diproses" ? "#1E40AF" : 
+                                  item.status === "selesai" ? "#065F46" : ""
+                              }}
+                            >
+                              <option value="pending">Menunggu</option>
+                              <option value="diproses">Proses</option>
+                              <option value="selesai">Selesai</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            {new Date(item.created_at).toLocaleDateString('id-ID', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex space-x-2">
+                              <button 
+                                className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
+                                title="Edit Pesanan"
+                                onClick={() => setShowEditPesanan(item.id)}
+                              >
+                                <Icon icon="flowbite:edit-outline" width="18" />
+                              </button>
+                              <button 
+                                className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                title="Hapus Pesanan"
+                                onClick={() => handleDeletePesanan(item.id, item.nama_pelanggan)}
+                              >
+                                <Icon icon="mdi:trash" width="18" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="text-center py-10"
+                        >
+                          <div className="flex flex-col items-center justify-center">
+                            <Icon icon="mdi:package-variant-remove" width="40" className="text-gray-400 mb-2" />
+                            <p className="text-gray-500 font-medium">Tidak ada pesanan ditemukan</p>
+                            <p className="text-gray-400 text-sm mt-1">Coba ubah filter atau tambahkan pesanan baru</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </div>
+
+      {/* Modal Tambah Pesanan */}
+      {showTambahPesanan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+            <TambahPesananPopup
+              isModal={true}
+              onClose={() => setShowTambahPesanan(false)}
+              onAdded={() => {
+                setShowTambahPesanan(false);
+                refreshPesanan();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Pesanan */}
+      {showEditPesanan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+            <EditPesananPopup
+              isModal={true}
+              pesananId={showEditPesanan}
+              onClose={() => setShowEditPesanan(null)}
+              onUpdated={() => {
+                setShowEditPesanan(null);
+                refreshPesanan();
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modal Konfirmasi Hapus */}
       <DeleteModal 

@@ -53,6 +53,7 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const { user, token } = useStateContext();
+   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     total_pesanan: 0,
     total_pendapatan: 0,
@@ -114,11 +115,12 @@ export default function OwnerDashboard() {
     }).format(amount);
 
  
-
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // Hapus data dari localStorage
+    navigate("/login"); // Arahkan ke halaman login
+  };
  
   
-
- 
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -133,12 +135,29 @@ export default function OwnerDashboard() {
               Dashboard
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-              <span className="text-sm text-gray-700">Owner</span>
-            </div>
-          </div>
+        <div className="relative">
+             <button
+               onClick={() => setShowOwnerMenu((prev) => !prev)}
+               className="flex items-center gap-2 focus:outline-none"
+             >
+               <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
+               <span className="text-sm font-medium text-gray-700">
+                 {user?.nama_laundry|| "Owner"}
+               </span>
+               <Icon icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"} width={18} className="text-gray-500" />
+             </button>
+           
+             {showOwnerMenu && (
+               <div className="absolute right-0 mt-2 w-40 bg-red-600 rounded-md shadow-lg z-50 border border-white">
+                 <button
+                   onClick={handleLogout}
+                   className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-red-700 rounded-md "
+                 >
+                   Logout
+                 </button>
+               </div>
+             )}
+        </div>
         </nav>
 
         <div className="p-6">
