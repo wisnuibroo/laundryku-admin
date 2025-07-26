@@ -18,6 +18,7 @@ import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
 import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
 import TambahPesananPopup from "./components/TambahPesananPopup";
+import EditPesananPopup from "./components/EditPesananPopup";
  
 
 
@@ -56,6 +57,10 @@ const route = createBrowserRouter([
       {
         path: "/pesanan/tambah",
         element: <TambahPesananPopup />
+      },
+      {
+        path: "/pesanan/edit",
+        element: <EditPesananPopup />
       },
       {
         path: "/dashboard/owner/laporan-keuangan",
