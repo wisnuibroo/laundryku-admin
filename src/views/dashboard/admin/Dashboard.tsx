@@ -21,7 +21,10 @@ import logo from "../../../assets/logo.png";
 import { getUrl, updateStatusPesanan } from "../../../data/service/ApiService";
 import { useStateContext } from "../../../contexts/ContextsProvider";
 import { Pesanan } from "../../../data/model/Pesanan";
-import { getPesanan, deletePesanan } from "../../../data/service/pesananService";
+import {
+  getPesanan,
+  deletePesanan,
+} from "../../../data/service/pesananService";
 import TambahPesananPopup from "../../../components/TambahPesananPopup";
 import EditPesananPopup from "../../../components/EditPesananPopup";
 
@@ -48,31 +51,40 @@ export default function Dashboard() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilter, setShowFilter] = useState(false);
-  const [showTambahPesanan, setShowTambahPesanan] = useState(false);
-  const [showEditPesanan, setShowEditPesanan] = useState<number | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-
+  const [showModal, setShowModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState({
     show: false,
     id: 0,
-    namaPelanggan: ""
+    namaPelanggan: "",
   });
   const [notification, setNotification] = useState({
     show: false,
     message: "",
-    type: "success" as "success" | "error"
+    type: "success" as "success" | "error",
   });
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPesananId, setEditPesananId] = useState<number | null>(null);
   const navigate = useNavigate();
-  const { user } = useStateContext();
+  const { user, token } = useStateContext();
 
   useEffect(() => {
-    const fetchPesanan = async () => {
-      if (!user?.id) {
-        setError("ID Owner tidak ditemukan");
-        setLoading(false);
-        return;
-      }
+    const fetchPesanan = async (showLoader = true) => {
+      if (showLoader) setLoading(true);
       try {
+        const localToken = localStorage.getItem("ACCESS_TOKEN");
+        if (!localToken && !token) {
+          navigate("/login");
+          return;
+        }
+
+        if (!user?.id) {
+          setError("ID Admin tidak ditemukan");
+          if (showLoader) setLoading(false);
+          navigate("/login");
+          return;
+        }
+
         const data = await getPesanan(Number(user.id));
         setPesanan(data);
         setError("");
@@ -80,11 +92,20 @@ export default function Dashboard() {
         setError(error.message || "Gagal mengambil data pesanan");
         setPesanan([]);
       } finally {
-        setLoading(false);
+        if (showLoader) setLoading(false);
       }
     };
-    fetchPesanan();
-  }, [user?.id]);
+
+    // Fetch pertama (dengan loading)
+    fetchPesanan(true);
+
+    // Refresh otomatis tiap 30 detik tanpa loading spinner
+    const intervalId = setInterval(() => {
+      fetchPesanan(false);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [token, navigate, user?.id]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -138,7 +159,7 @@ export default function Dashboard() {
 
   const handleStatusChange = async (
     id: number,
-    newStatus: "pending" | "diproses" | "selesai"
+    newStatus: "pending" | "diproses" | "selesai" | "lunas"
   ) => {
     try {
       await updateStatusPesanan(id, newStatus);
@@ -159,15 +180,15 @@ export default function Dashboard() {
     setDeleteModal({
       show: true,
       id,
-      namaPelanggan
+      namaPelanggan,
     });
   };
 
   const confirmDeletePesanan = async () => {
     const { id, namaPelanggan } = deleteModal;
-    setDeleteModal(prev => ({ ...prev, show: false }));
+    setDeleteModal((prev) => ({ ...prev, show: false }));
     setLoading(true);
-    
+
     try {
       const success = await deletePesanan(id);
       if (success) {
@@ -180,12 +201,12 @@ export default function Dashboard() {
         setNotification({
           show: true,
           message: `Pesanan ${namaPelanggan} berhasil dihapus`,
-          type: "success"
+          type: "success",
         });
-        
+
         // Auto hide notification after 3 seconds
         setTimeout(() => {
-          setNotification(prev => ({ ...prev, show: false }));
+          setNotification((prev) => ({ ...prev, show: false }));
         }, 3000);
       } else {
         throw new Error("Gagal menghapus pesanan");
@@ -194,28 +215,34 @@ export default function Dashboard() {
       setNotification({
         show: true,
         message: error.message || "Gagal menghapus pesanan",
-        type: "error"
+        type: "error",
       });
-      
+
       // Auto hide notification after 3 seconds
       setTimeout(() => {
-        setNotification(prev => ({ ...prev, show: false }));
+        setNotification((prev) => ({ ...prev, show: false }));
       }, 3000);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const cancelDeletePesanan = () => {
     setDeleteModal({
       show: false,
       id: 0,
-      namaPelanggan: ""
+      namaPelanggan: "",
     });
   };
-  
+
+  const handleLogout = () => {
+    localStorage.removeItem("ACCESS_TOKEN");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   const closeNotification = () => {
-    setNotification(prev => ({ ...prev, show: false }));
+    setNotification((prev) => ({ ...prev, show: false }));
   };
 
   const totalPesanan = Array.isArray(filteredPesanan)
@@ -306,13 +333,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user"); // Hapus data dari localStorage
-    navigate("/login"); // Arahkan ke halaman login
-  };
-
   return (
     <div className="flex h-screen bg-gray-100">
+      {/* <Sidebar
+        isOpen={isSidebarOpen}
+        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      /> */}
       <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
@@ -328,28 +354,47 @@ export default function Dashboard() {
               Admin Dashboard
             </span>
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu((prev) => !prev)}
-              className="flex items-center gap-2 focus:outline-none"
-            >
-              <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-              <span className="text-sm font-medium text-gray-700">
-                {user?.name || "Admin"}
-              </span>
-              <Icon icon={showUserMenu ? "mdi:chevron-up" : "mdi:chevron-down"} width={18} className="text-gray-500" />
-            </button>
-          
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-40 bg-red-600 rounded-md shadow-lg z-50 border border-white">
+          <div className="flex items-center gap-6">
+            <div className="relative">
                 <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-red-700 rounded-md "
+                  onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+                  className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+                  aria-haspopup="true"
+                  aria-expanded={showOwnerMenu}
+                  aria-label="User menu"
                 >
-                  Logout
+                  <Icon
+                    icon="mdi:account-circle-outline"
+                    width={24}
+                    className="text-gray-700"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">
+                    {user?.name || "Admin"}
+                  </span>
+                  <Icon
+                    icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+                    width={20}
+                    className="text-gray-500"
+                  />
                 </button>
+
+                {showOwnerMenu && (
+                  <div
+                    className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                    role="menu"
+                    aria-orientation="vertical"
+                    aria-label="User menu"
+                  >
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                      role="menuitem"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
           </div>
         </nav>
 
@@ -417,12 +462,20 @@ export default function Dashboard() {
                     >
                       <Icon icon="mdi:filter-outline" className="w-4 h-4" />
                       <span>Filter</span>
-                      <Icon icon={showFilter ? "mdi:chevron-up" : "mdi:chevron-down"} className="w-4 h-4 ml-1" />
+                      <Icon
+                        icon={
+                          showFilter ? "mdi:chevron-up" : "mdi:chevron-down"
+                        }
+                        className="w-4 h-4 ml-1"
+                      />
                     </button>
                     {showFilter && (
                       <div className="absolute mt-2 bg-white border rounded-md shadow-lg z-10 p-4 w-56 transition-all duration-200 ease-in-out transform origin-top-right">
                         <div className="mb-3 font-semibold text-sm text-gray-700 flex items-center">
-                          <Icon icon="mdi:filter-variant" className="w-4 h-4 mr-2 text-blue-500" />
+                          <Icon
+                            icon="mdi:filter-variant"
+                            className="w-4 h-4 mr-2 text-blue-500"
+                          />
                           Filter Status
                         </div>
                         <select
@@ -444,26 +497,60 @@ export default function Dashboard() {
                 </div>
 
                 <button
-                  onClick={() => setShowTambahPesanan(true)}
+                  onClick={() => setShowModal(true)}
                   className="bg-[#1f1f1f] hover:bg-[#3d3d3d] text-white px-4 py-2 rounded shadow text-sm font-semibold"
                 >
                   + Pesanan Baru
                 </button>
+
+                {/* Modal Tambah Pesanan */}
+                {showModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+                      <TambahPesananPopup
+                        isModal={true}
+                        onClose={() => setShowModal(false)}
+                        onAdded={() => {
+                          setShowModal(false);
+                          refreshPesanan(); // Gunakan function refresh yang baru
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-6">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Berat</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Pelanggan
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Alamat
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Layanan
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Berat
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Harga
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tanggal
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -478,7 +565,10 @@ export default function Dashboard() {
                       </tr>
                     ) : filteredPesanan.length > 0 ? (
                       filteredPesanan.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                        <tr
+                          key={item.id}
+                          className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                        >
                           <td className="px-4 py-3">
                             ORD-{String(item.id).padStart(3, "0")}
                           </td>
@@ -498,21 +588,41 @@ export default function Dashboard() {
                             <select
                               value={item.status}
                               disabled={loading}
-                              onChange={(e) => handleStatusChange(item.id, e.target.value as "pending" | "diproses" | "selesai" )}
+                              onChange={(e) =>
+                                handleStatusChange(
+                                  item.id,
+                                  e.target.value as
+                                    | "pending"
+                                    | "diproses"
+                                    | "selesai"
+                                )
+                              }
                               className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                               style={{
-                                backgroundColor: 
-                                  item.status === "pending" ? "#FEF3C7" : 
-                                  item.status === "diproses" ? "#DBEAFE" : 
-                                  item.status === "selesai" ? "#D1FAE5" : "",
-                                borderColor: 
-                                  item.status === "pending" ? "#F59E0B" : 
-                                  item.status === "diproses" ? "#3B82F6" : 
-                                  item.status === "selesai" ? "#10B981" : "",
-                                color: 
-                                  item.status === "pending" ? "#92400E" : 
-                                  item.status === "diproses" ? "#1E40AF" : 
-                                  item.status === "selesai" ? "#065F46" : ""
+                                backgroundColor:
+                                  item.status === "pending"
+                                    ? "#FEF3C7"
+                                    : item.status === "diproses"
+                                    ? "#DBEAFE"
+                                    : item.status === "selesai"
+                                    ? "#D1FAE5"
+                                    : "",
+                                borderColor:
+                                  item.status === "pending"
+                                    ? "#F59E0B"
+                                    : item.status === "diproses"
+                                    ? "#3B82F6"
+                                    : item.status === "selesai"
+                                    ? "#10B981"
+                                    : "",
+                                color:
+                                  item.status === "pending"
+                                    ? "#92400E"
+                                    : item.status === "diproses"
+                                    ? "#1E40AF"
+                                    : item.status === "selesai"
+                                    ? "#065F46"
+                                    : "",
                               }}
                             >
                               <option value="pending">Menunggu</option>
@@ -521,25 +631,36 @@ export default function Dashboard() {
                             </select>
                           </td>
                           <td className="px-4 py-3">
-                            {new Date(item.created_at).toLocaleDateString('id-ID', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                            {new Date(item.created_at).toLocaleDateString(
+                              "id-ID",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
                                 title="Edit Pesanan"
-                                onClick={() => setShowEditPesanan(item.id)}
+                                onClick={() => {
+                                  setEditPesananId(item.id);
+                                  setShowEditModal(true);
+                                }}
                               >
-                                <Icon icon="flowbite:edit-outline" width="18" />
+                                <Icon icon="mdi:pencil" width="18" />
                               </button>
-                              <button 
+                              <button
                                 className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
                                 title="Hapus Pesanan"
-                                onClick={() => handleDeletePesanan(item.id, item.nama_pelanggan)}
+                                onClick={() =>
+                                  handleDeletePesanan(
+                                    item.id,
+                                    item.nama_pelanggan
+                                  )
+                                }
                               >
                                 <Icon icon="mdi:trash" width="18" />
                               </button>
@@ -549,14 +670,19 @@ export default function Dashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td
-                          colSpan={9}
-                          className="text-center py-10"
-                        >
+                        <td colSpan={9} className="text-center py-10">
                           <div className="flex flex-col items-center justify-center">
-                            <Icon icon="mdi:package-variant-remove" width="40" className="text-gray-400 mb-2" />
-                            <p className="text-gray-500 font-medium">Tidak ada pesanan ditemukan</p>
-                            <p className="text-gray-400 text-sm mt-1">Coba ubah filter atau tambahkan pesanan baru</p>
+                            <Icon
+                              icon="mdi:package-variant-remove"
+                              width="40"
+                              className="text-gray-400 mb-2"
+                            />
+                            <p className="text-gray-500 font-medium">
+                              Tidak ada pesanan ditemukan
+                            </p>
+                            <p className="text-gray-400 text-sm mt-1">
+                              Coba ubah filter atau tambahkan pesanan baru
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -569,46 +695,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Modal Tambah Pesanan */}
-      {showTambahPesanan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
-            <TambahPesananPopup
-              isModal={true}
-              onClose={() => setShowTambahPesanan(false)}
-              onAdded={() => {
-                setShowTambahPesanan(false);
-                refreshPesanan();
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Modal Edit Pesanan */}
-      {showEditPesanan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
-            <EditPesananPopup
-              isModal={true}
-              pesananId={showEditPesanan}
-              onClose={() => setShowEditPesanan(null)}
-              onUpdated={() => {
-                setShowEditPesanan(null);
-                refreshPesanan();
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Modal Konfirmasi Hapus */}
-      <DeleteModal 
+      <DeleteModal
         show={deleteModal.show}
         title="Konfirmasi Hapus Pesanan"
         message={
           <>
-            Apakah Anda yakin ingin menghapus pesanan <span className="font-semibold">{deleteModal.namaPelanggan}</span>? 
+            Apakah Anda yakin ingin menghapus pesanan{" "}
+            <span className="font-semibold">{deleteModal.namaPelanggan}</span>?
             Tindakan ini tidak dapat dibatalkan.
           </>
         }
@@ -616,8 +710,29 @@ export default function Dashboard() {
         onConfirm={confirmDeletePesanan}
       />
 
+      {/* Modal Edit Pesanan */}
+      {showEditModal && editPesananId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+            <EditPesananPopup
+              pesananId={editPesananId}
+              isModal={true}
+              onClose={() => {
+                setShowEditModal(false);
+                setEditPesananId(null);
+              }}
+              onUpdated={() => {
+                setShowEditModal(false);
+                setEditPesananId(null);
+                refreshPesanan();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Notifikasi */}
-      <Notification 
+      <Notification
         show={notification.show}
         message={notification.message}
         type={notification.type}

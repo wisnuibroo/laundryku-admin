@@ -99,7 +99,7 @@ interface TambahPesananInput {
   layanan: string;
   berat?: number;
   jumlah_harga?: number;
-  status?: 'pending' | 'diproses' | 'selesai';
+  status?: 'pending' | 'diproses' | 'selesai' | 'lunas';
   jenis_pembayaran?: 'cash' | 'transfer';
 }
 

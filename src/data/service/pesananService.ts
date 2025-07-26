@@ -15,7 +15,7 @@ export interface AddPesananInput {
   total_harga?: number; // akan dipetakan ke jumlah_harga
   jumlah_harga?: number; // field langsung
   jenis_pembayaran?: 'cash' | 'transfer';
-  status?: 'pending' | 'diproses' | 'selesai';
+  status?: 'pending' | 'diproses' | 'selesai' | 'lunas';
 }
 
 export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {

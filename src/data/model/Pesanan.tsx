@@ -10,7 +10,7 @@ export interface Pesanan {
   layanan: string;
   berat?: number;
   jumlah_harga?: number;
-  status: "pending" | "diproses" | "selesai" | "dikembalikan";
+  status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas";
   jenis_pembayaran?: "cash" | "transfer";
   created_at: string;
   updated_at: string;
@@ -34,7 +34,7 @@ export class PesananImpl implements Pesanan {
     public nomor: string,
     public alamat: string,
     public layanan: string,
-    public status: "pending" | "diproses" | "selesai" | "dikembalikan",
+    public status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas",
     public created_at: string,
     public updated_at: string,
     public id_admin?: number,

@@ -116,7 +116,8 @@ export default function OwnerDashboard() {
 
  
   const handleLogout = () => {
-    localStorage.removeItem("user"); // Hapus data dari localStorage
+    localStorage.removeItem("ACCESS_TOKEN"); // Hapus token dari localStorage
+    localStorage.removeItem("user"); // Hapus data user dari localStorage
     navigate("/login"); // Arahkan ke halaman login
   };
  
@@ -136,27 +137,40 @@ export default function OwnerDashboard() {
             </span>
           </div>
         <div className="relative">
-             <button
-               onClick={() => setShowOwnerMenu((prev) => !prev)}
-               className="flex items-center gap-2 focus:outline-none"
-             >
-               <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-               <span className="text-sm font-medium text-gray-700">
-                 {user?.nama_laundry|| "Owner"}
-               </span>
-               <Icon icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"} width={18} className="text-gray-500" />
-             </button>
-           
-             {showOwnerMenu && (
-               <div className="absolute right-0 mt-2 w-40 bg-red-600 rounded-md shadow-lg z-50 border border-white">
-                 <button
-                   onClick={handleLogout}
-                   className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-red-700 rounded-md "
-                 >
-                   Logout
-                 </button>
-               </div>
-             )}
+          <button
+            onClick={() => setShowOwnerMenu((prev) => !prev)}
+            className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
+          >
+            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">
+              {user?.nama_laundry || "Owner"}
+            </span>
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
+          </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
         </nav>
 
