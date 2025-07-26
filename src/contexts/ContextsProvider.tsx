@@ -90,12 +90,24 @@ export const ContextProvider = ({ children }: ContextProviderProps) => {
 
     // Efek untuk memastikan konsistensi state
     useEffect(() => {
-        // Jika token tidak ada, hapus semua data user
-        if (!token) {
-            setUser(null);
-            setUserType(null);
+        // Coba ambil data dari localStorage saat komponen mount
+        const savedUser = getUserFromStorage();  
+        const savedToken = localStorage.getItem(ACCESS_TOKEN);
+        const savedUsertype = localStorage.getItem(USER_TYPE) as ("user" | "admin" | "owner" | null);
+
+        // Jika ada data di localStorage, gunakan data tersebut
+        if (savedUser && savedToken && savedUsertype) {
+            _setUser(savedUser); // Gunakan _setUser untuk menghindari penulisan ulang ke localStorage
+            _setToken(savedToken); // Gunakan _setToken untuk menghindari penulisan ulang ke localStorage
+            _setUserType(savedUsertype); // Gunakan _setUserType untuk menghindari penulisan ulang ke localStorage
+        } else if (!savedToken) {
+            // Jika token tidak ada, hapus semua data user
+            localStorage.removeItem(USER_DATA);
+            localStorage.removeItem(USER_TYPE);
+            _setUser(null);
+            _setUserType(null);
         }
-    }, [token]);
+    }, []);
 
     return (
         <StateContext.Provider value={{

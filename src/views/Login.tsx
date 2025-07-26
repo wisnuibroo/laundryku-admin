@@ -79,6 +79,10 @@ export default function Login() {
           setUser(admin)
           setToken(token)
           setUserType("admin")
+
+          localStorage.setItem("user",JSON.stringify(admin))
+          localStorage.setItem("token",token)
+          localStorage.setItem("userType","admin")
           navigate("/dashboard/admin")
         } else {
           const response = await axiosInstance.post("/owner/login", {
@@ -89,6 +93,10 @@ export default function Login() {
           setUser(owner)
           setToken(token)
           setUserType("owner")
+
+          localStorage.setItem("user",JSON.stringify(owner))
+          localStorage.setItem("token",token)
+          localStorage.setItem("userType","owner")
           navigate("/dashboard/owner")
         }
       } else {

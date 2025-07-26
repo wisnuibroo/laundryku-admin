@@ -72,9 +72,16 @@ export default function OwnerDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        if (!token) {
+        // Cek token dari localStorage
+        const localToken = localStorage.getItem('ACCESS_TOKEN');
+        if (!localToken && !token) {
           navigate('/login');
           return;
+        }
+        
+        // Gunakan token dari localStorage jika token dari context tidak ada
+        if (!token && localToken) {
+          console.log('Using token from localStorage');
         }
         
         const data = await ownerService.getDashboardStats();
@@ -88,6 +95,14 @@ export default function OwnerDashboard() {
       }
     };
     fetchData();
+    
+    // Tambahkan interval untuk refresh data setiap 30 detik
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 30000);
+    
+    // Cleanup interval saat komponen unmount
+    return () => clearInterval(intervalId);
   }, [token, navigate]);
 
   const formatCurrency = (amount: number) =>

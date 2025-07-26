@@ -147,7 +147,6 @@ export default function Dashboard() {
         }
         return [];
       });
-      if (newStatus === "selesai") navigate("/tagihan");
     } catch (error: any) {
       alert(error.message || "Gagal mengubah status");
     }

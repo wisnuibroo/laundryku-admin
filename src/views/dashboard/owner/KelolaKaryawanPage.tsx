@@ -38,21 +38,53 @@ const [phone, setPhone] = useState("");
       setLoading(true);
       setError(null);
       
-      if (!token) {
+      // Cek token dari localStorage
+      const localToken = localStorage.getItem('ACCESS_TOKEN');
+      if (!localToken && !token) {
         navigate('/login');
         return;
       }
       
-      const [employeesData, statsData] = await Promise.all([
-        adminService.getAdminsForCurrentOwner(),
-        adminService.getAdminStats()
-      ]);
+      // Gunakan token dari localStorage jika token dari context tidak ada
+      if (!token && localToken) {
+        console.log('Using token from localStorage for employee data');
+      }
       
-      setEmployees(employeesData);
-      setStats(statsData);
+      // Ambil data karyawan dan statistik secara terpisah untuk error handling yang lebih baik
+      let employeesData: Admin[] = [];
+      let statsData: AdminStats = {
+        total_karyawan: 0,
+        karyawan_aktif: 0,
+        karyawan_baru: 0,
+        ratarataRating: 0
+      };
+      
+      try {
+        employeesData = await adminService.getAdminsForCurrentOwner();
+        setEmployees(employeesData);
+      } catch (empError: any) {
+        console.error('Error fetching employees:', empError);
+        setError(empError.errors?.general?.[0] || 'Gagal memuat data karyawan');
+      }
+      
+      try {
+        statsData = await adminService.getAdminStats();
+        setStats(statsData);
+      } catch (statsError: any) {
+        console.error('Error fetching stats:', statsError);
+        // Jika gagal mengambil statistik, hitung dari data karyawan yang berhasil diambil
+        if (employeesData.length > 0) {
+          setStats({
+            total_karyawan: employeesData.length,
+            karyawan_aktif: employeesData.filter(emp => emp.status === 'aktif').length,
+            karyawan_baru: 0, // Tidak bisa menentukan karyawan baru tanpa timestamp
+            ratarataRating: 0 // Tidak bisa menghitung rating tanpa data rating
+          });
+        }
+      }
     } catch (err: any) {
-      console.error('Error fetching data:', err);
-      setError(err.errors?.general?.[0] || 'Gagal memuat data karyawan');
+      console.error('Error in main try block:', err);
+      setError(err.errors?.general?.[0] || 'Terjadi kesalahan saat memuat data');
     } finally {
       setLoading(false);
     }
@@ -60,6 +92,14 @@ const [phone, setPhone] = useState("");
 
   useEffect(() => {
     fetchData();
+    
+    // Set up interval to refresh data every 60 seconds
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 60000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, [token, navigate]);
 
 
