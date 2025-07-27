@@ -240,7 +240,7 @@ const [phone, setPhone] = useState("");
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <CardStat
           icon={<Icon icon="stash:user-group-duotone" width={24} />}
           label="Total Karyawan"

@@ -582,7 +582,7 @@ export default function Dashboard() {
                           <td className="px-4 py-3">{item.layanan}</td>
                           <td className="px-4 py-3">{item.berat} kg</td>
                           <td className="px-4 py-3">
-                            Rp {item.jumlah_harga?.toLocaleString()}
+                            Rp {item.jumlah_harga ? Math.round(item.jumlah_harga).toLocaleString() : '0'}
                           </td>
                           <td className="px-4 py-3">
                             <select

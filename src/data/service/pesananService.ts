@@ -78,11 +78,14 @@ export const updatePesanan = async (id: number, data: Partial<AddPesananInput>):
     const payload: any = {};
     
     if (data.name) payload.nama_pelanggan = data.name;
+    if (data.nama_pelanggan) payload.nama_pelanggan = data.nama_pelanggan;
     if (data.phone) payload.nomor = data.phone;
+    if (data.nomor) payload.nomor = data.nomor;
     if (data.alamat) payload.alamat = data.alamat;
     if (data.layanan) payload.layanan = data.layanan;
     if (data.berat !== undefined) payload.berat = data.berat;
     if (data.total_harga !== undefined) payload.jumlah_harga = data.total_harga;
+    if (data.jumlah_harga !== undefined) payload.jumlah_harga = data.jumlah_harga;
     if (data.status) payload.status = data.status;
     if (data.jenis_pembayaran) {
       payload.jenis_pembayaran = data.jenis_pembayaran.toLowerCase() === 'tunai' ? 'cash' : data.jenis_pembayaran.toLowerCase();
