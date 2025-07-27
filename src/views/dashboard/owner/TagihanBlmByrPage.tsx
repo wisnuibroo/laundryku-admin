@@ -6,6 +6,13 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../../lib/axios";
 import { updatePesanan } from "../../../data/service/pesananService";
 import React from "react";
+import { useStateContext } from "../../../contexts/ContextsProvider";
+
+// Tambahkan interface untuk notifikasi
+interface Notification {
+  message: string;
+  type: 'success' | 'error';
+}
 
 interface Tagihan {
   id_pesanan: string;
@@ -38,6 +45,10 @@ export default function TagihanBlmByrPage() {
   const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  // Tambahkan state untuk notifikasi
+  const [notification, setNotification] = useState<Notification | null>(null);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const { user } = useStateContext();
 
   const [stats, setStats] = useState({
     total_pelanggan: 0,
@@ -130,6 +141,15 @@ export default function TagihanBlmByrPage() {
     }
   };
 
+  // Fungsi untuk menampilkan notifikasi
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    // Hilangkan notifikasi setelah 3 detik
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
+
   const handleMarkAsLunas = async (idPesanan: string) => {
     try {
       setIsUpdating(true);
@@ -138,10 +158,10 @@ export default function TagihanBlmByrPage() {
       // Refresh data setelah update
       await fetchTagihanBelumBayar();
 
-      alert("Pesanan berhasil ditandai sebagai lunas!");
+      showNotification("Pesanan berhasil ditandai sebagai lunas!", "success");
     } catch (error: any) {
       console.error("Gagal mengupdate status pesanan:", error);
-      alert("Gagal mengupdate status pesanan: " + error.message);
+      showNotification(error.message || "Gagal mengupdate status pesanan", "error");
     } finally {
       setIsUpdating(false);
     }
@@ -161,12 +181,13 @@ export default function TagihanBlmByrPage() {
       // Refresh data setelah update
       await fetchTagihanBelumBayar();
 
-      alert(
-        `Semua ${customer.tagihan.length} pesanan ${customer.name} berhasil ditandai sebagai lunas!`
+      showNotification(
+        `Semua ${customer.tagihan.length} pesanan ${customer.name} berhasil ditandai sebagai lunas!`,
+        "success"
       );
     } catch (error: any) {
       console.error("Gagal mengupdate status pesanan:", error);
-      alert("Gagal mengupdate status pesanan: " + error.message);
+      showNotification(error.message || "Gagal mengupdate status pesanan", "error");
     } finally {
       setIsUpdating(false);
     }
@@ -209,6 +230,23 @@ export default function TagihanBlmByrPage() {
 
   return (
     <div className="flex-1 overflow-auto">
+      {/* Tambahkan notifikasi di bagian atas */}
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+            notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white`}
+        >
+          <div className="flex items-center gap-2">
+            <Icon
+              icon={notification.type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'}
+              className="w-5 h-5"
+            />
+            <p>{notification.message}</p>
+          </div>
+        </div>
+      )}
+
       <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
         <div className="flex items-center gap-2">
           <Icon
@@ -221,13 +259,44 @@ export default function TagihanBlmByrPage() {
             Tagihan Belum Bayar
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Icon
-            icon="mdi:account-circle-outline"
-            width={22}
-            className="text-gray-700"
-          />
-          <span className="text-sm text-gray-700">Owner</span>
+        <div className="relative">
+          <button
+            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
+          >
+            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">
+              {user?.nama_laundry || "Owner"}
+            </span>
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
+          </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -395,21 +464,16 @@ export default function TagihanBlmByrPage() {
                                       <p className="text-sm">
                                         Tanggal: {tgh.tanggal}
                                       </p>
-                                      <p className="text-xs text-gray-500">
-                                        Due: {tgh.jatuh_tempo}
-                                      </p>
                                     </div>
                                     <div className="text-sm font-medium">
                                       Rp {tgh.total.toLocaleString("id-ID")}
                                     </div>
-                                    <div>
-                                      <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
-                                        Belum lunas {tgh.overdue} lalu
-                                      </span>
+                                    <div className="text-sm font-medium">
+                                      {tgh.berat} Kg
                                     </div>
                                     <div>
                                       <button
-                                        className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-800"
+                                        className="text-sm px-3 py-1 bg-green-500 hover:bg-green-200 rounded text-white"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleMarkAsLunas(tgh.id_pesanan);

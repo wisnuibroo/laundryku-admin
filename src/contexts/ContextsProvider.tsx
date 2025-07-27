@@ -1,19 +1,14 @@
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-const ACCESS_TOKEN = "ACCESS_TOKEN";
-const USER_TYPE = "USER_TYPE";
-const USER_DATA = "USER_DATA";
-
-// Tipe data untuk user/admin/owner
 export interface User {
     id: number;
     name?: string;        // untuk admin
     username?: string;    // untuk owner
     email: string;
     nama_laundry?: string; // untuk owner
+    id_owner?: number;    // untuk admin
 }
 
-// Tipe data untuk konteks
 interface StateContextType {
     user: User | null;
     token: string | null;
@@ -23,99 +18,124 @@ interface StateContextType {
     setUserType: (userType: 'user' | 'admin' | 'owner' | null) => void;
 }
 
-// Nilai default untuk context
 const StateContext = createContext<StateContextType>({
     user: null,
-    token: localStorage.getItem(ACCESS_TOKEN),
-    userType: localStorage.getItem(USER_TYPE) as 'user' | 'admin' | 'owner' | null,
+    token: null,
+    userType: null,
     setUser: () => {},
     setToken: () => {},
     setUserType: () => {},
 });
 
-// Props untuk ContextProvider
 interface ContextProviderProps {
     children: ReactNode;
 }
 
 export const ContextProvider = ({ children }: ContextProviderProps) => {
-    // Coba ambil data user dari localStorage saat inisialisasi
+    // Fungsi untuk membersihkan semua data
+    const clearAllData = () => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        localStorage.removeItem("userType");
+        localStorage.removeItem("CACHED_ADMINS");
+        localStorage.removeItem("USER_DATA");
+        localStorage.removeItem("ACCESS_TOKEN");
+        localStorage.removeItem("USER_TYPE");
+    };
+
+    // Fungsi untuk mengambil data user dari localStorage
     const getUserFromStorage = (): User | null => {
-        const userData = localStorage.getItem(USER_DATA);
-        if (userData) {
-            try {
-                return JSON.parse(userData);
-            } catch (e) {
-                console.error("Error parsing user data from localStorage", e);
-                return null;
+        try {
+            const userData = localStorage.getItem("user");
+            if (userData) {
+                const parsedUser = JSON.parse(userData);
+                // Validasi data user
+                if (parsedUser && parsedUser.id && parsedUser.email) {
+                    return parsedUser;
+                }
             }
+            return null;
+        } catch (e) {
+            console.error("Error parsing user data:", e);
+            clearAllData(); // Bersihkan data jika ada error
+            return null;
         }
-        return null;
     };
 
     const [user, _setUser] = useState<User | null>(getUserFromStorage());
+    const [token, _setToken] = useState<string | null>(localStorage.getItem("token"));
     const [userType, _setUserType] = useState<'user' | 'admin' | 'owner' | null>(
-        localStorage.getItem(USER_TYPE) as 'user' | 'admin' | 'owner' | null
+        localStorage.getItem("userType") as 'user' | 'admin' | 'owner' | null
     );
-    const [token, _setToken] = useState<string | null>(localStorage.getItem(ACCESS_TOKEN) || null);
 
-    const setUser = (user: User | null) => {
-        _setUser(user);
-        if (user) {
-            localStorage.setItem(USER_DATA, JSON.stringify(user));
+    const setUser = (newUser: User | null) => {
+        _setUser(newUser);
+        if (newUser) {
+            localStorage.setItem("user", JSON.stringify(newUser));
         } else {
-            localStorage.removeItem(USER_DATA);
+            clearAllData();
         }
     };
 
-    const setToken = (token: string | null) => {
-        _setToken(token);
-        if (token) {
-            localStorage.setItem(ACCESS_TOKEN, token);
+    const setToken = (newToken: string | null) => {
+        _setToken(newToken);
+        if (newToken) {
+            localStorage.setItem("token", newToken);
         } else {
-            localStorage.removeItem(ACCESS_TOKEN);
-            localStorage.removeItem(USER_TYPE);
-            _setUserType(null);
+            clearAllData();
         }
     };
 
-    const setUserType = (userType: 'user' | 'admin' | 'owner' | null) => {
-        _setUserType(userType);
-        if (userType) {
-            localStorage.setItem(USER_TYPE, userType);
+    const setUserType = (newUserType: 'user' | 'admin' | 'owner' | null) => {
+        _setUserType(newUserType);
+        if (newUserType) {
+            localStorage.setItem("userType", newUserType);
         } else {
-            localStorage.removeItem(USER_TYPE);
+            clearAllData();
         }
     };
 
-    // Efek untuk memastikan konsistensi state
+    // Effect untuk validasi data saat komponen mount
     useEffect(() => {
-        // Coba ambil data dari localStorage saat komponen mount
-        const savedUser = getUserFromStorage();  
-        const savedToken = localStorage.getItem(ACCESS_TOKEN);
-        const savedUsertype = localStorage.getItem(USER_TYPE) as ("user" | "admin" | "owner" | null);
+        const validateAndSetData = () => {
+            const savedUser = getUserFromStorage();
+            const savedToken = localStorage.getItem("token");
+            const savedUserType = localStorage.getItem("userType") as ('user' | 'admin' | 'owner' | null);
 
-        // Jika ada data di localStorage, gunakan data tersebut
-        if (savedUser && savedToken && savedUsertype) {
-            _setUser(savedUser); // Gunakan _setUser untuk menghindari penulisan ulang ke localStorage
-            _setToken(savedToken); // Gunakan _setToken untuk menghindari penulisan ulang ke localStorage
-            _setUserType(savedUsertype); // Gunakan _setUserType untuk menghindari penulisan ulang ke localStorage
-        } else if (!savedToken) {
-            // Jika token tidak ada, hapus semua data user
-            localStorage.removeItem(USER_DATA);
-            localStorage.removeItem(USER_TYPE);
-            _setUser(null);
-            _setUserType(null);
-        }
+            // Validasi data
+            if (savedUser && savedToken && savedUserType) {
+                // Pastikan data konsisten
+                if ((savedUserType === 'admin' && savedUser.id_owner) || 
+                    (savedUserType === 'owner' && savedUser.nama_laundry)) {
+                    _setUser(savedUser);
+                    _setToken(savedToken);
+                    _setUserType(savedUserType);
+                } else {
+                    console.error("Inconsistent user data found");
+                    clearAllData();
+                    _setUser(null);
+                    _setToken(null);
+                    _setUserType(null);
+                }
+            } else {
+                // Jika ada data yang hilang, bersihkan semua
+                clearAllData();
+                _setUser(null);
+                _setToken(null);
+                _setUserType(null);
+            }
+        };
+
+        validateAndSetData();
     }, []);
 
     return (
         <StateContext.Provider value={{
             user,
-            setUser,
             token,
-            setToken,
             userType,
+            setUser,
+            setToken,
             setUserType
         }}>
             {children}
@@ -123,5 +143,4 @@ export const ContextProvider = ({ children }: ContextProviderProps) => {
     );
 };
 
-// Custom hook
 export const useStateContext = () => useContext(StateContext);

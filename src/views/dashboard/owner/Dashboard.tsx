@@ -25,6 +25,7 @@ import OverviewSection from "../../../components/OverviewCard";
 import { Pesanan } from "../../../data/model/Pesanan";
 import { updateStatusPesanan } from "../../../data/service/ApiService";
 import { getPesanan } from "../../../data/service/pesananService";
+import axiosInstance from "../../../lib/axios";
 // import My_EmployeeTabs from "../../../components/My_EmployeeTabs"; // uncomment if you have this component
 
 ChartJS.register(
@@ -73,12 +74,13 @@ export default function OwnerDashboard() {
     pesanan_terbaru: []
   });
 
-   const [dateRange, setDateRange] = useState(() => ({
-    start: new Date(new Date().setMonth(new Date().getMonth() - 6))
-      .toISOString()
-      .split("T")[0],
-    end: new Date().toISOString().split("T")[0],
-  }));
+   const [dateRange, setDateRange] = useState(() => {
+    // Default tanpa filter tanggal
+    return {
+      start: "",  // Kosongkan untuk tidak memfilter tanggal
+      end: "",    // Kosongkan untuk tidak memfilter tanggal
+    };
+  });
 
    
   
@@ -87,23 +89,45 @@ export default function OwnerDashboard() {
     const fetchPesanan = async (showLoader = true) => {
       if (showLoader) setLoading(true);
       try {
-        const localToken = localStorage.getItem("ACCESS_TOKEN");
+        const localToken = localStorage.getItem("token");
         if (!localToken && !token) {
           navigate("/login");
           return;
         }
 
         if (!user?.id) {
-          setError("ID Admin tidak ditemukan");
+          setError("ID Owner tidak ditemukan");
           if (showLoader) setLoading(false);
           navigate("/login");
           return;
         }
 
+        // Gunakan ID owner untuk fetch pesanan
+        console.log("Fetching pesanan for owner ID:", user.id);
         const data = await getPesanan(Number(user.id));
+        console.log("Fetched pesanan:", data);
         setPesanan(data);
+
+        // Fetch total pendapatan dari TagihanLunasPage
+        const responseLunas = await axiosInstance.get("/tagihan/siap-ditagih", {
+          params: { id_owner: user.id },
+        });
+        const lunasData = responseLunas.data.data;
+        if (Array.isArray(lunasData)) {
+          // Filter data untuk pesanan dengan status "lunas"
+          const totalPendapatan = lunasData
+            .filter((item: any) => item.status === "lunas")
+            .reduce((acc: number, item: any) => acc + (parseFloat(item.jumlah_harga) || 0), 0);
+
+          setStats(prevStats => ({
+            ...prevStats,
+            total_pendapatan: totalPendapatan
+          }));
+        }
+
         setError("");
       } catch (error: any) {
+        console.error("Error fetching pesanan:", error);
         setError(error.message || "Gagal mengambil data pesanan");
         setPesanan([]);
       } finally {
@@ -133,40 +157,77 @@ export default function OwnerDashboard() {
  
   const handleLogout = () => {
     localStorage.clear();
-    localStorage.removeItem("ACCESS_TOKEN"); // Hapus token dari localStorage
-    localStorage.removeItem("user"); // Hapus data user dari localStorage
-    navigate("/login"); // Arahkan ke halaman login
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
- 
-   // Pastikan pesanan adalah array sebelum menggunakan filter
-    const allowedStatuses = ['pending', 'diproses', 'selesai'];
-    const filteredPesanan = Array.isArray(pesanan)
-      ? pesanan.filter((p) => {
+
+  // Pastikan pesanan adalah array sebelum menggunakan filter
+  const allowedStatuses = ['pending', 'diproses', 'selesai']; // Hanya tampilkan status ini
+  const filteredPesanan = Array.isArray(pesanan)
+    ? pesanan.filter((p) => {
+        try {
+          // Debug log untuk melihat data yang difilter
+          console.log("Filtering pesanan:", p);
+
+          // Validasi tanggal pesanan
+          if (!p.created_at) {
+            console.log("Pesanan tidak memiliki created_at:", p);
+            return false;
+          }
+
+          // Parse tanggal dengan benar
           const orderDate = new Date(p.created_at);
-          const startDate = new Date(dateRange.start);
-          const endDate = new Date(dateRange.end);
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-          const matchesDate = orderDate >= startDate && orderDate <= endDate;
+          
+          // Validasi orderDate
+          if (isNaN(orderDate.getTime())) {
+            console.log("Invalid order date:", p.created_at);
+            return false;
+          }
+
+          // Hanya check tanggal jika ada filter tanggal aktif
+          if (dateRange.start && dateRange.end) {
+            const startDate = new Date(dateRange.start + "T00:00:00");
+            const endDate = new Date(dateRange.end + "T23:59:59");
+
+            // Validasi tanggal filter
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+              console.log("Invalid filter dates:", {start: dateRange.start, end: dateRange.end});
+              return false;
+            }
+
+            const matchesDate = orderDate >= startDate && orderDate <= endDate;
+            if (!matchesDate) {
+              console.log("Pesanan tidak masuk range tanggal:", {
+                orderDate: orderDate.toISOString(),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
+              });
+              return false;
+            }
+          }
+
           const matchesStatus = filterStatus
             ? p.status.toLowerCase() === filterStatus.toLowerCase()
             : true;
+
           const keyword = searchKeyword.toLowerCase();
-          const matchesKeyword =
-            p.nama_pelanggan.toLowerCase().includes(keyword) ||
-            p.alamat.toLowerCase().includes(keyword) ||
-            p.nomor.toLowerCase().includes(keyword) ||
-            p.layanan.toLowerCase().includes(keyword);
-          // Filter hanya status yang diizinkan
-          const isAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
-          return (
-            matchesDate &&
-            matchesStatus &&
-            (searchKeyword ? matchesKeyword : true) &&
-            isAllowedStatus
+          const matchesKeyword = !searchKeyword || (
+            p.nama_pelanggan?.toLowerCase().includes(keyword) ||
+            p.alamat?.toLowerCase().includes(keyword) ||
+            p.nomor?.toLowerCase().includes(keyword) ||
+            p.layanan?.toLowerCase().includes(keyword)
           );
-        })
-      : [];
+
+          const matchesAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
+
+          return matchesStatus && matchesKeyword && matchesAllowedStatus;
+        } catch (error) {
+          console.error("Error filtering pesanan:", error, p);
+          return false;
+        }
+      })
+    : [];
 
       const totalPesanan = Array.isArray(filteredPesanan)
         ? filteredPesanan.length
@@ -258,7 +319,7 @@ export default function OwnerDashboard() {
               icon={<Icon icon="streamline-cyber:money-bag-1" width={24} />}
               label="Total Pendapatan"
               value={formatCurrency(stats.total_pendapatan)}
-              subtitle="Bulan ini"
+              subtitle="Dari tagihan lunas"
               iconColor="#06923E"
             />
             <CardStat
@@ -271,7 +332,7 @@ export default function OwnerDashboard() {
             <CardStat
               icon={<Icon icon="material-symbols:warning-outline-rounded" width={24} />}
               label="Tagihan pesanan"
-              value={stats.pesanan_by_status.proses.toString()}
+              value={Array.isArray(pesanan) ? pesanan.filter(p => p.status === "selesai").length.toString() : "0"}
               subtitle="Belum lunas"
               iconColor="#EB5B00"
             />
@@ -315,10 +376,10 @@ export default function OwnerDashboard() {
              <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-black">
-                  Manajemen Pesanan
+                  Pesanan Terbaru
                 </h1>
                 <p className="text-gray-500">
-                  Kelola semua pesanan laundry pelanggan
+                  Lihat semua pesanan laundry pelanggan
                 </p>
               </div>
             </div>
@@ -367,109 +428,135 @@ export default function OwnerDashboard() {
                         <option value="diproses">Diproses</option>
                         <option value="selesai">Selesai</option>
                       </select>
-                    </div>
-                  )}
+
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              setFilterStatus("");
+                              setSearchKeyword("");
+                              setDateRange({ start: "", end: "" });
+                              setShowFilter(false);
+                            }}
+                            className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium transition-all duration-200"
+                          >
+                            Reset Filter
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-6">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pelanggan
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Alamat
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Layanan
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Berat
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Harga
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tanggal
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {loading ? (
+
+              <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-6">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan={9} className="text-center py-10">
-                        <div className="flex flex-col items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-                          <p className="text-gray-500">Memuat pesanan...</p>
-                        </div>
-                      </td>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Pelanggan
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Alamat
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Layanan
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Berat
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Harga
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tanggal
+                      </th>
                     </tr>
-                  ) : filteredPesanan.length > 0 ? (
-                    filteredPesanan.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
-                      >
-                        <td className="px-4 py-3">
-                          ORD-{String(item.id).padStart(3, "0")}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium">
-                            {item.nama_pelanggan || "Unknown"}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+                            <p className="text-gray-500">Memuat pesanan...</p>
                           </div>
-                          <div className="text-gray-500">{item.nomor}</div>
                         </td>
-                        <td className="px-4 py-3">{item.alamat}</td>
-                        <td className="px-4 py-3">{item.layanan}</td>
-                        <td className="px-4 py-3">{item.berat} kg</td>
-                        <td className="px-4 py-3">
-                          Rp {item.jumlah_harga?.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 capitalize">{item.status}</td>
-                        <td className="px-4 py-3">
-                          {new Date(item.created_at).toLocaleDateString(
-                            "id-ID",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )}
-                        </td>
-                        
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="text-center py-10">
-                        <div className="flex flex-col items-center justify-center">
-                          <Icon
-                            icon="mdi:package-variant-remove"
-                            width="40"
-                            className="text-gray-400 mb-2"
-                          />
-                          <p className="text-gray-500 font-medium">
-                            Tidak ada pesanan ditemukan
-                          </p>
-                          <p className="text-gray-400 text-sm mt-1">
-                            Coba ubah filter atau tambahkan pesanan baru
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          <div className="flex flex-col items-center justify-center">
+                            <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
+                            <p className="text-red-500">{error}</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredPesanan.length > 0 ? (
+                      filteredPesanan.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                        >
+                          <td className="px-4 py-3">
+                            ORD-{String(item.id).padStart(3, "0")}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium">
+                              {item.nama_pelanggan || "Unknown"}
+                            </div>
+                            <div className="text-gray-500">{item.nomor}</div>
+                          </td>
+                          <td className="px-4 py-3">{item.alamat}</td>
+                          <td className="px-4 py-3">{item.layanan}</td>
+                          <td className="px-4 py-3">{item.berat || 0} kg</td>
+                          <td className="px-4 py-3">
+                            Rp {item.jumlah_harga ? Math.round(item.jumlah_harga).toLocaleString() : '0'}
+                          </td>
+                          <td className="px-4 py-3 capitalize">{item.status}</td>
+                          <td className="px-4 py-3">
+                            {item.created_at ? (
+                              new Date(item.created_at).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          <div className="flex flex-col items-center justify-center">
+                            <Icon
+                              icon="mdi:package-variant-remove"
+                              width="40"
+                              className="text-gray-400 mb-2"
+                            />
+                            <p className="text-gray-500 font-medium">
+                              Tidak ada pesanan ditemukan
+                            </p>
+                            <p className="text-gray-400 text-sm mt-1">
+                              Coba ubah filter atau tambahkan pesanan baru
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
         </div>
           
 

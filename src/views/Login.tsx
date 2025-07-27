@@ -35,58 +35,72 @@ export default function Login() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault()
-  setError("")
-  setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  // ✅ CLEAR DATA LAMA DULU
-  setUser(null)
-  setToken(null)
-  setUserType(null)
-  localStorage.removeItem("user")
-  localStorage.removeItem("token")
-  localStorage.removeItem("userType")
+    // Bersihkan semua data lama
+    setUser(null);
+    setToken(null);
+    setUserType(null);
+    localStorage.clear(); // Bersihkan semua data di localStorage
 
-  if (!formData.name || !formData.password) {
-    setError("Username dan password harus diisi!")
-    setLoading(false)
-    return
-  }
+    if (!formData.name || !formData.password) {
+      setError("Username dan password harus diisi!");
+      setLoading(false);
+      return;
+    }
 
-  try {
-    if (isLogin) {
-      if (role === "admin") {
-        const response = await axiosInstance.post("/admin/login", {
-          email: formData.name,
-          password: formData.password,
-        })
-        const { admin, token } = response.data
-        setUser(admin)
-        setToken(token)
-        setUserType("admin")
+    try {
+      if (isLogin) {
+        if (role === "admin") {
+          const response = await axiosInstance.post("/admin/login", {
+            email: formData.name,
+            password: formData.password,
+          });
 
-        localStorage.setItem("user", JSON.stringify(admin))
-        localStorage.setItem("token", token)
-        localStorage.setItem("userType", "admin")
+          const { admin, token } = response.data;
+          console.log("Admin login response:", response.data);
 
-        navigate("/dashboard/admin")
+          // Validasi data admin
+          if (!admin || !admin.id || !admin.id_owner) {
+            setError("Data admin tidak lengkap. Silakan hubungi owner Anda.");
+            setLoading(false);
+            return;
+          }
+
+          // Set data ke context dan localStorage
+          setUser(admin);
+          setToken(token);
+          setUserType("admin");
+
+          // Navigasi ke dashboard admin
+          navigate("/dashboard/admin");
+        } else {
+          const response = await axiosInstance.post("/owner/login", {
+            email: formData.name,
+            password: formData.password,
+          });
+
+          const { owner, token } = response.data;
+          console.log("Owner login response:", response.data);
+
+          // Validasi data owner
+          if (!owner || !owner.id || !owner.nama_laundry) {
+            setError("Data owner tidak lengkap. Silakan hubungi support.");
+            setLoading(false);
+            return;
+          }
+
+          // Set data ke context dan localStorage
+          setUser(owner);
+          setToken(token);
+          setUserType("owner");
+
+          // Navigasi ke dashboard owner
+          navigate("/dashboard/owner");
+        }
       } else {
-        const response = await axiosInstance.post("/owner/login", {
-          email: formData.name,
-          password: formData.password,
-        })
-        const { owner, token } = response.data
-        setUser(owner)
-        setToken(token)
-        setUserType("owner")
-
-        localStorage.setItem("user", JSON.stringify(owner))
-        localStorage.setItem("token", token)
-        localStorage.setItem("userType", "owner")
-
-        navigate("/dashboard/owner")
-      }
-    } else {
         // Logic register - hanya untuk owner
         const response = await axiosInstance.post("/owner/register", {
           username: formData.name,
@@ -95,10 +109,11 @@ export default function Login() {
           password_confirmation: formData.confirmPassword,
           nama_laundry: formData.laundryName,
         });
+
         // Setelah berhasil register, pindah ke mode login
         setError("Registrasi berhasil! Silakan login.");
         setIsLogin(true);
-        setRole("owner"); // Set ke owner setelah register
+        setRole("owner");
         setFormData({
           name: "",
           email: "",
@@ -114,9 +129,9 @@ export default function Login() {
         "Terjadi kesalahan!";
       if (err.response?.status === 500) {
         setError("Terjadi masalah di server, silakan coba lagi nanti!");
-        return;
+      } else {
+        setError(message);
       }
-      setError(message);
     } finally {
       setLoading(false);
     }
@@ -452,11 +467,11 @@ export default function Login() {
             <ul className="text-gray-700 text-sm space-y-2 mt-2">
               <li className="flex items-center gap-2">
                 <Icon icon="mdi:chart-bar" className="text-blue-500" />
-                Dashboard keuangan
+                Monitoring Tagihan
               </li>
               <li className="flex items-center gap-2">
                 <Icon icon="mdi:chart-bar" className="text-blue-500" />
-                Laporan penjualan
+                Laporan Keuangan
               </li>
               <li className="flex items-center gap-2">
                 <Icon icon="mdi:chart-bar" className="text-blue-500" />

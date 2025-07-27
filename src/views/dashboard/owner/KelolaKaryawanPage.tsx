@@ -11,6 +11,7 @@ export default function KelolaKaryawanPage() {
   const navigate = useNavigate();
   const { user, token } = useStateContext();
   const [openDialog, setOpenDialog] = useState(false);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
 
   const [searchText, setSearchText] = useState("");
   const [employees, setEmployees] = useState<Admin[]>([]);
@@ -211,14 +212,44 @@ const [phone, setPhone] = useState("");
             <Icon icon={"stash:user-group-duotone"} className="w-7 h-7 text-[#9929EA]" />
             <span className="text-lg font-bold text-gray-900">Kelola Karyawan</span>
           </div>
-          <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-700">
-              <Icon icon="mdi:bell-outline" width={22} />
+          <div className="relative">
+            <button
+              onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+              className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+              aria-haspopup="true"
+              aria-expanded={showOwnerMenu}
+              aria-label="User menu"
+            >
+              <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+              <span className="text-sm font-semibold text-gray-700">
+                {user?.nama_laundry || "Owner"}
+              </span>
+              <Icon
+                icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+                width={20}
+                className="text-gray-500"
+              />
             </button>
-            <div className="flex items-center gap-2">
-              <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-              <span className="text-sm text-gray-700">Owner</span>
-            </div>
+
+            {showOwnerMenu && (
+              <div
+                className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                role="menu"
+                aria-orientation="vertical"
+                aria-label="User menu"
+              >
+                <button
+                  onClick={() => {
+                    localStorage.clear();
+                    navigate("/login");
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                  role="menuitem"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </nav>
         

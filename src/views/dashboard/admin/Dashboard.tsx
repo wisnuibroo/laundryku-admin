@@ -42,12 +42,13 @@ export default function Dashboard() {
   const [pesanan, setPesanan] = useState<Pesanan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [dateRange, setDateRange] = useState(() => ({
-    start: new Date(new Date().setMonth(new Date().getMonth() - 6))
-      .toISOString()
-      .split("T")[0],
-    end: new Date().toISOString().split("T")[0],
-  }));
+  const [dateRange, setDateRange] = useState(() => {
+    // Default tanpa filter tanggal
+    return {
+      start: "",  // Kosongkan untuk tidak memfilter tanggal
+      end: "",    // Kosongkan untuk tidak memfilter tanggal
+    };
+  });
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilter, setShowFilter] = useState(false);
@@ -72,7 +73,7 @@ export default function Dashboard() {
     const fetchPesanan = async (showLoader = true) => {
       if (showLoader) setLoading(true);
       try {
-        const localToken = localStorage.getItem("ACCESS_TOKEN");
+        const localToken = localStorage.getItem("token");
         if (!localToken && !token) {
           navigate("/login");
           return;
@@ -85,10 +86,21 @@ export default function Dashboard() {
           return;
         }
 
-        const data = await getPesanan(Number(user.id));
+        // Pastikan admin memiliki id_owner
+        if (!user.id_owner) {
+          setError("ID Owner tidak ditemukan untuk admin ini");
+          if (showLoader) setLoading(false);
+          return;
+        }
+
+        // Gunakan id_owner untuk fetch pesanan
+        console.log("Fetching pesanan for admin with owner ID:", user.id_owner);
+        const data = await getPesanan(Number(user.id_owner));
+        console.log("Fetched pesanan:", data);
         setPesanan(data);
         setError("");
       } catch (error: any) {
+        console.error("Error fetching pesanan:", error);
         setError(error.message || "Gagal mengambil data pesanan");
         setPesanan([]);
       } finally {
@@ -105,7 +117,7 @@ export default function Dashboard() {
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [token, navigate, user?.id]);
+  }, [token, navigate, user?.id, user?.id_owner]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -132,37 +144,76 @@ export default function Dashboard() {
   };
 
   // Pastikan pesanan adalah array sebelum menggunakan filter
-  const allowedStatuses = ['pending', 'diproses', 'selesai']; // Hanya tampilkan status ini
+  const allowedStatuses = ['pending', 'diproses', 'selesai']; // Hapus status lunas
   const filteredPesanan = Array.isArray(pesanan)
     ? pesanan.filter((p) => {
-        const orderDate = new Date(p.created_at);
-        const startDate = new Date(dateRange.start);
-        const endDate = new Date(dateRange.end);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        const matchesDate = orderDate >= startDate && orderDate <= endDate;
-        const matchesStatus = filterStatus
-          ? p.status.toLowerCase() === filterStatus.toLowerCase()
-          : true;
-        const keyword = searchKeyword.toLowerCase();
-        const matchesKeyword =
-          p.nama_pelanggan.toLowerCase().includes(keyword) ||
-          p.alamat.toLowerCase().includes(keyword) ||
-          p.nomor.toLowerCase().includes(keyword) ||
-          p.layanan.toLowerCase().includes(keyword);
-        const matchesAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
-        return (
-          matchesDate &&
-          matchesStatus &&
-          matchesAllowedStatus &&
-          (searchKeyword ? matchesKeyword : true)
-        );
+        try {
+          // Debug log untuk melihat data yang difilter
+          console.log("Filtering pesanan:", p);
+
+          // Validasi tanggal pesanan
+          if (!p.created_at) {
+            console.log("Pesanan tidak memiliki created_at:", p);
+            return false;
+          }
+
+          // Parse tanggal dengan benar
+          const orderDate = new Date(p.created_at);
+          
+          // Validasi orderDate
+          if (isNaN(orderDate.getTime())) {
+            console.log("Invalid order date:", p.created_at);
+            return false;
+          }
+
+          // Hanya check tanggal jika ada filter tanggal aktif
+          if (dateRange.start && dateRange.end) {
+            const startDate = new Date(dateRange.start + "T00:00:00");
+            const endDate = new Date(dateRange.end + "T23:59:59");
+
+            // Validasi tanggal filter
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+              console.log("Invalid filter dates:", {start: dateRange.start, end: dateRange.end});
+              return false;
+            }
+
+            const matchesDate = orderDate >= startDate && orderDate <= endDate;
+            if (!matchesDate) {
+              console.log("Pesanan tidak masuk range tanggal:", {
+                orderDate: orderDate.toISOString(),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
+              });
+              return false;
+            }
+          }
+
+          const matchesStatus = filterStatus
+            ? p.status.toLowerCase() === filterStatus.toLowerCase()
+            : true;
+
+          const keyword = searchKeyword.toLowerCase();
+          const matchesKeyword = !searchKeyword || (
+            p.nama_pelanggan?.toLowerCase().includes(keyword) ||
+            p.alamat?.toLowerCase().includes(keyword) ||
+            p.nomor?.toLowerCase().includes(keyword) ||
+            p.layanan?.toLowerCase().includes(keyword)
+          );
+
+          // Hanya tampilkan pesanan dengan status yang diizinkan
+          const matchesAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
+
+          return matchesStatus && matchesKeyword && matchesAllowedStatus;
+        } catch (error) {
+          console.error("Error filtering pesanan:", error, p);
+          return false;
+        }
       })
     : [];
 
   const handleStatusChange = async (
     id: number,
-    newStatus: "pending" | "diproses" | "selesai" | "lunas"
+    newStatus: "pending" | "diproses" | "selesai"
   ) => {
     try {
       await updateStatusPesanan(id, newStatus);
@@ -491,10 +542,24 @@ export default function Dashboard() {
                           }}
                         >
                           <option value="">Semua Status</option>
-                          <option value="pending">Pending</option>
+                          <option value="pending">Menunggu Konfirmasi</option>
                           <option value="diproses">Diproses</option>
                           <option value="selesai">Selesai</option>
                         </select>
+
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              setFilterStatus("");
+                              setSearchKeyword("");
+                              setDateRange({ start: "", end: "" });
+                              setShowFilter(false);
+                            }}
+                            className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium transition-all duration-200"
+                          >
+                            Reset Filter
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -567,6 +632,15 @@ export default function Dashboard() {
                           </div>
                         </td>
                       </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          <div className="flex flex-col items-center justify-center">
+                            <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
+                            <p className="text-red-500">{error}</p>
+                          </div>
+                        </td>
+                      </tr>
                     ) : filteredPesanan.length > 0 ? (
                       filteredPesanan.map((item) => (
                         <tr
@@ -584,7 +658,7 @@ export default function Dashboard() {
                           </td>
                           <td className="px-4 py-3">{item.alamat}</td>
                           <td className="px-4 py-3">{item.layanan}</td>
-                          <td className="px-4 py-3">{item.berat} kg</td>
+                          <td className="px-4 py-3">{item.berat || 0} kg</td>
                           <td className="px-4 py-3">
                             Rp {item.jumlah_harga ? Math.round(item.jumlah_harga).toLocaleString() : '0'}
                           </td>
@@ -635,13 +709,17 @@ export default function Dashboard() {
                             </select>
                           </td>
                           <td className="px-4 py-3">
-                            {new Date(item.created_at).toLocaleDateString(
-                              "id-ID",
-                              {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              }
+                            {item.created_at ? (
+                              new Date(item.created_at).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            ) : (
+                              "-"
                             )}
                           </td>
                           <td className="px-4 py-3">

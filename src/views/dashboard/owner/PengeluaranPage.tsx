@@ -5,6 +5,7 @@ import Search from "../../../components/search";
 import { useNavigate } from "react-router-dom";
 import React from "react";
 import axiosInstance from "../../../lib/axios";
+import { useStateContext } from "../../../contexts/ContextsProvider";
 
 // Tipe data
 interface Pengeluaran {
@@ -31,6 +32,8 @@ export default function PengeluaranPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const { user } = useStateContext();
   
   // Form state
   const [formData, setFormData] = useState({
@@ -151,9 +154,44 @@ export default function PengeluaranPage() {
           <Icon icon="uil:chart-bar" className="w-7 h-7 text-[#0065F8]" />
           <span className="text-lg font-bold text-gray-900">Laporan Keuangan</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-          <span className="text-sm text-gray-700">Owner</span>
+        <div className="relative">
+          <button
+            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
+          >
+            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">
+              {user?.nama_laundry || "Owner"}
+            </span>
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
+          </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 

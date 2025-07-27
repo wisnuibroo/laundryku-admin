@@ -5,6 +5,7 @@ import Search from "../../../components/search";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../../lib/axios";
 import React from "react";
+import { useStateContext } from "../../../contexts/ContextsProvider";
 
 // Tipe data
 interface Tagihan {
@@ -39,6 +40,8 @@ export default function TagihanLunasPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const { user } = useStateContext();
 
   const fetchTagihanLunas = async () => {
     try {
@@ -184,18 +187,49 @@ export default function TagihanLunasPage() {
           />
           <span className="text-lg font-bold text-gray-900">Tagihan Lunas</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Icon
-            icon="mdi:account-circle-outline"
-            width={22}
-            className="text-gray-700"
-          />
-          <span className="text-sm text-gray-700">Owner</span>
+        <div className="relative">
+          <button
+            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
+          >
+            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">
+              {user?.nama_laundry || "Owner"}
+            </span>
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
+          </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <CardStat 
             icon={<Icon icon="hugeicons:task-01" width={24} />}
             label="Total Tagihan"
@@ -210,13 +244,13 @@ export default function TagihanLunasPage() {
             subtitle="Dari tagihan lunas"
             iconColor="#06923E"
           />
-          <CardStat
+          {/* <CardStat
             icon={<Icon icon="humbleicons:calendar" width={24} />}
             label="Pembayaran Hari Ini"
             value={stats.pembayaran_hari_ini.toString()}
             subtitle="Transaksi hari ini"
             iconColor="#06923E"
-          />
+          /> */}
         </div>
 
         <div className="flex gap-4 mb-6">

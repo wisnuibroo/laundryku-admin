@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import CardStat from "../../../components/CardStat";
 import axiosInstance from "../../../lib/axios";
+import { useStateContext } from "../../../contexts/ContextsProvider";
 
 // Tipe data
 type Report = {
@@ -33,6 +34,8 @@ export default function LaporanKeuanganPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedYear] = useState<number>(new Date().getFullYear());
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const { user } = useStateContext();
   
   const [stats, setStats] = useState<Stats>({
     total_pendapatan: 0,
@@ -84,9 +87,44 @@ export default function LaporanKeuanganPage() {
           <Icon icon="uil:chart-bar" className="w-7 h-7 text-[#0065F8]" />
           <span className="text-lg font-bold text-gray-900">Laporan Keuangan</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-          <span className="text-sm text-gray-700">Owner</span>
+        <div className="relative">
+          <button
+            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
+          >
+            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">
+              {user?.nama_laundry || "Owner"}
+            </span>
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
+          </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -137,36 +175,28 @@ export default function LaporanKeuanganPage() {
               {/* Filter reports dengan pendapatan > 0 dan urutkan berdasarkan bulan */}
               {reports
                 .filter(report => report.pendapatan > 0 || report.pengeluaran > 0)
-                .map(({ bulan, nama_bulan, pendapatan, pengeluaran, laba }) => {
-                  const progress = pendapatan > 0 ? (pendapatan / (stats.total_pendapatan > 0 ? stats.total_pendapatan : 1)) * 100 : 0;
+                .map(({ bulan, nama_bulan, pendapatan, pengeluaran, laba }) => (
+                  <div key={bulan} className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div className="mb-2">
+                      <h4 className="text-xl font-semibold">{nama_bulan} {selectedYear}</h4>
+                    </div>
 
-                  return (
-                    <div key={bulan} className="border p-4 rounded-lg shadow-sm">
-                      <div className="mb-2">
-                        <h4 className="text-xl font-semibold">{nama_bulan} {selectedYear}</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Pendapatan</p>
+                        <p className="text-green-600 font-semibold">{formatRupiah(pendapatan)}</p>
                       </div>
-
-                      <div className="grid grid-cols-3 gap-4 mb-3">
-                        <div>
-                          <p className="text-sm text-gray-500">Pendapatan</p>
-                          <p className="text-green-600 font-semibold">{formatRupiah(pendapatan)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Pengeluaran</p>
-                          <p className="text-red-600 font-semibold">{formatRupiah(pengeluaran)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Profit</p>
-                          <p className="text-blue-600 font-semibold">{formatRupiah(laba)}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Pengeluaran</p>
+                        <p className="text-red-600 font-semibold">{formatRupiah(pengeluaran)}</p>
                       </div>
-
-                      <div className="w-full bg-gray-200 h-2 rounded">
-                        <div className="bg-blue-500 h-2 rounded" style={{ width: `${progress}%` }}></div>
+                      <div>
+                        <p className="text-sm text-gray-500">Profit</p>
+                        <p className="text-blue-600 font-semibold">{formatRupiah(laba)}</p>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
             </div>
           )}
         </div>

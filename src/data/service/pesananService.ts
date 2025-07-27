@@ -57,17 +57,23 @@ export const getPesanan = async (id_owner?: number): Promise<Pesanan[]> => {
       throw new Error("ID Owner tidak ditemukan");
     }
     
+    console.log("Fetching pesanan with id_owner:", id_owner);
     const response = await axiosInstance.get(`/pesanan?id_owner=${id_owner}`);
+    console.log("API Response:", response.data);
     
     // Handle response sesuai dengan structure PesananController
     if (response.data && response.data.status && Array.isArray(response.data.data)) {
+      console.log("Returning pesanan data array:", response.data.data);
       return response.data.data;
     } else if (Array.isArray(response.data)) {
+      console.log("Returning direct array:", response.data);
       return response.data;
     }
     
+    console.log("No valid pesanan data found, returning empty array");
     return [];
   } catch (error: any) {
+    console.error("Error in getPesanan:", error);
     throw new Error(error.message || "Gagal mengambil data pesanan");
   }
 };
