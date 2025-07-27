@@ -132,12 +132,14 @@ export default function OwnerDashboard() {
 
  
   const handleLogout = () => {
+    localStorage.clear();
     localStorage.removeItem("ACCESS_TOKEN"); // Hapus token dari localStorage
     localStorage.removeItem("user"); // Hapus data user dari localStorage
     navigate("/login"); // Arahkan ke halaman login
   };
  
    // Pastikan pesanan adalah array sebelum menggunakan filter
+    const allowedStatuses = ['pending', 'diproses', 'selesai'];
     const filteredPesanan = Array.isArray(pesanan)
       ? pesanan.filter((p) => {
           const orderDate = new Date(p.created_at);
@@ -155,10 +157,13 @@ export default function OwnerDashboard() {
             p.alamat.toLowerCase().includes(keyword) ||
             p.nomor.toLowerCase().includes(keyword) ||
             p.layanan.toLowerCase().includes(keyword);
+          // Filter hanya status yang diizinkan
+          const isAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
           return (
             matchesDate &&
             matchesStatus &&
-            (searchKeyword ? matchesKeyword : true)
+            (searchKeyword ? matchesKeyword : true) &&
+            isAllowedStatus
           );
         })
       : [];
@@ -248,7 +253,7 @@ export default function OwnerDashboard() {
         </nav>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <CardStat
               icon={<Icon icon="streamline-cyber:money-bag-1" width={24} />}
               label="Total Pendapatan"
@@ -264,17 +269,10 @@ export default function OwnerDashboard() {
               iconColor="#0065F8"
             />
             <CardStat
-              icon={<Icon icon="stash:user-group-duotone" width={24} />}
-              label="Pesanan Baru"
-              value={stats.pesanan_by_status.baru.toString()}
-              subtitle="Menunggu Proses"
-              iconColor="#9929EA"
-            />
-            <CardStat
               icon={<Icon icon="material-symbols:warning-outline-rounded" width={24} />}
-              label="Pesanan Proses"
+              label="Tagihan pesanan"
               value={stats.pesanan_by_status.proses.toString()}
-              subtitle="Sedang Dikerjakan"
+              subtitle="Belum lunas"
               iconColor="#EB5B00"
             />
           </div>
@@ -436,52 +434,7 @@ export default function OwnerDashboard() {
                         <td className="px-4 py-3">
                           Rp {item.jumlah_harga?.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={item.status}
-                            disabled={loading}
-                            onChange={(e) =>
-                              handleStatusChange(
-                                item.id,
-                                e.target.value as
-                                  | "pending"
-                                  | "diproses"
-                                  | "selesai"
-                              )
-                            }
-                            className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                            style={{
-                              backgroundColor:
-                                item.status === "pending"
-                                  ? "#FEF3C7"
-                                  : item.status === "diproses"
-                                  ? "#DBEAFE"
-                                  : item.status === "selesai"
-                                  ? "#D1FAE5"
-                                  : "",
-                              borderColor:
-                                item.status === "pending"
-                                  ? "#F59E0B"
-                                  : item.status === "diproses"
-                                  ? "#3B82F6"
-                                  : item.status === "selesai"
-                                  ? "#10B981"
-                                  : "",
-                              color:
-                                item.status === "pending"
-                                  ? "#92400E"
-                                  : item.status === "diproses"
-                                  ? "#1E40AF"
-                                  : item.status === "selesai"
-                                  ? "#065F46"
-                                  : "",
-                            }}
-                          >
-                            <option value="pending">Menunggu</option>
-                            <option value="diproses">Proses</option>
-                            <option value="selesai">Selesai</option>
-                          </select>
-                        </td>
+                        <td className="px-4 py-3 capitalize">{item.status}</td>
                         <td className="px-4 py-3">
                           {new Date(item.created_at).toLocaleDateString(
                             "id-ID",

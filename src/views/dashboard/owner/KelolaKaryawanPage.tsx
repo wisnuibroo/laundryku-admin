@@ -188,15 +188,10 @@ const [phone, setPhone] = useState("");
             <Icon icon={"stash:user-group-duotone"} className="w-7 h-7 text-[#9929EA]" />
             <span className="text-lg font-bold text-gray-900">Kelola Karyawan</span>
           </div>
-          <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-700">
-              <Icon icon="mdi:bell-outline" width={22} />
-            </button>
-            <div className="flex items-center gap-2">
-              <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-              <span className="text-sm text-gray-700">Owner</span>
-            </div>
-          </div>
+          <div className="flex items-center gap-2">
+          <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
+          <span className="text-sm text-gray-700">Owner</span>
+        </div>
         </nav>
         <div className="p-6 flex justify-center items-center h-64">
           <div className="text-center">

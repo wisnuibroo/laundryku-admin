@@ -1,105 +1,92 @@
-import { useState, type ChangeEvent, type FormEvent } from "react"
-import { Icon } from "@iconify/react"
-import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5"
-import { useNavigate } from "react-router-dom"
-import { useStateContext } from "../contexts/ContextsProvider"
-import axiosInstance from "../lib/axios"
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import { Icon } from "@iconify/react";
+import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
+import { useStateContext } from "../contexts/ContextsProvider";
+import axiosInstance from "../lib/axios";
 
 export default function Login() {
-  const { setUser, setToken, setUserType } = useStateContext()
-  const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string>("")
-  const [role, setRole] = useState<"admin" | "owner">("admin")
-  const [isLogin, setIsLogin] = useState<boolean>(true)
+  const { setUser, setToken, setUserType } = useStateContext();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [role, setRole] = useState<"admin" | "owner">("admin");
+  const [isLogin, setIsLogin] = useState<boolean>(true);
   const [formData, setFormData] = useState<{
-    name: string
-    email?: string
-    password: string
-    confirmPassword?: string
-    laundryName?: string // Tambahan untuk nama laundry
+    name: string;
+    email?: string;
+    password: string;
+    confirmPassword?: string;
+    laundryName?: string; // Tambahan untuk nama laundry
   }>({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     laundryName: "",
-  })
+  });
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  e.preventDefault()
+  setError("")
+  setLoading(true)
 
-    if (!formData.name || !formData.password) {
-      setError("Username dan password harus diisi!")
-      setLoading(false)
-      return
-    }
+  // ✅ CLEAR DATA LAMA DULU
+  setUser(null)
+  setToken(null)
+  setUserType(null)
+  localStorage.removeItem("user")
+  localStorage.removeItem("token")
+  localStorage.removeItem("userType")
 
-    // Validasi tambahan untuk register
-    if (!isLogin) {
-      if (!formData.email) {
-        setError("Email harus diisi!")
-        setLoading(false)
-        return
-      }
-      if (!formData.laundryName) {
-        setError("Nama laundry harus diisi!")
-        setLoading(false)
-        return
-      }
-      if (!formData.confirmPassword) {
-        setError("Konfirmasi password harus diisi!")
-        setLoading(false)
-        return
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError("Password dan konfirmasi password tidak cocok!")
-        setLoading(false)
-        return
-      }
-    }
+  if (!formData.name || !formData.password) {
+    setError("Username dan password harus diisi!")
+    setLoading(false)
+    return
+  }
 
-    try {
-      if (isLogin) {
-        if (role === "admin") {
-          const response = await axiosInstance.post("/admin/login", {
-            email: formData.name,
-            password: formData.password,
-          })
-          const { admin, token } = response.data
-          setUser(admin)
-          setToken(token)
-          setUserType("admin")
+  try {
+    if (isLogin) {
+      if (role === "admin") {
+        const response = await axiosInstance.post("/admin/login", {
+          email: formData.name,
+          password: formData.password,
+        })
+        const { admin, token } = response.data
+        setUser(admin)
+        setToken(token)
+        setUserType("admin")
 
-          localStorage.setItem("user",JSON.stringify(admin))
-          localStorage.setItem("token",token)
-          localStorage.setItem("userType","admin")
-          navigate("/dashboard/admin")
-        } else {
-          const response = await axiosInstance.post("/owner/login", {
-            email: formData.name, // Menggunakan email untuk login owner
-            password: formData.password,
-          })
-          const { owner, token } = response.data
-          setUser(owner)
-          setToken(token)
-          setUserType("owner")
+        localStorage.setItem("user", JSON.stringify(admin))
+        localStorage.setItem("token", token)
+        localStorage.setItem("userType", "admin")
 
-          localStorage.setItem("user",JSON.stringify(owner))
-          localStorage.setItem("token",token)
-          localStorage.setItem("userType","owner")
-          navigate("/dashboard/owner")
-        }
+        navigate("/dashboard/admin")
       } else {
+        const response = await axiosInstance.post("/owner/login", {
+          email: formData.name,
+          password: formData.password,
+        })
+        const { owner, token } = response.data
+        setUser(owner)
+        setToken(token)
+        setUserType("owner")
+
+        localStorage.setItem("user", JSON.stringify(owner))
+        localStorage.setItem("token", token)
+        localStorage.setItem("userType", "owner")
+
+        navigate("/dashboard/owner")
+      }
+    } else {
         // Logic register - hanya untuk owner
         const response = await axiosInstance.post("/owner/register", {
           username: formData.name,
@@ -107,31 +94,46 @@ export default function Login() {
           password: formData.password,
           password_confirmation: formData.confirmPassword,
           nama_laundry: formData.laundryName,
-        })
+        });
         // Setelah berhasil register, pindah ke mode login
-        setError("Registrasi berhasil! Silakan login.")
-        setIsLogin(true)
-        setRole("owner") // Set ke owner setelah register
-        setFormData({ name: "", email: "", password: "", confirmPassword: "", laundryName: "" })
+        setError("Registrasi berhasil! Silakan login.");
+        setIsLogin(true);
+        setRole("owner"); // Set ke owner setelah register
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          laundryName: "",
+        });
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan!"
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Terjadi kesalahan!";
       if (err.response?.status === 500) {
-        setError("Terjadi masalah di server, silakan coba lagi nanti!")
-        return
+        setError("Terjadi masalah di server, silakan coba lagi nanti!");
+        return;
       }
-      setError(message)
+      setError(message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#eaf6ff] to-[#f8fbff] flex flex-col items-center py-8 px-2">
       <div className="flex flex-col items-center mb-8 mt-4">
-        <img src="src/assets/logo.png" alt="Logo" className="w-14 h-14 object-contain mb-2" />
+        <img
+          src="src/assets/logo.png"
+          alt="Logo"
+          className="w-14 h-14 object-contain mb-2"
+        />
         <h1 className="text-3xl font-bold text-[#222831]">LaundryKu</h1>
-        <p className="text-gray-500 text-sm mt-1">Sistem Manajemen Laundry Profesional</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Sistem Manajemen Laundry Profesional
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 w-full max-w-5xl">
@@ -143,12 +145,20 @@ export default function Login() {
               <button
                 type="button"
                 className={`px-4 py-2 rounded-md font-medium transition-all ${
-                  isLogin ? "bg-white text-[#222831] shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  isLogin
+                    ? "bg-white text-[#222831] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
                 onClick={() => {
-                  setIsLogin(true)
-                  setError("")
-                  setFormData({ name: "", email: "", password: "", confirmPassword: "", laundryName: "" })
+                  setIsLogin(true);
+                  setError("");
+                  setFormData({
+                    name: "",
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    laundryName: "",
+                  });
                 }}
               >
                 Masuk
@@ -156,13 +166,21 @@ export default function Login() {
               <button
                 type="button"
                 className={`px-4 py-2 rounded-md font-medium transition-all ${
-                  !isLogin ? "bg-white text-[#222831] shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  !isLogin
+                    ? "bg-white text-[#222831] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
                 onClick={() => {
-                  setIsLogin(false)
-                  setRole("owner") // Auto set ke owner saat daftar
-                  setError("")
-                  setFormData({ name: "", email: "", password: "", confirmPassword: "", laundryName: "" })
+                  setIsLogin(false);
+                  setRole("owner"); // Auto set ke owner saat daftar
+                  setError("");
+                  setFormData({
+                    name: "",
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    laundryName: "",
+                  });
                 }}
               >
                 Daftar
@@ -170,9 +188,13 @@ export default function Login() {
             </div>
           </div>
 
-          <h2 className="text-xl font-bold mb-2 text-gray-800">{isLogin ? "Masuk ke Sistem" : "Daftar Akun Owner"}</h2>
+          <h2 className="text-xl font-bold mb-2 text-gray-800">
+            {isLogin ? "Masuk ke Sistem" : "Daftar Akun Owner"}
+          </h2>
           <p className="text-gray-500 text-sm mb-4">
-            {isLogin ? "Pilih peran Anda untuk mengakses fitur yang sesuai" : "Buat akun owner baru untuk laundry Anda"}
+            {isLogin
+              ? "Pilih peran Anda untuk mengakses fitur yang sesuai"
+              : "Buat akun owner baru untuk laundry Anda"}
           </p>
 
           {/* Role Selection - hanya muncul saat login */}
@@ -180,14 +202,22 @@ export default function Login() {
             <div className="flex mb-6 rounded-lg overflow-hidden border border-gray-200">
               <button
                 type="button"
-                className={`flex-1 py-2 text-center font-semibold ${role === "admin" ? "bg-[#f8fbff] text-[#222831]" : "bg-white text-[#222831]"} transition`}
+                className={`flex-1 py-2 text-center font-semibold ${
+                  role === "admin"
+                    ? "bg-[#f8fbff] text-[#222831]"
+                    : "bg-white text-[#222831]"
+                } transition`}
                 onClick={() => setRole("admin")}
               >
                 Admin
               </button>
               <button
                 type="button"
-                className={`flex-1 py-2 text-center font-semibold ${role === "owner" ? "bg-[#f8fbff] text-[#222831]" : "bg-white text-[#222831]"} transition`}
+                className={`flex-1 py-2 text-center font-semibold ${
+                  role === "owner"
+                    ? "bg-[#f8fbff] text-[#222831]"
+                    : "bg-white text-[#222831]"
+                } transition`}
                 onClick={() => setRole("owner")}
               >
                 Owner
@@ -215,7 +245,13 @@ export default function Login() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder={isLogin ? (role === "admin" ? "Email Admin" : "Email Owner") : "Username Owner"}
+                placeholder={
+                  isLogin
+                    ? role === "admin"
+                      ? "Email Admin"
+                      : "Email Owner"
+                    : "Username Owner"
+                }
                 className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
               />
             </div>
@@ -328,19 +364,20 @@ export default function Login() {
               </div>
             )}
 
-
             <button
               type="submit"
               disabled={loading}
-              className={`w-full mt-6 py-3 bg-[#222831] text-white rounded-full transition ${loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#3d3d3d]"}`}
+              className={`w-full mt-6 py-3 bg-[#222831] text-white rounded-full transition ${
+                loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#3d3d3d]"
+              }`}
             >
               {loading
                 ? isLogin
                   ? "Mencoba Login..."
                   : "Mendaftar..."
                 : isLogin
-                  ? "Masuk ke Dashboard"
-                  : "Daftar Sebagai Owner"}
+                ? "Masuk ke Dashboard"
+                : "Daftar Sebagai Owner"}
             </button>
           </form>
 
@@ -349,18 +386,26 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                setIsLogin(!isLogin)
-                setError("")
+                setIsLogin(!isLogin);
+                setError("");
                 if (!isLogin) {
-                  setRole("admin") // Reset ke admin saat balik ke login
+                  setRole("admin"); // Reset ke admin saat balik ke login
                 } else {
-                  setRole("owner") // Set ke owner saat ke register
+                  setRole("owner"); // Set ke owner saat ke register
                 }
-                setFormData({ name: "", email: "", password: "", confirmPassword: "", laundryName: "" })
+                setFormData({
+                  name: "",
+                  email: "",
+                  password: "",
+                  confirmPassword: "",
+                  laundryName: "",
+                });
               }}
               className="text-[#00ADB5] hover:text-[#008C94] text-sm font-medium"
             >
-              {isLogin ? "Ingin mendaftar laundry baru? Daftar di sini" : "Sudah punya akun? Masuk di sini"}
+              {isLogin
+                ? "Ingin mendaftar laundry baru? Daftar di sini"
+                : "Sudah punya akun? Masuk di sini"}
             </button>
           </div>
         </div>
@@ -369,20 +414,32 @@ export default function Login() {
         <div className="flex-1 flex flex-col gap-6">
           <div className="bg-white rounded-xl shadow p-6">
             <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-              <Icon icon="mdi:account-group-outline" className="text-[#00ADB5]" />
+              <Icon
+                icon="mdi:account-group-outline"
+                className="text-[#00ADB5]"
+              />
               Fitur Admin
             </h3>
             <ul className="text-gray-700 text-sm space-y-2 mt-2">
               <li className="flex items-center gap-2">
-                <Icon icon="mdi:check-circle-outline" className="text-green-500" />
+                <Icon
+                  icon="mdi:check-circle-outline"
+                  className="text-green-500"
+                />
                 Kelola pesanan laundry
               </li>
               <li className="flex items-center gap-2">
-                <Icon icon="mdi:check-circle-outline" className="text-green-500" />
+                <Icon
+                  icon="mdi:check-circle-outline"
+                  className="text-green-500"
+                />
                 Update status pesanan
               </li>
               <li className="flex items-center gap-2">
-                <Icon icon="mdi:check-circle-outline" className="text-green-500" />
+                <Icon
+                  icon="mdi:check-circle-outline"
+                  className="text-green-500"
+                />
                 Manajemen pelanggan
               </li>
             </ul>
@@ -408,20 +465,25 @@ export default function Login() {
             </ul>
           </div>
           <div className=" grid grid-cols-2 gap-4">
-  <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
-    <Icon icon="mdi:clock-outline" className="text-orange-400 text-3xl mb-2 " />
-    <span className="font-bold text-lg">24/7</span>
-    <span className="text-xs text-gray-500">Layanan</span>
-  </div>
-  <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
-    <Icon icon="mdi:shield-check-outline" className="text-green-500 text-3xl mb-2" />
-    <span className="font-bold text-lg">100%</span>
-    <span className="text-xs text-gray-500">Keamanan</span>
-  </div>
-</div>
-
+            <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
+              <Icon
+                icon="mdi:clock-outline"
+                className="text-orange-400 text-3xl mb-2 "
+              />
+              <span className="font-bold text-lg">24/7</span>
+              <span className="text-xs text-gray-500">Layanan</span>
+            </div>
+            <div className="bg-white h-48 rounded-xl shadow flex flex-col items-center py-6 justify-center">
+              <Icon
+                icon="mdi:shield-check-outline"
+                className="text-green-500 text-3xl mb-2"
+              />
+              <span className="font-bold text-lg">100%</span>
+              <span className="text-xs text-gray-500">Keamanan</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

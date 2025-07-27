@@ -4,106 +4,118 @@ import { useState, useEffect } from "react";
 import Search from "../../../components/search";
 import { useNavigate } from "react-router-dom";
 import React from "react";
+import axiosInstance from "../../../lib/axios";
 
 // Tipe data
-interface Tagihan {
-  id_pesanan: string;
-  jenis: string;
-  tanggal: string;
-  jatuh_tempo: string;
-  total: number;
-  overdue: string;
-  metode_pembayaran: string
-}
-
-interface Pelanggan {
+interface Pengeluaran {
   id: number;
-  id_pesanan: string;
-  name: string;
-  phone: string;
-  jumlah_tagihan: number;
-  total_tagihan: number;
-  status: string;
-  tagihan: Tagihan[];
+  kategori: string;
+  jumlah: number;
+  keterangan: string;
+  tanggal: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export default function LaporanKeunganPage() {
+interface Stats {
+  total_pendapatan: number;
+  total_pengeluaran: number;
+  laba_bersih: number;
+}
+
+export default function PengeluaranPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-   const [openDialog, setOpenDialog] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  const pelanggan: Pelanggan[] = [
-    {
-      id: 1,
-      id_pesanan: "ORD-001",
-      name: "Yusuf Rizqy Mubarok",
-      phone: "082231233019",
-      jumlah_tagihan: 3,
-      total_tagihan: 150000,
-      status: "Belum Lunas",
-      tagihan: [
-        {
-          id_pesanan: "ORD-001",
-          jenis: "Kiloan",
-          tanggal: "2024-01-10",
-          jatuh_tempo: "2024-01-15",
-          total: 50000,
-          overdue: "3 Hari",
-          metode_pembayaran: "Cash"
-        },
-        {
-          id_pesanan: "ORD-002",
-          jenis: "Satuan",
-          tanggal: "2024-02-20",
-          jatuh_tempo: "2024-02-25",
-          total: 50000,
-          overdue: "1 Hari",
-          metode_pembayaran: "Gopay"
-        },
-        {
-          id_pesanan: "ORD-003",
-          jenis: "Selimut",
-          tanggal: "2024-03-12",
-          jatuh_tempo: "2024-03-17",
-          total: 50000,
-          overdue: "5 Hari",
-          metode_pembayaran: "BRI"
-        },
-      ],
-    },
-    {
-      id: 2,
-      id_pesanan: "ORD-010",
-      name: "Rayhan Fathurrahman",
-      phone: "081234567890",
-      jumlah_tagihan: 2,
-      total_tagihan: 100000,
-      status: "Belum Lunas",
-      tagihan: [
-        {
-          id_pesanan: "ORD-010",
-          jenis: "Kiloan",
-          tanggal: "2024-04-01",
-          jatuh_tempo: "2024-04-06",
-          total: 50000,
-          overdue: "2 Hari",
-          metode_pembayaran: "BRI"
-        },
-        {
-          id_pesanan: "ORD-011",
-          jenis: "Satuan",
-          tanggal: "2024-05-01",
-          jatuh_tempo: "2024-05-06",
-          total: 50000,
-          overdue: "4 Hari",
-          metode_pembayaran: "BRI"
-        },
-      ],
-    },
-  ];
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    kategori: "",
+    jumlah: "",
+    keterangan: "",
+    tanggal: new Date().toISOString().split('T')[0]
+  });
+  
+  // Data state
+  const [pengeluaran, setPengeluaran] = useState<Pengeluaran[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    total_pendapatan: 0,
+    total_pengeluaran: 0,
+    laba_bersih: 0
+  });
+  
+  // Fetch data
+  useEffect(() => {
+    fetchPengeluaran();
+    fetchStats();
+  }, []);
+  
+  const fetchPengeluaran = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.get('/pengeluaran');
+      if (response.data.status) {
+        setPengeluaran(response.data.data);
+      } else {
+        setError(response.data.message || 'Gagal mengambil data pengeluaran');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan saat mengambil data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchStats = async () => {
+    try {
+      const response = await axiosInstance.get('/laporan-keuangan');
+      if (response.data.status) {
+        const { total } = response.data.data;
+        setStats({
+          total_pendapatan: total.pendapatan,
+          total_pengeluaran: total.pengeluaran,
+          laba_bersih: total.laba
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await axiosInstance.post('/pengeluaran', formData);
+      if (response.data.status) {
+        setOpenDialog(false);
+        fetchPengeluaran();
+        fetchStats();
+        setFormData({
+          kategori: "",
+          jumlah: "",
+          keterangan: "",
+          tanggal: new Date().toISOString().split('T')[0]
+        });
+      } else {
+        setError(response.data.message || 'Gagal menambahkan pengeluaran');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan saat menambahkan data');
+    }
+  };
+  
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
   };
@@ -116,94 +128,40 @@ export default function LaporanKeunganPage() {
     setIsFilterOpen(!isFilterOpen);
   };
 
-
-  const [stats, setStats] = useState({
-    total_pendapatan: 0,
-    total_pengeluaran: 0,
-    laba_bersih: 0,
-    rata_rata: 0,
-  });
-
-  useEffect(() => {
-    // Simulasi fetch data
-    setStats({
-      total_pendapatan: 30000,
-      total_pengeluaran: 17000,
-      laba_bersih: 6000,
-      rata_rata: 19000,
-    });
-  }, []);
-
-  const filteredPelanggan = pelanggan.filter((emp) =>
-    [
-      emp.name,
-      emp.phone,
-      emp.jumlah_tagihan.toString(),
-      emp.total_tagihan.toString(),
-      emp.status,
-    ].some((field) => field.toLowerCase().includes(searchText.toLowerCase()))
+  // Filter pengeluaran berdasarkan pencarian
+  const filteredPengeluaran = pengeluaran.filter((item) =>
+    item.kategori.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.keterangan?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.tanggal.includes(searchText)
   );
 
-  type Report = {
-  month: string;
-  pendapatan: number;
-  pengeluaran: number;
-  laba: number;
-};
-
-  const reports: Report[] = [
-  {
-    month: "Jan 2024",
-    pendapatan: 12500000,
-    pengeluaran: 7500000,
-    laba: 5000000,
-  },
-  {
-    month: "Feb 2024",
-    pendapatan: 13200000,
-    pengeluaran: 7800000,
-    laba: 5400000,
-  },
-  {
-    month: "Mar 2024",
-    pendapatan: 14100000,
-    pengeluaran: 8200000,
-    laba: 5900000,
-  },
-];
-
-function formatRupiah(number: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(number);
-}
+  function formatRupiah(number: number) {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(number);
+  }
 
   return (
     <div className="flex-1 overflow-auto">
       <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
         <div className="flex items-center gap-2">
-          <Icon icon="material-symbols-light:arrow-back-rounded" className="w-7 h-7 object-contain" onClick={() => navigate("/dashboard/owner")} />
+          <Icon icon="material-symbols-light:arrow-back-rounded" className="w-7 h-7 object-contain cursor-pointer" onClick={() => navigate("/dashboard/owner")} />
           <Icon icon="uil:chart-bar" className="w-7 h-7 text-[#0065F8]" />
           <span className="text-lg font-bold text-gray-900">Laporan Keuangan</span>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="text-gray-500 hover:text-gray-700">
-            <Icon icon="mdi:bell-outline" width={22} />
-          </button>
-          <div className="flex items-center gap-2">
-            <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
-            <span className="text-sm text-gray-700">Owner</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:account-circle-outline" width={22} className="text-gray-700" />
+          <span className="text-sm text-gray-700">Owner</span>
         </div>
       </nav>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <CardStat icon={<Icon icon="tdesign:money" width={24} />} label="Total Pendapatan" value={`Rp ${stats.total_pendapatan.toLocaleString("id-ID")}`} subtitle="Dari tagihan lunas" iconColor="#06923E" />
-          <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Total Pengeluaran" value={`Rp ${stats.total_pengeluaran.toLocaleString("id-ID")}`} subtitle="Operasional & gaji" iconColor="#ED3500" />
-          <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Laba Bersih" value={`Rp ${stats.laba_bersih.toLocaleString("id-ID")}`} subtitle="Margin 20%" iconColor="#0065F8" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <CardStat icon={<Icon icon="tdesign:money" width={24} />} label="Total Pendapatan" value={formatRupiah(stats.total_pendapatan)} subtitle="Dari tagihan lunas" iconColor="#06923E" />
+          <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Total Pengeluaran" value={formatRupiah(stats.total_pengeluaran)} subtitle="Operasional & gaji" iconColor="#ED3500" />
+          <CardStat icon={<Icon icon="humbleicons:calendar" width={24} />} label="Keuntungan" value={formatRupiah(stats.laba_bersih)} subtitle="Bulan ini" iconColor="#0065F8" />
         </div>
 
         <div className="flex gap-4 mb-6">
@@ -219,33 +177,92 @@ function formatRupiah(number: number) {
           </button>
         </div>
         
-
-       <div className="bg-white p-6 rounded-lg shadow mt-5 border">
-         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6">
-         <h3 className="text-3xl font-semibold">Breakdown Pengeluaran</h3>
-       
-         <button
-           onClick={() => setOpenDialog(true)}
-           className="flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition"
-         >
-           <Icon icon="ic:sharp-plus" className="w-5 h-5" />
-           <span className="font-semibold">Tambah Pengeluaran</span>
-         </button>
-       </div>
-
+        <div className="bg-white p-6 rounded-lg shadow mt-5 border">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6">
+            <h3 className="text-3xl font-semibold">Breakdown Pengeluaran</h3>
+            
+            <div className="flex gap-2">
+              <div className="relative">
+                <Search value={searchText} onChange={handleSearchChange} />
+              </div>
+              
+              <button
+                onClick={() => setOpenDialog(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition"
+              >
+                <Icon icon="ic:sharp-plus" className="w-5 h-5" />
+                <span className="font-semibold">Tambah Pengeluaran</span>
+              </button>
+            </div>
+          </div>
 
           {openDialog && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-md">
                 <h2 className="text-xl font-bold mb-4">Tambah Pengeluaran Baru</h2>
-                <form>
-                  <input type="text" placeholder="Kategori" className="w-full border p-2 rounded mb-3" />
-                  <input type="number" placeholder="Jumlah" className="w-full border p-2 rounded mb-3" />
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                    <input 
+                      type="text" 
+                      name="kategori"
+                      value={formData.kategori}
+                      onChange={handleInputChange}
+                      placeholder="Contoh: Gaji Karyawan, Listrik, dll" 
+                      className="w-full border p-2 rounded" 
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
+                    <input 
+                      type="number" 
+                      name="jumlah"
+                      value={formData.jumlah}
+                      onChange={handleInputChange}
+                      placeholder="Jumlah pengeluaran" 
+                      className="w-full border p-2 rounded" 
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                    <input 
+                      type="date" 
+                      name="tanggal"
+                      value={formData.tanggal}
+                      onChange={handleInputChange}
+                      className="w-full border p-2 rounded" 
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan (Opsional)</label>
+                    <textarea 
+                      name="keterangan"
+                      value={formData.keterangan}
+                      onChange={handleInputChange}
+                      placeholder="Keterangan tambahan" 
+                      className="w-full border p-2 rounded" 
+                      rows={3}
+                    />
+                  </div>
+                  
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setOpenDialog(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                    <button 
+                      type="button" 
+                      onClick={() => setOpenDialog(false)} 
+                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                    >
                       Batal
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    <button 
+                      type="submit" 
+                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
                       Tambah Pengeluaran
                     </button>
                   </div>
@@ -254,34 +271,48 @@ function formatRupiah(number: number) {
             </div>
           )}
 
-      <div className="space-y-6 mt-6">
-        {reports.map(({ month, pendapatan, pengeluaran, laba }) => {
-          const margin = (laba / pendapatan) * 100;
-          
-
-          return (
-            <div key={month} className="border p-4 rounded-lg shadow-sm relative">
-              <div className="grid grid-cols-3  mb-3 justify-center">
-                
-                 <div>
-                    <p className="text-sm text-gray-500">Untuk</p>
-                    <p className="text-xl text-black font-semibold">Gaji Karyawan</p>
-                 </div>
-                 <div>
-                    <p className="text-sm text-gray-500">Pengeluaran</p>
-                    <p className="text-red-600 font-semibold">{formatRupiah(pengeluaran)}</p>
-                 </div>
-              </div>     
+          {isLoading ? (
+            <div className="text-center py-8">
+              <Icon icon="eos-icons:loading" className="w-8 h-8 mx-auto text-blue-500" />
+              <p className="mt-2">Memuat data pengeluaran...</p>
             </div>
-          );
-        })}
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">
+              <Icon icon="mdi:alert-circle" className="w-8 h-8 mx-auto" />
+              <p className="mt-2">{error}</p>
+            </div>
+          ) : filteredPengeluaran.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Icon icon="mdi:file-document-outline" className="w-8 h-8 mx-auto" />
+              <p className="mt-2">Belum ada data pengeluaran</p>
+            </div>
+          ) : (
+            <div className="space-y-6 mt-6">
+              {filteredPengeluaran.map((item) => (
+                <div key={item.id} className="border p-4 rounded-lg shadow-sm relative">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                    <div>
+                      <p className="text-sm text-gray-500">Kategori</p>
+                      <p className="text-xl text-black font-semibold">{item.kategori}</p>
+                      {item.keterangan && (
+                        <p className="text-sm text-gray-600 mt-1">{item.keterangan}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Pengeluaran</p>
+                      <p className="text-red-600 font-semibold">{formatRupiah(item.jumlah)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Tanggal</p>
+                      <p className="text-gray-800">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-      </div>
-
-       
- 
-
     </div>
   );
 }

@@ -184,24 +184,19 @@ export default function TagihanLunasPage() {
           />
           <span className="text-lg font-bold text-gray-900">Tagihan Lunas</span>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="text-gray-500 hover:text-gray-700">
-            <Icon icon="mdi:bell-outline" width={22} />
-          </button>
-          <div className="flex items-center gap-2">
-            <Icon
-              icon="mdi:account-circle-outline"
-              width={22}
-              className="text-gray-700"
-            />
-            <span className="text-sm text-gray-700">Owner</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <Icon
+            icon="mdi:account-circle-outline"
+            width={22}
+            className="text-gray-700"
+          />
+          <span className="text-sm text-gray-700">Owner</span>
         </div>
       </nav>
 
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <CardStat
+          <CardStat 
             icon={<Icon icon="hugeicons:task-01" width={24} />}
             label="Total Tagihan"
             value={stats.total_tagihan.toString()}
@@ -220,7 +215,7 @@ export default function TagihanLunasPage() {
             label="Pembayaran Hari Ini"
             value={stats.pembayaran_hari_ini.toString()}
             subtitle="Transaksi hari ini"
-            iconColor="#0065F8"
+            iconColor="#06923E"
           />
         </div>
 

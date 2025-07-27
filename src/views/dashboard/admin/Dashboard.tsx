@@ -132,6 +132,7 @@ export default function Dashboard() {
   };
 
   // Pastikan pesanan adalah array sebelum menggunakan filter
+  const allowedStatuses = ['pending', 'diproses', 'selesai']; // Hanya tampilkan status ini
   const filteredPesanan = Array.isArray(pesanan)
     ? pesanan.filter((p) => {
         const orderDate = new Date(p.created_at);
@@ -149,9 +150,11 @@ export default function Dashboard() {
           p.alamat.toLowerCase().includes(keyword) ||
           p.nomor.toLowerCase().includes(keyword) ||
           p.layanan.toLowerCase().includes(keyword);
+        const matchesAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
         return (
           matchesDate &&
           matchesStatus &&
+          matchesAllowedStatus &&
           (searchKeyword ? matchesKeyword : true)
         );
       })
@@ -236,6 +239,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
+    localStorage.clear();
     localStorage.removeItem("ACCESS_TOKEN");
     localStorage.removeItem("user");
     navigate("/login");
@@ -487,7 +491,7 @@ export default function Dashboard() {
                           }}
                         >
                           <option value="">Semua Status</option>
-                          <option value="pending">Menunggu Konfirmasi</option>
+                          <option value="pending">Pending</option>
                           <option value="diproses">Diproses</option>
                           <option value="selesai">Selesai</option>
                         </select>
@@ -625,7 +629,7 @@ export default function Dashboard() {
                                     : "",
                               }}
                             >
-                              <option value="pending">Menunggu</option>
+                              <option value="pending">Pending</option>
                               <option value="diproses">Proses</option>
                               <option value="selesai">Selesai</option>
                             </select>
