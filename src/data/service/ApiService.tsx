@@ -1,5 +1,6 @@
+import axios from "../../lib/axios";
 import axiosInstance from "../../lib/axios";
-import { Pesanan } from "../model/Pesanan";
+import { Layanan, Pesanan } from "../model/Pesanan";
 
 export interface Person {
   id: number;
@@ -112,5 +113,72 @@ export const tambahPesanan = async (data: TambahPesananInput): Promise<void> => 
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message || "Gagal menambahkan pesanan";
     throw new Error(errorMessage);
+  }
+};
+
+// ✅ PERBAIKAN UTAMA: Gunakan axiosInstance dengan authentication dan tambahkan parameter id_owner
+export const getLayanan = async (id_owner?: number): Promise<Layanan[]> => {
+  try {
+    console.log('getLayanan called with id_owner:', id_owner); // Debug log
+    
+    // Jika ada id_owner, kirim sebagai parameter
+    const url = id_owner ? `/layanan?id_owner=${id_owner}` : '/layanan';
+    console.log('Request URL:', url); // Debug log
+    
+    // ✅ Gunakan axiosInstance (dengan auth) bukan axios biasa
+    const response = await axiosInstance.get(url);
+    
+    console.log('getLayanan response:', response); // Debug log
+    console.log('getLayanan response.data:', response.data); // Debug log
+    
+    // Handle berbagai format response
+    if (response.data && response.data.status && Array.isArray(response.data.data)) {
+      console.log('Response format: { status, data }');
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      console.log('Response format: array');
+      return response.data;
+    } else if (response.data && Array.isArray(response.data.layanan)) {
+      console.log('Response format: { layanan: [] }');
+      return response.data.layanan;
+    } else {
+      console.warn('Unexpected response format:', response.data);
+      return [];
+    }
+  } catch (error: any) {
+    console.error("Error in getLayanan:", error);
+    console.error("Error response:", error.response?.data);
+    console.error("Error status:", error.response?.status);
+    
+    // Lempar error agar bisa di-handle di component
+    throw new Error(error.response?.data?.message || error.message || "Gagal mengambil layanan");
+  }
+};
+
+// ✅ Alternative function jika layanan memerlukan id_owner
+export const getLayananByOwner = async (id_owner: number): Promise<Layanan[]> => {
+  try {
+    if (!id_owner) {
+      throw new Error("ID Owner tidak ditemukan");
+    }
+    
+    console.log('getLayananByOwner called with id_owner:', id_owner);
+    
+    const response = await axiosInstance.get(`/layanan?id_owner=${id_owner}`);
+    
+    console.log('getLayananByOwner response:', response.data);
+    
+    // Handle berbagai format response
+    if (response.data && response.data.status && Array.isArray(response.data.data)) {
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      console.warn('Unexpected response format:', response.data);
+      return [];
+    }
+  } catch (error: any) {
+    console.error("Error in getLayananByOwner:", error);
+    throw new Error(error.response?.data?.message || error.message || "Gagal mengambil layanan");
   }
 };

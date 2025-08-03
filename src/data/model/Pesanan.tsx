@@ -1,4 +1,5 @@
-import { useState } from "react";
+// ❌ HAPUS import React di file model - ini bukan component!
+// import { useState } from "react";
 
 export interface Pesanan {
   id: number;
@@ -24,6 +25,14 @@ export interface Pesanan {
     username: string;
     nama_laundry: string;
   };
+}
+
+export interface Layanan {
+  id: number;
+  nama_layanan: string;
+  harga_layanan: number;
+  keterangan_layanan: string;
+  id_owner: number;
 }
 
 export class PesananImpl implements Pesanan {
@@ -100,7 +109,7 @@ export class PesananImpl implements Pesanan {
       admin: this.admin
     };
   }
-  }
+}
 
-
-const [pesanan, setPesanan] = useState<Pesanan[]>([]);
+// ❌ HAPUS useState dari file model - ini harus di component!
+// const [pesanan, setPesanan] = useState<Pesanan[]>([]);
