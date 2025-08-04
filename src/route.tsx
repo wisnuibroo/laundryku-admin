@@ -19,6 +19,7 @@ import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
 import TambahPesananPopup from "./components/TambahPesananPopup";
 import EditPesananPopup from "./components/EditPesananPopup";
+import LayananPage from "./views/dashboard/owner/LayananPage";
  
 
 
@@ -74,6 +75,10 @@ const route = createBrowserRouter([
       {
         path: "/dashboard/owner/kelolakaryawan",
         element: <KelolaKaryawanPage />
+      },
+      {
+        path: "/dashboard/owner/layanan",
+        element: <LayananPage />
       },
       {
         path: "/dashboard/owner/tagihan/belum-bayar",
