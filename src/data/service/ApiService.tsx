@@ -1,4 +1,3 @@
-import axios from "../../lib/axios";
 import axiosInstance from "../../lib/axios";
 import { Layanan, Pesanan } from "../model/Pesanan";
 
@@ -34,7 +33,6 @@ export const getUrl = async (setPesanan: React.Dispatch<React.SetStateAction<Pes
     }
     const response = await axiosInstance.get(`/pesanan?id_owner=${id_owner}`);
     
-    // Sesuaikan dengan response structure dari PesananController
     if (response.data && response.data.status && Array.isArray(response.data.data)) {
       setPesanan(response.data.data);
     } else if (Array.isArray(response.data)) {
@@ -61,7 +59,6 @@ export const updateStatusPesanan = async (id: number, status: string): Promise<b
 
 export const updateHargaPesanan = async (id: number, jumlah_harga: number): Promise<boolean> => {
   try {
-    // Sesuaikan field name dengan yang ada di PesananController
     const response = await axiosInstance.put(`/pesanan/${id}`, { jumlah_harga });
     return response.status === 200;
   } catch (error: any) {
@@ -90,7 +87,6 @@ export const getStatistik = async (id_owner: number): Promise<StatistikData> => 
   }
 };
 
-// Interface untuk menambah pesanan sesuai dengan PesananController
 interface TambahPesananInput {
   id_owner: number;
   id_admin?: number;
@@ -116,22 +112,15 @@ export const tambahPesanan = async (data: TambahPesananInput): Promise<void> => 
   }
 };
 
-// ✅ PERBAIKAN UTAMA: Gunakan axiosInstance dengan authentication dan tambahkan parameter id_owner
 export const getLayanan = async (id_owner?: number): Promise<Layanan[]> => {
   try {
-    console.log('getLayanan called with id_owner:', id_owner); // Debug log
-    
-    // Jika ada id_owner, kirim sebagai parameter
+    console.log('getLayanan called with id_owner:', id_owner);
     const url = id_owner ? `/layanan?id_owner=${id_owner}` : '/layanan';
-    console.log('Request URL:', url); // Debug log
-    
-    // ✅ Gunakan axiosInstance (dengan auth) bukan axios biasa
+    console.log('Request URL:', url);
     const response = await axiosInstance.get(url);
+    console.log('getLayanan response:', response);
+    console.log('getLayanan response.data:', response.data);
     
-    console.log('getLayanan response:', response); // Debug log
-    console.log('getLayanan response.data:', response.data); // Debug log
-    
-    // Handle berbagai format response
     if (response.data && response.data.status && Array.isArray(response.data.data)) {
       console.log('Response format: { status, data }');
       return response.data.data;
@@ -149,26 +138,19 @@ export const getLayanan = async (id_owner?: number): Promise<Layanan[]> => {
     console.error("Error in getLayanan:", error);
     console.error("Error response:", error.response?.data);
     console.error("Error status:", error.response?.status);
-    
-    // Lempar error agar bisa di-handle di component
     throw new Error(error.response?.data?.message || error.message || "Gagal mengambil layanan");
   }
 };
 
-// ✅ Alternative function jika layanan memerlukan id_owner
 export const getLayananByOwner = async (id_owner: number): Promise<Layanan[]> => {
   try {
     if (!id_owner) {
       throw new Error("ID Owner tidak ditemukan");
     }
-    
     console.log('getLayananByOwner called with id_owner:', id_owner);
-    
     const response = await axiosInstance.get(`/layanan?id_owner=${id_owner}`);
-    
     console.log('getLayananByOwner response:', response.data);
     
-    // Handle berbagai format response
     if (response.data && response.data.status && Array.isArray(response.data.data)) {
       return response.data.data;
     } else if (Array.isArray(response.data)) {
@@ -180,5 +162,50 @@ export const getLayananByOwner = async (id_owner: number): Promise<Layanan[]> =>
   } catch (error: any) {
     console.error("Error in getLayananByOwner:", error);
     throw new Error(error.response?.data?.message || error.message || "Gagal mengambil layanan");
+  }
+};
+
+interface TambahLayananInput {
+  id_owner: number;
+  nama_layanan: string;
+  harga_layanan: string; // ← Ubah dari number ke string
+  keterangan_layanan: string;
+}
+
+export const tambahLayanan = async (data: TambahLayananInput): Promise<void> => {
+  try {
+    console.log('tambahLayanan called with data:', data);
+    
+    // Pastikan format data sesuai dengan validasi controller PHP
+    const formattedData = {
+      nama_layanan: data.nama_layanan,
+      harga_layanan: data.harga_layanan, // Sudah string
+      keterangan_layanan: data.keterangan_layanan,
+      id_owner: data.id_owner
+    };
+    
+    console.log('Formatted data for API:', formattedData);
+    
+    const response = await axiosInstance.post("/layanan", formattedData);
+    
+    console.log('tambahLayanan response:', response);
+    
+    if (response.status !== 201 && response.status !== 200) {
+      throw new Error("Gagal menambahkan layanan");
+    }
+  } catch (error: any) {
+    console.error('Error in tambahLayanan:', error);
+    console.error('Error response:', error.response?.data);
+    
+    if (error.response?.data?.errors) {
+      // Handle validation errors
+      const errorMessages = Object.entries(error.response.data.errors)
+        .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
+        .join('; ');
+      throw new Error(`Validasi gagal: ${errorMessages}`);
+    }
+    
+    const errorMessage = error.response?.data?.message || error.message || "Gagal menambahkan layanan";
+    throw new Error(errorMessage);
   }
 };

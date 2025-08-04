@@ -339,8 +339,7 @@ export default function OwnerDashboard() {
           </div>
 
           
-          
-       <div className="flex justify-center flex-wrap gap-6 mt-8">
+       <div className="flex gap-6 mt-8">
           <CardManage
             icon="mdi:account-plus"
             title="Kelola Karyawan"
@@ -354,6 +353,13 @@ export default function OwnerDashboard() {
             subtitle="Analisis bisnis"
             bgColor="#217ccc"
             to="/dashboard/owner/laporan-keuangan"
+          />
+           <CardManage
+            icon="material-symbols:local-laundry-service"
+            title="Daftar Layanan"
+            subtitle="Kelola layanan"
+            bgColor="#74512D"
+            to="/dashboard/owner/layanan"
           />
           <CardManage
             icon="mdi:credit-card"
