@@ -28,11 +28,8 @@ export default function PengeluaranPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const { user } = useStateContext();
   
   // Form state
@@ -123,14 +120,6 @@ export default function PengeluaranPage() {
     setSearchText(e.target.value);
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDate(e.target.value);
-  };
-
-  const handleFilterClick = () => {
-    setIsFilterOpen(!isFilterOpen);
-  };
-
   // Filter pengeluaran berdasarkan pencarian
   const filteredPengeluaran = pengeluaran.filter((item) =>
     item.kategori.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -156,42 +145,18 @@ export default function PengeluaranPage() {
         </div>
         <div className="relative">
           <button
-            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            onClick={() => {
+              localStorage.clear();
+              navigate("/login");
+            }}
             className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
-            aria-haspopup="true"
-            aria-expanded={showOwnerMenu}
-            aria-label="User menu"
           >
             <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
             <span className="text-sm font-semibold text-gray-700">
               {user?.nama_laundry || "Owner"}
             </span>
-            <Icon
-              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
-              width={20}
-              className="text-gray-500"
-            />
+            <Icon icon="mdi:logout" width={20} className="text-red-500" />
           </button>
-
-          {showOwnerMenu && (
-            <div
-              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-              role="menu"
-              aria-orientation="vertical"
-              aria-label="User menu"
-            >
-              <button
-                onClick={() => {
-                  localStorage.clear();
-                  navigate("/login");
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
-                role="menuitem"
-              >
-                Logout
-              </button>
-            </div>
-          )}
         </div>
       </nav>
 

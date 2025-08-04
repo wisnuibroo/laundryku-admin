@@ -33,14 +33,13 @@ interface Pelanggan {
 export default function TagihanLunasPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(
-    null
-  );
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
-  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [stats, setStats] = useState({
+    total_tagihan: 0,
+    total_pendapatan: 0,
+  });
   const { user } = useStateContext();
 
   const fetchTagihanLunas = async () => {
@@ -129,38 +128,16 @@ export default function TagihanLunasPage() {
     fetchTagihanLunas();
   }, []);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
-  };
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDate(e.target.value);
-  };
-
-  const handleFilterClick = () => {
-    setIsFilterOpen(!isFilterOpen);
-  };
-
-  const [stats, setStats] = useState({
-    total_tagihan: 0,
-    total_pendapatan: 0,
-    pembayaran_hari_ini: 0,
-    rata_rata: 0,
-  });
-
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const pembayaranHariIni = pelanggan.filter(p => 
-      p.tagihan.some(t => t.tanggal.startsWith(today))
-    ).length;
-    
     setStats({
       total_tagihan: pelanggan.reduce((acc, p) => acc + p.jumlah_tagihan, 0),
       total_pendapatan: pelanggan.reduce((acc, p) => acc + p.total_tagihan, 0),
-      pembayaran_hari_ini: pembayaranHariIni,
-      rata_rata: pelanggan.length > 0 ? Math.round(pelanggan.reduce((acc, p) => acc + p.total_tagihan, 0) / pelanggan.length) : 0,
     });
   }, [pelanggan]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
+  };
 
   const filteredPelanggan = pelanggan.filter((emp) =>
     [
@@ -189,10 +166,13 @@ export default function TagihanLunasPage() {
         </div>
         <div className="relative">
           <button
-            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+            onClick={() => {
+              localStorage.clear();
+              navigate("/login");
+            }}
             className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
             aria-haspopup="true"
-            aria-expanded={showOwnerMenu}
+            aria-expanded={false}
             aria-label="User menu"
           >
             <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
@@ -200,31 +180,11 @@ export default function TagihanLunasPage() {
               {user?.nama_laundry || "Owner"}
             </span>
             <Icon
-              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              icon="mdi:chevron-down"
               width={20}
               className="text-gray-500"
             />
           </button>
-
-          {showOwnerMenu && (
-            <div
-              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-              role="menu"
-              aria-orientation="vertical"
-              aria-label="User menu"
-            >
-              <button
-                onClick={() => {
-                  localStorage.clear();
-                  navigate("/login");
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
-                role="menuitem"
-              >
-                Logout
-              </button>
-            </div>
-          )}
         </div>
       </nav>
 
@@ -427,7 +387,7 @@ export default function TagihanLunasPage() {
             <div className="mb-4">
               <h3 className="font-semibold mb-3">Detail Pesanan ({selectedCustomer.jumlah_tagihan})</h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
-                {selectedCustomer.tagihan.map((tagihan, index) => (
+                {selectedCustomer.tagihan.map((tagihan) => (
                   <div
                     key={tagihan.id_pesanan}
                     className="border rounded-lg p-4 bg-green-50"

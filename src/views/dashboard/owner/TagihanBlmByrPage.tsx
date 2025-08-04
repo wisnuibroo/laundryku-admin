@@ -38,10 +38,7 @@ interface Pelanggan {
 export default function TagihanBlmByrPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(
-    null
-  );
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(null);
   const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -208,10 +205,6 @@ export default function TagihanBlmByrPage() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
-  };
-
-  const handleFilterClick = () => {
-    setIsFilterOpen(!isFilterOpen);
   };
 
   const toggleRow = (id: number) => {

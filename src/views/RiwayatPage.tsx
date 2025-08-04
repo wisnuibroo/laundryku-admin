@@ -1,79 +1,40 @@
-import { useState } from "react";
-import Sidebar from "../components/Sidebar";
+import { Icon } from "@iconify/react";
 import Search from "../components/search";
+import { useState } from "react";
 
 export default function RiwayatPage() {
- 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
-  
-    return (
-        <div className="flex h-screen bg-white-100">
-            <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
 
-            <div className="flex-1 p-6">  
-                <h1 className="text-2xl font-semibold">Riwayat</h1>
-
-                <div className="mt-10 ">
-                  <Search/>
-                </div>
-   
-                <div className="mt-6 bg-gray-100 p-4  shadow rounded-[10px]">
-                  <table className="w-full text-center">
-                    <thead>
-                      <tr className="bg-gray-10 text-gray-600 text-sm ">
-                        <th className="py-2 px-4">No</th> 
-                        <th className="py-2 px-4">Nama</th> 
-                        <th className="py-2 px-4">No.Hp</th>
-                        <th className="py-2 px-4">Alamat</th>
-                        <th className="py-2 pl-4 pr-8">Tanggal</th>
-                      </tr>
-                    </thead>
-
-
-                    <tbody>
-                      <tr className="bg-white rounded-[10px] text-sm text-black-600">
-                        <td className="py-3 px-4 rounded-l-[19px]">1</td>
-                        <td className="py-3 px-4">Stop yapping</td>
-                        <td className="py-3 px-4">08112071740</td>
-                        <td className="py-3 px-4">
-                          Mitra Kost, Jl. Bae-Besito, Besito Kulon, Jurang,<br />
-                          Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
-                        </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
-                      </tr>
-
-
-                    <div className="mt-6"/> 
-                      <tr className="bg-white rounded-[10px] text-sm text-black-600">
-                        <td className="py-3 px-4 rounded-l-[19px]">2</td>
-                        <td className="py-3 px-4">udh yapinggnya?</td>
-                        <td className="py-3 px-4">08974107410</td>
-                        <td className="py-3 px-4=">
-                          Jl. Bae-Gribig,Gribig,<br />
-                          Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
-                        </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
-                      </tr>
-
-                    <div className="mt-6"/> 
-                      <tr className="bg-white rounded-[10px] text-sm text-black-600">
-                        <td className="py-3 px-4 rounded-l-[19px]">3</td>
-                        <td className="py-3 px-4">Opotah bil</td>
-                        <td className="py-3 px-4">08974107410</td>
-                        <td className="py-3 px-4=">
-                          Jl. Bae-Gribig,Gribig,<br />
-                          Kec. Gebog, Kabupaten Kudus, Jawa Tengah 59333
-                        </td>
-                        <td className="py-3 px-4 rounded-r-[19px]">17-10-2023</td>
-                      </tr>
-
-                    </tbody>
-                  </table>
-                </div>
-            </div>
+  return (
+    <div className="flex-1 overflow-auto">
+      <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:history" className="w-7 h-7 text-[#0065F8]" />
+          <span className="text-lg font-bold text-gray-900">Riwayat</span>
         </div>
-    );
+      </nav>
+
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="w-full max-w-xl">
+            <Search 
+              value={searchValue}
+              onChange={handleSearchChange}
+            />
+          </div>
+        </div>
+
+        {/* Konten riwayat akan ditambahkan di sini */}
+        <div className="text-center text-gray-500 py-8">
+          Belum ada riwayat transaksi
+        </div>
+      </div>
+    </div>
+  );
 }
 
 

@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
@@ -17,6 +16,7 @@ interface TambahPesananPopupProps {
   onAdded?: () => void;
   isModal?: boolean;
 }
+
 
 export default function TambahPesananPopup({
   onClose,
@@ -178,15 +178,15 @@ export default function TambahPesananPopup({
         pelanggan.nama_pelanggan.toLowerCase().includes(lowerSearchTerm) ||
         pelanggan.nomor.includes(searchTerm)
     );
-  }, [pelangganList, searchTerm]);
+  }, [searchTerm, pelangganList]);
 
-  const handleSelectPelanggan = (pelanggan: PelangganData) => {
+  const handleSelectPelanggan = useCallback((pelanggan: PelangganData) => {
     setNama(pelanggan.nama_pelanggan);
     setPhone(pelanggan.nomor);
     setAlamat(pelanggan.alamat);
     setShowDropdown(false);
     setSearchTerm("");
-  };
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -251,6 +251,7 @@ export default function TambahPesananPopup({
           type: "success",
         });
 
+        // Reset form
         // Reset form
         setNama("");
         setPhone("");
@@ -330,24 +331,24 @@ export default function TambahPesananPopup({
           )}
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Nama Pelanggan *
-          </label>
-          <input
-            type="text"
-            name="nama_manual"
-            value={nama}
-            onChange={(e) => setNama(e.target.value)}
-            onFocus={() => setIsTypingNama(true)}
-            onBlur={() => setTimeout(() => setIsTypingNama(false), 200)}
-            className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-            required
-            disabled={loading}
-            placeholder="Masukkan nama pelanggan"
-            autoComplete="on"
-          />
-        </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">
+          Nama Pelanggan *
+        </label>
+        <input
+          type="text"
+          name="nama_manual"
+          value={nama}
+          onChange={(e) => setNama(e.target.value)}
+          onFocus={() => setIsTypingNama(true)}
+          onBlur={() => setTimeout(() => setIsTypingNama(false), 200)}
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+          required
+          disabled={loading}
+          placeholder="Masukkan nama pelanggan"
+          autoComplete="on"
+        />
+      </div>
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">
@@ -370,19 +371,19 @@ export default function TambahPesananPopup({
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Alamat *</label>
-          <textarea
-            value={alamat}
-            onChange={(e) => setAlamat(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-            rows={3}
-            required
-            disabled={loading}
-            placeholder="Masukkan alamat pelanggan"
-            autoComplete="off"
-          />
-        </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Alamat *</label>
+        <textarea
+          value={alamat}
+          onChange={(e) => setAlamat(e.target.value)}
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+          rows={3}
+          required
+          disabled={loading}
+          placeholder="Masukkan alamat pelanggan"
+          autoComplete="off"
+        />
+      </div>
 
 
         <div className="mb-4">
@@ -442,31 +443,35 @@ export default function TambahPesananPopup({
     [nama, phone, alamat, layanan, layananList, loading, loadingLayanan, loadingPelanggan, isModal, onClose, handleSubmit, searchTerm, showDropdown, filteredPelanggan, isTypingNama]
   );
 
-  return isModal ? (
-    <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto relative">
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-          disabled={loading}
-        >
-          <Icon icon="mdi:close" width={20} />
-        </button>
-      )}
-      <h1 className="text-2xl font-bold text-black mb-4">
-        Tambah Pesanan Baru
-      </h1>
-      {formContent}
-      {notification.show && (
-        <Notification
-          show={notification.show}
-          message={notification.message}
-          type={notification.type}
-          onClose={closeNotification}
-        />
-      )}
-    </div>
-  ) : (
+  if (isModal) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto relative">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            disabled={loading}
+          >
+            <Icon icon="mdi:close" width={20} />
+          </button>
+        )}
+        <h1 className="text-2xl font-bold text-black mb-4">
+          Tambah Pesanan Baru
+        </h1>
+        {formContent}
+        {notification.show && (
+          <Notification
+            show={notification.show}
+            message={notification.message}
+            type={notification.type}
+            onClose={closeNotification}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
     <div className="flex h-screen bg-white">
       <div className="flex-1 p-6 overflow-y-auto">
         <h1 className="text-2xl font-bold text-black mb-4">

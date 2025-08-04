@@ -102,7 +102,7 @@ export default function Login() {
         }
       } else {
         // Logic register - hanya untuk owner
-        const response = await axiosInstance.post("/owner/register", {
+        await axiosInstance.post("/owner/register", {
           username: formData.name,
           email: formData.email,
           password: formData.password,
@@ -141,7 +141,7 @@ export default function Login() {
     <div className="min-h-screen w-full bg-gradient-to-b from-[#eaf6ff] to-[#f8fbff] flex flex-col items-center py-8 px-2">
       <div className="flex flex-col items-center mb-8 mt-4">
         <img
-          src="src/assets/logo.png"
+          src="/logo.png"
           alt="Logo"
           className="w-14 h-14 object-contain mb-2"
         />
@@ -224,7 +224,7 @@ export default function Login() {
                 } transition`}
                 onClick={() => setRole("admin")}
               >
-                Admin
+                Karyawan
               </button>
               <button
                 type="button"
@@ -235,7 +235,7 @@ export default function Login() {
                 } transition`}
                 onClick={() => setRole("owner")}
               >
-                Owner
+                Pemilik
               </button>
             </div>
           )}
