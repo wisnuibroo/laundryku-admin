@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,10 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Area,
-  AreaChart,
 } from "recharts";
 import CardStat from "../../../components/CardStat";
 import axiosInstance from "../../../lib/axios";
@@ -56,9 +52,15 @@ export default function LaporanKeuanganPage() {
     new Date().getFullYear()
   );
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
-  const [chartType, setChartType] = useState<"line" | "bar" | "area" | "row">(
-    "line"
-  );
+  const [chartType, setChartType] = useState<"line" | "row">("line");
+
+  // State untuk kontrol data yang ditampilkan di chart
+  const [visibleData, setVisibleData] = useState({
+    pendapatan: true,
+    pengeluaran: true,
+    laba: true,
+  });
+
   const { user } = useStateContext();
 
   const [stats, setStats] = useState<Stats>({
@@ -122,6 +124,14 @@ export default function LaporanKeuanganPage() {
 
   const currentYear = new Date().getFullYear();
 
+  // Toggle visibility data
+  const toggleDataVisibility = (dataKey: keyof typeof visibleData) => {
+    setVisibleData((prev) => ({
+      ...prev,
+      [dataKey]: !prev[dataKey],
+    }));
+  };
+
   const renderChart = () => {
     const commonProps = {
       data: chartData,
@@ -129,129 +139,6 @@ export default function LaporanKeuanganPage() {
     };
 
     switch (chartType) {
-      case "bar":
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="bulan" tick={{ fontSize: 12 }} stroke="#666" />
-              <YAxis
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
-              />
-              <Tooltip
-                formatter={formatTooltipValue}
-                labelStyle={{ color: "#333" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Legend />
-              <Bar
-                dataKey="pendapatan"
-                fill="#10B981"
-                name="Pendapatan"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="pengeluaran"
-                fill="#EF4444"
-                name="Pengeluaran"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="laba"
-                fill="#3B82F6"
-                name="Laba"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-
-      case "area":
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <AreaChart {...commonProps}>
-              <defs>
-                <linearGradient
-                  id="colorPendapatan"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient
-                  id="colorPengeluaran"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="colorLaba" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="bulan" tick={{ fontSize: 12 }} stroke="#666" />
-              <YAxis
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
-              />
-              <Tooltip
-                formatter={formatTooltipValue}
-                labelStyle={{ color: "#333" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Legend />
-              <Area
-                type="monotone"
-                dataKey="pendapatan"
-                stroke="#10B981"
-                fillOpacity={1}
-                fill="url(#colorPendapatan)"
-                name="Pendapatan"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="pengeluaran"
-                stroke="#EF4444"
-                fillOpacity={1}
-                fill="url(#colorPengeluaran)"
-                name="Pengeluaran"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="laba"
-                stroke="#3B82F6"
-                fillOpacity={1}
-                fill="url(#colorLaba)"
-                name="Laba"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
       case "row":
         return (
           <div className="space-y-4">
@@ -340,55 +227,138 @@ export default function LaporanKeuanganPage() {
           </div>
         );
 
-      default: // line
+      default: // line - Sharp line chart
         return (
           <ResponsiveContainer width="100%" height={400}>
             <LineChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="bulan" tick={{ fontSize: 12 }} stroke="#666" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e5e7eb"
+                strokeOpacity={0.6}
+              />
+              <XAxis
+                dataKey="bulan"
+                tick={{ fontSize: 12, fill: "#6b7280" }}
+                axisLine={{ stroke: "#d1d5db" }}
+                tickLine={{ stroke: "#d1d5db" }}
+              />
               <YAxis
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                tick={{ fontSize: 12, fill: "#6b7280" }}
+                axisLine={{ stroke: "#d1d5db" }}
+                tickLine={{ stroke: "#d1d5db" }}
+                tickFormatter={(value) => {
+                  if (value === 0) return "Rp 0";
+
+                  const isNegative = value < 0;
+                  const absValue = Math.abs(value);
+
+                  let formatted = "";
+                  if (absValue >= 1000000000000) {
+                    formatted = `${(absValue / 1000000000000)
+                      .toFixed(1)
+                      .replace(".", ",")} T`;
+                  } else if (absValue >= 1000000000) {
+                    formatted = `${(absValue / 1000000000)
+                      .toFixed(1)
+                      .replace(".", ",")} M`;
+                  } else if (absValue >= 1000000) {
+                    formatted = `${(absValue / 1000000)
+                      .toFixed(1)
+                      .replace(".", ",")} jt`;
+                  } else if (absValue >= 1000) {
+                    formatted = `${(absValue / 1000).toFixed(0)} rb`;
+                  } else {
+                    formatted = absValue.toLocaleString("id-ID");
+                  }
+
+                  return isNegative ? `-Rp ${formatted}` : `Rp ${formatted}`;
+                }}
               />
               <Tooltip
                 formatter={formatTooltipValue}
-                labelStyle={{ color: "#333" }}
+                labelStyle={{ color: "#374151", fontWeight: "600" }}
                 contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  boxShadow:
+                    "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                  fontSize: "14px",
                 }}
               />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="pendapatan"
-                stroke="#10B981"
-                strokeWidth={3}
-                dot={{ fill: "#10B981", strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: "#10B981", strokeWidth: 2 }}
-                name="Pendapatan"
-              />
-              <Line
-                type="monotone"
-                dataKey="pengeluaran"
-                stroke="#EF4444"
-                strokeWidth={3}
-                dot={{ fill: "#EF4444", strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: "#EF4444", strokeWidth: 2 }}
-                name="Pengeluaran"
-              />
-              <Line
-                type="monotone"
-                dataKey="laba"
-                stroke="#3B82F6"
-                strokeWidth={3}
-                dot={{ fill: "#3B82F6", strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: "#3B82F6", strokeWidth: 2 }}
-                name="Laba"
-              />
+
+              {/* Sharp line untuk Pendapatan */}
+              {visibleData.pendapatan && (
+                <Line
+                  type="linear"
+                  dataKey="pendapatan"
+                  stroke="#10B981"
+                  strokeWidth={3}
+                  dot={{
+                    fill: "#10B981",
+                    strokeWidth: 3,
+                    r: 5,
+                    stroke: "#ffffff",
+                  }}
+                  activeDot={{
+                    r: 7,
+                    stroke: "#10B981",
+                    strokeWidth: 3,
+                    fill: "#ffffff",
+                  }}
+                  name="Pendapatan"
+                  connectNulls={false}
+                />
+              )}
+
+              {/* Sharp line untuk Pengeluaran */}
+              {visibleData.pengeluaran && (
+                <Line
+                  type="linear"
+                  dataKey="pengeluaran"
+                  stroke="#EF4444"
+                  strokeWidth={3}
+                  dot={{
+                    fill: "#EF4444",
+                    strokeWidth: 3,
+                    r: 5,
+                    stroke: "#ffffff",
+                  }}
+                  activeDot={{
+                    r: 7,
+                    stroke: "#EF4444",
+                    strokeWidth: 3,
+                    fill: "#ffffff",
+                  }}
+                  name="Pengeluaran"
+                  connectNulls={false}
+                />
+              )}
+
+              {/* Sharp line untuk Laba */}
+              {visibleData.laba && (
+                <Line
+                  type="linear"
+                  dataKey="laba"
+                  stroke="#3B82F6"
+                  strokeWidth={3}
+                  dot={{
+                    fill: "#3B82F6",
+                    strokeWidth: 3,
+                    r: 5,
+                    stroke: "#ffffff",
+                  }}
+                  activeDot={{
+                    r: 7,
+                    stroke: "#3B82F6",
+                    strokeWidth: 3,
+                    fill: "#ffffff",
+                  }}
+                  name="Laba"
+                  connectNulls={false}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         );
@@ -553,29 +523,7 @@ export default function LaporanKeuanganPage() {
                   }`}
                 >
                   <Icon icon="mdi:chart-line" width={16} />
-                  Line
-                </button>
-                <button
-                  onClick={() => setChartType("bar")}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    chartType === "bar"
-                      ? "bg-white shadow text-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  <Icon icon="mdi:chart-bar" width={16} />
-                  Bar
-                </button>
-                <button
-                  onClick={() => setChartType("area")}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    chartType === "area"
-                      ? "bg-white shadow text-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  <Icon icon="mdi:chart-area" width={16} />
-                  Area
+                  Chart
                 </button>
                 <button
                   onClick={() => setChartType("row")}
@@ -586,11 +534,69 @@ export default function LaporanKeuanganPage() {
                   }`}
                 >
                   <Icon icon="mdi:table" width={16} />
-                  Row
+                  Table
                 </button>
               </div>
             </div>
           </div>
+
+          {/* Data Visibility Controls - Hanya tampil untuk chart line */}
+          {chartType === "line" && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Icon icon="mdi:eye" width={16} className="text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  Pilih Data yang Ditampilkan:
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleData.pendapatan}
+                    onChange={() => toggleDataVisibility("pendapatan")}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Pendapatan
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleData.pengeluaran}
+                    onChange={() => toggleDataVisibility("pengeluaran")}
+                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Pengeluaran
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleData.laba}
+                    onChange={() => toggleDataVisibility("laba")}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Laba/Profit
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="text-center py-16">
@@ -623,7 +629,9 @@ export default function LaporanKeuanganPage() {
               {/* Main Chart */}
               <div
                 className={`${
-                  chartType === "row" ? "" : "bg-gray-50 p-4 rounded-lg"
+                  chartType === "row"
+                    ? ""
+                    : "bg-gray-50 p-4 rounded-lg border border-gray-100"
                 }`}
               >
                 {renderChart()}
