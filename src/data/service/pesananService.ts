@@ -10,7 +10,8 @@ export interface AddPesananInput {
   nama_pelanggan?: string; // field langsung
   nomor?: string; // field langsung
   alamat: string;
-  layanan: string;
+  id_layanan?: number; // ID layanan (required by API)
+  layanan?: string; // Nama layanan (optional)
   berat?: number;
   total_harga?: number; // akan dipetakan ke jumlah_harga
   jumlah_harga?: number; // field langsung
@@ -27,19 +28,21 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       nama_pelanggan: typeof data.nama_pelanggan,
       nomor: typeof data.nomor,
       alamat: typeof data.alamat,
+      id_layanan: typeof data.id_layanan,
       layanan: typeof data.layanan
     });
     
     // Map data sesuai dengan field yang dibutuhkan PesananController
     const payload = {
-      id_owner: data.id_owner,
-      id_admin: data.id_admin,
-      nama_pelanggan: data.nama_pelanggan || data.name || '',
-      nomor: data.nomor || data.phone || '',
-      alamat: data.alamat,
-      layanan: data.layanan,
-      berat: data.berat || 0,
-      jumlah_harga: data.jumlah_harga || data.total_harga || 0,
+      id_owner: Number(data.id_owner),
+      id_admin: data.id_admin ? Number(data.id_admin) : undefined,
+      nama_pelanggan: (data.nama_pelanggan || data.name || '').trim(),
+      nomor: (data.nomor || data.phone || '').trim(),
+      alamat: data.alamat.trim(),
+      id_layanan: Number(data.id_layanan), // Required by API
+      layanan: data.layanan ? data.layanan.trim() : undefined, // Optional
+      berat: Number(data.berat || 0),
+      jumlah_harga: Number(data.jumlah_harga || data.total_harga || 0),
       status: data.status || 'pending',
       jenis_pembayaran: data.jenis_pembayaran?.toLowerCase() === 'tunai' ? 'cash' : data.jenis_pembayaran?.toLowerCase()
     };
@@ -52,6 +55,7 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       nama_pelanggan: typeof payload.nama_pelanggan,
       nomor: typeof payload.nomor,
       alamat: typeof payload.alamat,
+      id_layanan: typeof payload.id_layanan,
       layanan: typeof payload.layanan
     });
 
@@ -76,10 +80,20 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       console.error("Validation errors:", error.response.data.errors);
     }
     
-    const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.errors || 
-                        error.message || 
-                        "Gagal menambahkan pesanan";
+    let errorMessage = "Gagal menambahkan pesanan";
+    
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.errors) {
+      // Handle validation errors from API
+      const validationErrors = Object.entries(error.response.data.errors)
+        .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
+        .join('; ');
+      errorMessage = `Validasi gagal: ${validationErrors}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     throw new Error(errorMessage);
   }
 };

@@ -211,19 +211,31 @@ export default function TambahPesananPopup({
         return;
       }
       
-      if (!nama || !phone || !alamat || !layanan) {
-        setNotification({
-          show: true,
-          message: "Validasi gagal: Data tidak lengkap",
-          type: "error",
-        });
-        return;
+      // Validasi yang lebih detail
+      const validationErrors = [];
+      
+      if (!nama || nama.trim().length === 0) {
+        validationErrors.push("Nama pelanggan harus diisi");
       }
       
-      if (!/^08[0-9]{7,11}$/.test(phone)) {
+      if (!phone || phone.trim().length === 0) {
+        validationErrors.push("Nomor telepon harus diisi");
+      } else if (!/^08[0-9]{7,11}$/.test(phone)) {
+        validationErrors.push("Nomor telepon harus diawali dengan 08 dan maksimal 13 digit angka");
+      }
+      
+      if (!alamat || alamat.trim().length === 0) {
+        validationErrors.push("Alamat harus diisi");
+      }
+      
+      if (!layanan || layanan.trim().length === 0) {
+        validationErrors.push("Layanan harus dipilih");
+      }
+      
+      if (validationErrors.length > 0) {
         setNotification({
           show: true,
-          message: "Nomor telepon harus diawali dengan 08 dan maksimal 13 digit angka.",
+          message: `Validasi gagal: ${validationErrors.join(", ")}`,
           type: "error",
         });
         return;
@@ -233,54 +245,94 @@ export default function TambahPesananPopup({
       try {
         // ✅ Cari layanan yang dipilih untuk mendapatkan nama layanan
         const selectedLayanan = layananList.find(l => l.id.toString() === layanan);
-        const layananName = selectedLayanan ? selectedLayanan.nama_layanan : layanan;
+        
+        if (!selectedLayanan) {
+          setNotification({
+            show: true,
+            message: "Layanan yang dipilih tidak valid",
+            type: "error",
+          });
+          return;
+        }
+        
+        const layananName = selectedLayanan.nama_layanan;
 
         console.log('Selected layanan:', selectedLayanan); // Debug log
         console.log('Layanan name to save:', layananName); // Debug log
         console.log('User data:', user); // Debug log
         console.log('User type:', userType); // Debug log
 
+        // Pastikan semua field required ada dan dalam format yang benar
         const pesananData: any = {
-          id_owner: userType === "admin" ? user.id_owner : user.id,
-          nama_pelanggan: nama,
-          nomor: phone,
-          alamat,
-          layanan: layananName, // Gunakan nama layanan
+          id_owner: userType === "admin" ? Number(user.id_owner) : Number(user.id),
+          nama_pelanggan: nama.trim(),
+          nomor: phone.trim(),
+          alamat: alamat.trim(),
+          id_layanan: Number(layanan), // Gunakan ID layanan, bukan nama
+          layanan: layananName.trim(), // Nama layanan sebagai backup
           status: "pending",
+          berat: 0, // Default berat
+          jumlah_harga: 0, // Default harga
         };
 
         if (userType === "admin" && user && user.id) {
           pesananData.id_admin = Number(user.id);
         }
 
-        console.log('Pesanan data to submit:', pesananData); // Debug log
-        console.log('User ID:', user.id); // Debug log
-        console.log('User ID Owner:', user.id_owner); // Debug log
-        console.log('User Type:', userType); // Debug log
-        console.log('Selected layanan ID:', layanan); // Debug log
-        console.log('Layanan name:', layananName); // Debug log
+        console.log('=== DEBUG INFO ===');
+        console.log('Pesanan data to submit:', pesananData);
+        console.log('User ID:', user.id);
+        console.log('User ID Owner:', user.id_owner);
+        console.log('User Type:', userType);
+        console.log('Selected layanan ID:', layanan);
+        console.log('Layanan name:', layananName);
+        console.log('ID Layanan to send:', pesananData.id_layanan);
+        console.log('Data types:', {
+          id_owner: typeof pesananData.id_owner,
+          id_layanan: typeof pesananData.id_layanan,
+          nama_pelanggan: typeof pesananData.nama_pelanggan,
+          nomor: typeof pesananData.nomor,
+          alamat: typeof pesananData.alamat
+        });
+        console.log('=== END DEBUG ===');
 
-        // Validasi final sebelum kirim
+        // Validasi final sebelum kirim sesuai dengan API PHP
+        const finalValidationErrors = [];
+        
+        // Validasi sesuai dengan rules di PesananController
         if (!pesananData.id_owner || pesananData.id_owner <= 0) {
           console.error('Invalid id_owner:', pesananData.id_owner);
-          setNotification({
-            show: true,
-            message: "ID Owner tidak valid",
-            type: "error",
-          });
-          return;
+          finalValidationErrors.push("ID Owner tidak valid");
         }
 
-        if (!pesananData.nama_pelanggan || !pesananData.nomor || !pesananData.alamat || !pesananData.layanan) {
-          console.error('Missing required fields:', {
-            nama_pelanggan: pesananData.nama_pelanggan,
-            nomor: pesananData.nomor,
-            alamat: pesananData.alamat,
-            layanan: pesananData.layanan
-          });
+        if (!pesananData.nama_pelanggan || pesananData.nama_pelanggan.trim().length === 0) {
+          finalValidationErrors.push("Nama pelanggan tidak boleh kosong");
+        }
+
+        if (!pesananData.nomor || pesananData.nomor.trim().length === 0) {
+          finalValidationErrors.push("Nomor telepon tidak boleh kosong");
+        }
+
+        if (!pesananData.alamat || pesananData.alamat.trim().length === 0) {
+          finalValidationErrors.push("Alamat tidak boleh kosong");
+        }
+
+        // Validasi id_layanan (required by API)
+        if (!pesananData.id_layanan || pesananData.id_layanan <= 0) {
+          console.error('Invalid id_layanan:', pesananData.id_layanan);
+          finalValidationErrors.push("ID Layanan tidak valid");
+        }
+
+        // Validasi format nomor telepon
+        if (!/^08[0-9]{7,11}$/.test(pesananData.nomor)) {
+          finalValidationErrors.push("Format nomor telepon tidak valid");
+        }
+
+        if (finalValidationErrors.length > 0) {
+          console.error('Final validation failed:', finalValidationErrors);
           setNotification({
             show: true,
-            message: "Data pesanan tidak lengkap",
+            message: `Data tidak valid: ${finalValidationErrors.join(", ")}`,
             type: "error",
           });
           return;
@@ -304,9 +356,25 @@ export default function TambahPesananPopup({
         if (onAdded) onAdded();
       } catch (error: any) {
         console.error("Error adding pesanan:", error);
+        
+        // Handle different types of errors
+        let errorMessage = "Gagal menambahkan pesanan";
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.data?.errors) {
+          // Handle validation errors from API
+          const validationErrors = Object.entries(error.response.data.errors)
+            .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
+            .join('; ');
+          errorMessage = `Validasi gagal: ${validationErrors}`;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         setNotification({
           show: true,
-          message: error.message || "Gagal menambahkan pesanan",
+          message: errorMessage,
           type: "error",
         });
       } finally {
