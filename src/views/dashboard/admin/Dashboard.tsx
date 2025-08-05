@@ -568,7 +568,12 @@ export default function Dashboard() {
                             <div className="text-gray-500">{item.nomor}</div>
                           </td>
                           <td className="px-4 py-3">{item.alamat}</td>
-                          <td className="px-4 py-3">{item.layanan}</td>
+                          <td className="px-4 py-3">
+                            {typeof item.layanan === 'string' 
+                              ? item.layanan 
+                              : (item.layanan as any)?.nama_layanan || 'Layanan tidak tersedia'
+                            }
+                          </td>
                           <td className="px-4 py-3">{item.berat || 0} kg</td>
                           <td className="px-4 py-3">
                             Rp {item.jumlah_harga ? Math.round(item.jumlah_harga).toLocaleString() : '0'}

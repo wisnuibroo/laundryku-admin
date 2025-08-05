@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
+import { useNavigate } from "react-router-dom";
 import { addPesanan } from "../data/service/pesananService";
 import {
   findPelangganByNomor,
@@ -44,7 +45,6 @@ export default function TambahPesananPopup({
   const { user, userType } = useStateContext();
   const navigate = useNavigate();
 
-  // ✅ PINDAHKAN useEffect KE SINI - DI LEVEL COMPONENT, BUKAN DI DALAM handleSubmit
   useEffect(() => {
     const fetchLayanan = async () => {
       try {
@@ -200,6 +200,16 @@ export default function TambahPesananPopup({
         });
         return;
       }
+
+      // Validasi khusus untuk admin
+      if (userType === "admin" && !user.id_owner) {
+        setNotification({
+          show: true,
+          message: "Admin tidak memiliki ID Owner yang valid",
+          type: "error",
+        });
+        return;
+      }
       
       if (!nama || !phone || !alamat || !layanan) {
         setNotification({
@@ -227,9 +237,11 @@ export default function TambahPesananPopup({
 
         console.log('Selected layanan:', selectedLayanan); // Debug log
         console.log('Layanan name to save:', layananName); // Debug log
+        console.log('User data:', user); // Debug log
+        console.log('User type:', userType); // Debug log
 
         const pesananData: any = {
-          id_owner: Number(user.id),
+          id_owner: userType === "admin" ? user.id_owner : user.id,
           nama_pelanggan: nama,
           nomor: phone,
           alamat,
@@ -242,6 +254,37 @@ export default function TambahPesananPopup({
         }
 
         console.log('Pesanan data to submit:', pesananData); // Debug log
+        console.log('User ID:', user.id); // Debug log
+        console.log('User ID Owner:', user.id_owner); // Debug log
+        console.log('User Type:', userType); // Debug log
+        console.log('Selected layanan ID:', layanan); // Debug log
+        console.log('Layanan name:', layananName); // Debug log
+
+        // Validasi final sebelum kirim
+        if (!pesananData.id_owner || pesananData.id_owner <= 0) {
+          console.error('Invalid id_owner:', pesananData.id_owner);
+          setNotification({
+            show: true,
+            message: "ID Owner tidak valid",
+            type: "error",
+          });
+          return;
+        }
+
+        if (!pesananData.nama_pelanggan || !pesananData.nomor || !pesananData.alamat || !pesananData.layanan) {
+          console.error('Missing required fields:', {
+            nama_pelanggan: pesananData.nama_pelanggan,
+            nomor: pesananData.nomor,
+            alamat: pesananData.alamat,
+            layanan: pesananData.layanan
+          });
+          setNotification({
+            show: true,
+            message: "Data pesanan tidak lengkap",
+            type: "error",
+          });
+          return;
+        }
 
         await addPesanan(pesananData);
 

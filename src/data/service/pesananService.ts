@@ -20,6 +20,16 @@ export interface AddPesananInput {
 
 export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
   try {
+    console.log("Raw data received in addPesanan:", data);
+    console.log("Data type check:", {
+      id_owner: typeof data.id_owner,
+      id_admin: typeof data.id_admin,
+      nama_pelanggan: typeof data.nama_pelanggan,
+      nomor: typeof data.nomor,
+      alamat: typeof data.alamat,
+      layanan: typeof data.layanan
+    });
+    
     // Map data sesuai dengan field yang dibutuhkan PesananController
     const payload = {
       id_owner: data.id_owner,
@@ -34,7 +44,20 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       jenis_pembayaran: data.jenis_pembayaran?.toLowerCase() === 'tunai' ? 'cash' : data.jenis_pembayaran?.toLowerCase()
     };
 
+    console.log("Mapped payload for API:", payload);
+    console.log("API endpoint: /pesanan");
+    console.log("Payload type check:", {
+      id_owner: typeof payload.id_owner,
+      id_admin: typeof payload.id_admin,
+      nama_pelanggan: typeof payload.nama_pelanggan,
+      nomor: typeof payload.nomor,
+      alamat: typeof payload.alamat,
+      layanan: typeof payload.layanan
+    });
+
     const response = await axiosInstance.post("/pesanan", payload);
+    
+    console.log("API response:", response.data);
     
     // Handle response sesuai dengan structure PesananController
     if (response.data && response.data.status && response.data.data) {
@@ -43,6 +66,16 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
     
     return response.data;
   } catch (error: any) {
+    console.error("Error in addPesanan:", error);
+    console.error("Error response:", error.response?.data);
+    console.error("Error status:", error.response?.status);
+    console.error("Error message:", error.message);
+    
+    // Log detail error jika ada
+    if (error.response?.data?.errors) {
+      console.error("Validation errors:", error.response.data.errors);
+    }
+    
     const errorMessage = error.response?.data?.message || 
                         error.response?.data?.errors || 
                         error.message || 

@@ -87,7 +87,9 @@ export default function TagihanLunasPage() {
         // Tambahkan tagihan ke grup
         acc[phone].tagihan.push({
           id_pesanan: item.id.toString(),
-          jenis: item.layanan || "-",
+          jenis: typeof item.layanan === 'string' 
+            ? item.layanan 
+            : (item.layanan as any)?.nama_layanan || "-",
           tanggal: item.created_at,
           jatuh_tempo: item.updated_at,
           total: parseFloat(item.jumlah_harga) || 0,

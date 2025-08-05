@@ -6,7 +6,6 @@ import AdminDashboard from "./views/dashboard/admin/Dashboard";
 import OwnerDashboard from "./views/dashboard/owner/Dashboard";
 import KelolaKaryawanPage from "./views/dashboard/owner/KelolaKaryawanPage";
 import LaporanKeuanganPage from "./views/dashboard/owner/LaporanKeuanganPage";
-import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
 import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
 import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
 import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
