@@ -18,7 +18,6 @@ interface TambahPesananPopupProps {
   isModal?: boolean;
 }
 
-
 export default function TambahPesananPopup({
   onClose,
   onAdded,
@@ -45,116 +44,168 @@ export default function TambahPesananPopup({
   const { user, userType } = useStateContext();
   const navigate = useNavigate();
 
+  // PERBAIKAN untuk useEffect fetchLayanan di TambahPesananPopup.tsx
+
   useEffect(() => {
     const fetchLayanan = async () => {
       try {
         setLoadingLayanan(true);
-        console.log('🔍 Starting to fetch layanan data...'); 
-        console.log('👤 User ID:', user?.id);
-        console.log('🔑 Token exists:', !!localStorage.getItem('token'));
-        
-        // Test koneksi API terlebih dahulu
-        console.log('🌐 Testing API connection...');
-        
-        let data: Layanan[] = [];
-        let lastError: any = null;
-        
-        // Strategi 1: Coba dengan endpoint yang berbeda
-        const endpoints = [
-          () => getLayananByOwner(Number(user?.id)), // dengan id_owner
-          () => getLayanan(Number(user?.id)),         // dengan parameter
-          () => getLayanan(),                         // tanpa parameter
-        ];
-        
-        for (let i = 0; i < endpoints.length; i++) {
-          try {
-            console.log(`📡 Trying endpoint strategy ${i + 1}...`);
-            data = await endpoints[i]();
-            console.log(`✅ Success with strategy ${i + 1}:`, data);
-            break;
-          } catch (error) {
-            console.warn(`❌ Strategy ${i + 1} failed:`, error);
-            lastError = error;
-            continue;
-          }
+        console.log("🔍 Starting to fetch layanan...");
+        console.log("👤 User data:", user);
+        console.log("🔑 User type:", userType);
+
+        if (!user?.id) {
+          console.warn("⚠️ No user ID available, skipping layanan fetch");
+          return;
         }
-        
-        // Jika semua strategi gagal, coba manual fetch
-        if (!data || data.length === 0) {
-          console.log('🔧 Trying manual fetch...');
-          try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('https://laundryku.rplrus.com/api/layanan', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              }
+
+        // PERBAIKAN: Tentukan owner ID berdasarkan user type
+        let ownerId: number;
+
+        if (userType === "admin") {
+          // Jika admin/karyawan, gunakan id_owner
+          if (!user.id_owner) {
+            console.error("❌ Admin/Karyawan doesn't have id_owner");
+            setNotification({
+              show: true,
+              message: "Admin/Karyawan tidak memiliki ID Owner yang valid",
+              type: "error",
             });
-            
-            console.log('📊 Manual fetch response status:', response.status);
-            console.log('📊 Manual fetch response headers:', Object.fromEntries(response.headers.entries()));
-            
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const responseData = await response.json();
-            console.log('📊 Manual fetch response data:', responseData);
-            
-            // Handle different response formats
-            if (Array.isArray(responseData)) {
-              data = responseData;
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-              data = responseData.data;
-            } else if (responseData.layanan && Array.isArray(responseData.layanan)) {
-              data = responseData.layanan;
-            }
-            
-          } catch (fetchError) {
-            console.error('🚨 Manual fetch also failed:', fetchError);
-            lastError = fetchError;
+            return;
+          }
+          ownerId = Number(user.id_owner);
+          console.log("👨‍💼 Admin/Karyawan mode - using id_owner:", ownerId);
+        } else {
+          // Jika owner, gunakan id langsung
+          ownerId = Number(user.id);
+          console.log("👑 Owner mode - using user.id:", ownerId);
+        }
+
+        console.log("🎯 Final owner ID to fetch layanan:", ownerId);
+
+        let data: Layanan[] = [];
+
+        try {
+          // PERBAIKAN: Gunakan owner ID yang tepat
+          const token =
+            localStorage.getItem("ACCESS_TOKEN") ||
+            localStorage.getItem("token");
+          const url = `https://laundryku.rplrus.com/api/layanan?id_owner=${ownerId}`;
+
+          console.log("📡 Fetching from URL:", url);
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          });
+
+          console.log("📊 Response status:", response.status);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const responseData = await response.json();
+          console.log("📊 Response data:", responseData);
+
+          // Handle response format
+          if (responseData.success && Array.isArray(responseData.data)) {
+            data = responseData.data;
+          } else if (Array.isArray(responseData)) {
+            data = responseData;
+          } else {
+            throw new Error("Format response tidak valid");
+          }
+
+          // PERBAIKAN: Filter berdasarkan owner ID yang tepat
+          data = data.filter((layanan) => layanan.id_owner === ownerId);
+
+          console.log("✅ Filtered layanan for owner", ownerId, ":", data);
+          console.log(
+            "📋 Layanan names:",
+            data.map((l) => l.nama_layanan)
+          );
+        } catch (fetchError) {
+          console.error("❌ Direct fetch failed:", fetchError);
+
+          // Fallback ke service functions
+          try {
+            console.log("🔄 Trying fallback with getLayananByOwner...");
+            data = await getLayananByOwner(ownerId);
+          } catch (serviceError) {
+            console.error("❌ Service fallback failed:", serviceError);
+            throw fetchError;
           }
         }
-        
-        if (Array.isArray(data) && data.length > 0) {
+
+        if (Array.isArray(data)) {
           setLayananList(data);
-          console.log('✅ Layanan list set successfully:', data.length, 'items');
-          console.log('📋 Layanan names:', data.map(l => l.nama_layanan));
+          console.log(
+            "✅ Layanan list set successfully for owner:",
+            ownerId,
+            "- Count:",
+            data.length
+          );
+
+          if (data.length === 0) {
+            console.log("⚠️ No layanan found for this owner");
+            setNotification({
+              show: true,
+              message: `Belum ada layanan untuk owner ini. Owner perlu menambahkan layanan terlebih dahulu.`,
+              type: "error",
+            });
+          }
         } else {
-          console.error('❌ No valid layanan data received');
+          console.error("❌ Invalid data format received");
           setLayananList([]);
-          throw lastError || new Error('No layanan data available');
+          throw new Error("Data layanan tidak valid");
         }
-        
       } catch (error) {
-        console.error("🚨 Final error in fetchLayanan:", error);
+        console.error("🚨 Error in fetchLayanan:", error);
         setNotification({
           show: true,
-          message: `Gagal memuat data layanan: ${(error as Error).message}. Periksa koneksi internet dan login status.`,
+          message: `Gagal memuat layanan: ${(error as Error).message}`,
           type: "error",
         });
         setLayananList([]);
       } finally {
         setLoadingLayanan(false);
-        console.log('🏁 fetchLayanan completed');
       }
     };
-    
+
     // Hanya fetch jika user sudah ada
     if (user?.id) {
       fetchLayanan();
-    } else {
-      console.warn('⚠️ No user ID available, skipping layanan fetch');
     }
-  }, [user?.id]); // ✅ Dependency user.id untuk re-fetch jika user berubah
+  }, [user?.id, user?.id_owner, userType]); // PERBAIKAN: Tambahkan dependency id_owner dan userType
 
+  // PERBAIKAN untuk useEffect fetchPelangganList juga
   useEffect(() => {
     const fetchPelangganList = async () => {
       if (user?.id) {
         try {
           setLoadingPelanggan(true);
-          const data = await getPelangganList(Number(user.id));
+
+          // PERBAIKAN: Tentukan owner ID yang tepat untuk pelanggan juga
+          let ownerId: number;
+
+          if (userType === "admin") {
+            if (!user.id_owner) {
+              console.error(
+                "❌ Admin/Karyawan doesn't have id_owner for pelanggan"
+              );
+              return;
+            }
+            ownerId = Number(user.id_owner);
+          } else {
+            ownerId = Number(user.id);
+          }
+
+          console.log("👥 Fetching pelanggan for owner:", ownerId);
+          const data = await getPelangganList(ownerId);
           setPelangganList(data);
         } catch (error) {
           console.error("Error fetching pelanggan list:", error);
@@ -164,7 +215,7 @@ export default function TambahPesananPopup({
       }
     };
     fetchPelangganList();
-  }, [user?.id]);
+  }, [user?.id, user?.id_owner, userType]); // PERBAIKAN: Tambahkan dependency
 
   const closeNotification = () => {
     setNotification((prev) => ({ ...prev, show: false }));
@@ -191,7 +242,7 @@ export default function TambahPesananPopup({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       if (!user?.id) {
         setNotification({
           show: true,
@@ -210,28 +261,30 @@ export default function TambahPesananPopup({
         });
         return;
       }
-      
+
       // Validasi yang lebih detail
       const validationErrors = [];
-      
+
       if (!nama || nama.trim().length === 0) {
         validationErrors.push("Nama pelanggan harus diisi");
       }
-      
+
       if (!phone || phone.trim().length === 0) {
         validationErrors.push("Nomor telepon harus diisi");
       } else if (!/^08[0-9]{7,11}$/.test(phone)) {
-        validationErrors.push("Nomor telepon harus diawali dengan 08 dan maksimal 13 digit angka");
+        validationErrors.push(
+          "Nomor telepon harus diawali dengan 08 dan maksimal 13 digit angka"
+        );
       }
-      
+
       if (!alamat || alamat.trim().length === 0) {
         validationErrors.push("Alamat harus diisi");
       }
-      
+
       if (!layanan || layanan.trim().length === 0) {
         validationErrors.push("Layanan harus dipilih");
       }
-      
+
       if (validationErrors.length > 0) {
         setNotification({
           show: true,
@@ -244,8 +297,10 @@ export default function TambahPesananPopup({
       setLoading(true);
       try {
         // ✅ Cari layanan yang dipilih untuk mendapatkan nama layanan
-        const selectedLayanan = layananList.find(l => l.id.toString() === layanan);
-        
+        const selectedLayanan = layananList.find(
+          (l) => l.id.toString() === layanan
+        );
+
         if (!selectedLayanan) {
           setNotification({
             show: true,
@@ -254,17 +309,18 @@ export default function TambahPesananPopup({
           });
           return;
         }
-        
+
         const layananName = selectedLayanan.nama_layanan;
 
-        console.log('Selected layanan:', selectedLayanan); // Debug log
-        console.log('Layanan name to save:', layananName); // Debug log
-        console.log('User data:', user); // Debug log
-        console.log('User type:', userType); // Debug log
+        console.log("Selected layanan:", selectedLayanan); // Debug log
+        console.log("Layanan name to save:", layananName); // Debug log
+        console.log("User data:", user); // Debug log
+        console.log("User type:", userType); // Debug log
 
         // Pastikan semua field required ada dan dalam format yang benar
         const pesananData: any = {
-          id_owner: userType === "admin" ? Number(user.id_owner) : Number(user.id),
+          id_owner:
+            userType === "admin" ? Number(user.id_owner) : Number(user.id),
           nama_pelanggan: nama.trim(),
           nomor: phone.trim(),
           alamat: alamat.trim(),
@@ -279,33 +335,36 @@ export default function TambahPesananPopup({
           pesananData.id_admin = Number(user.id);
         }
 
-        console.log('=== DEBUG INFO ===');
-        console.log('Pesanan data to submit:', pesananData);
-        console.log('User ID:', user.id);
-        console.log('User ID Owner:', user.id_owner);
-        console.log('User Type:', userType);
-        console.log('Selected layanan ID:', layanan);
-        console.log('Layanan name:', layananName);
-        console.log('ID Layanan to send:', pesananData.id_layanan);
-        console.log('Data types:', {
+        console.log("=== DEBUG INFO ===");
+        console.log("Pesanan data to submit:", pesananData);
+        console.log("User ID:", user.id);
+        console.log("User ID Owner:", user.id_owner);
+        console.log("User Type:", userType);
+        console.log("Selected layanan ID:", layanan);
+        console.log("Layanan name:", layananName);
+        console.log("ID Layanan to send:", pesananData.id_layanan);
+        console.log("Data types:", {
           id_owner: typeof pesananData.id_owner,
           id_layanan: typeof pesananData.id_layanan,
           nama_pelanggan: typeof pesananData.nama_pelanggan,
           nomor: typeof pesananData.nomor,
-          alamat: typeof pesananData.alamat
+          alamat: typeof pesananData.alamat,
         });
-        console.log('=== END DEBUG ===');
+        console.log("=== END DEBUG ===");
 
         // Validasi final sebelum kirim sesuai dengan API PHP
         const finalValidationErrors = [];
-        
+
         // Validasi sesuai dengan rules di PesananController
         if (!pesananData.id_owner || pesananData.id_owner <= 0) {
-          console.error('Invalid id_owner:', pesananData.id_owner);
+          console.error("Invalid id_owner:", pesananData.id_owner);
           finalValidationErrors.push("ID Owner tidak valid");
         }
 
-        if (!pesananData.nama_pelanggan || pesananData.nama_pelanggan.trim().length === 0) {
+        if (
+          !pesananData.nama_pelanggan ||
+          pesananData.nama_pelanggan.trim().length === 0
+        ) {
           finalValidationErrors.push("Nama pelanggan tidak boleh kosong");
         }
 
@@ -319,7 +378,7 @@ export default function TambahPesananPopup({
 
         // Validasi id_layanan (required by API)
         if (!pesananData.id_layanan || pesananData.id_layanan <= 0) {
-          console.error('Invalid id_layanan:', pesananData.id_layanan);
+          console.error("Invalid id_layanan:", pesananData.id_layanan);
           finalValidationErrors.push("ID Layanan tidak valid");
         }
 
@@ -329,7 +388,7 @@ export default function TambahPesananPopup({
         }
 
         if (finalValidationErrors.length > 0) {
-          console.error('Final validation failed:', finalValidationErrors);
+          console.error("Final validation failed:", finalValidationErrors);
           setNotification({
             show: true,
             message: `Data tidak valid: ${finalValidationErrors.join(", ")}`,
@@ -352,26 +411,29 @@ export default function TambahPesananPopup({
         setPhone("");
         setAlamat("");
         setLayanan("");
-        
+
         if (onAdded) onAdded();
       } catch (error: any) {
         console.error("Error adding pesanan:", error);
-        
+
         // Handle different types of errors
         let errorMessage = "Gagal menambahkan pesanan";
-        
+
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response?.data?.errors) {
           // Handle validation errors from API
           const validationErrors = Object.entries(error.response.data.errors)
-            .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
-            .join('; ');
+            .map(
+              ([field, messages]) =>
+                `${field}: ${(messages as string[]).join(", ")}`
+            )
+            .join("; ");
           errorMessage = `Validasi gagal: ${validationErrors}`;
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
+
         setNotification({
           show: true,
           message: errorMessage,
@@ -392,29 +454,28 @@ export default function TambahPesananPopup({
             Cari Pelanggan
           </label>
           <div className="relative">
-          <div className="absolute left-3 top-2.5 text-gray-400">
-            <Icon icon="mdi:magnify" width={20} />
+            <div className="absolute left-3 top-2.5 text-gray-400">
+              <Icon icon="mdi:magnify" width={20} />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              className="w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:border-blue-500"
+              placeholder="Cari nama atau nomor pelanggan"
+              autoComplete="off"
+              disabled={loading || loadingPelanggan}
+            />
+            {loadingPelanggan && (
+              <div className="absolute right-3 top-2.5">
+                <Icon icon="eos-icons:loading" width={20} />
+              </div>
+            )}
           </div>
-             <input
-               type="text"
-               value={searchTerm}
-               onChange={(e) => {
-                 setSearchTerm(e.target.value);
-                 setShowDropdown(true);
-               }}
-               onFocus={() => setShowDropdown(true)}
-               className="w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:border-blue-500"
-               placeholder="Cari nama atau nomor pelanggan"
-               autoComplete="off"
-               disabled={loading || loadingPelanggan}
-             />
-             {loadingPelanggan && (
-               <div className="absolute right-3 top-2.5">
-                 <Icon icon="eos-icons:loading" width={20} />
-               </div>
-             )}
-           </div>
-
 
           {showDropdown && searchTerm && !isTypingNama && (
             <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -442,24 +503,24 @@ export default function TambahPesananPopup({
           )}
         </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">
-          Nama Pelanggan *
-        </label>
-        <input
-          type="text"
-          name="nama_manual"
-          value={nama}
-          onChange={(e) => setNama(e.target.value)}
-          onFocus={() => setIsTypingNama(true)}
-          onBlur={() => setTimeout(() => setIsTypingNama(false), 200)}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-          required
-          disabled={loading}
-          placeholder="Masukkan nama pelanggan"
-          autoComplete="on"
-        />
-      </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">
+            Nama Pelanggan *
+          </label>
+          <input
+            type="text"
+            name="nama_manual"
+            value={nama}
+            onChange={(e) => setNama(e.target.value)}
+            onFocus={() => setIsTypingNama(true)}
+            onBlur={() => setTimeout(() => setIsTypingNama(false), 200)}
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+            required
+            disabled={loading}
+            placeholder="Masukkan nama pelanggan"
+            autoComplete="on"
+          />
+        </div>
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">
@@ -482,33 +543,34 @@ export default function TambahPesananPopup({
           />
         </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Alamat *</label>
-        <textarea
-          value={alamat}
-          onChange={(e) => setAlamat(e.target.value)}
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-          rows={3}
-          required
-          disabled={loading}
-          placeholder="Masukkan alamat pelanggan"
-          autoComplete="off"
-        />
-      </div>
-
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Alamat *</label>
+          <textarea
+            value={alamat}
+            onChange={(e) => setAlamat(e.target.value)}
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+            rows={3}
+            required
+            disabled={loading}
+            placeholder="Masukkan alamat pelanggan"
+            autoComplete="off"
+          />
+        </div>
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">
             Pilih Layanan *
           </label>
-          
+
           <div className="relative">
             <select
               value={layanan}
               onChange={(e) => {
-                console.log('🎯 Layanan selected:', e.target.value);
-                const selectedItem = layananList.find(l => l.id.toString() === e.target.value);
-                console.log('🎯 Selected layanan object:', selectedItem);
+                console.log("🎯 Layanan selected:", e.target.value);
+                const selectedItem = layananList.find(
+                  (l) => l.id.toString() === e.target.value
+                );
+                console.log("🎯 Selected layanan object:", selectedItem);
                 setLayanan(e.target.value);
               }}
               className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring focus:border-blue-300"
@@ -551,7 +613,23 @@ export default function TambahPesananPopup({
         </div>
       </form>
     ),
-    [nama, phone, alamat, layanan, layananList, loading, loadingLayanan, loadingPelanggan, isModal, onClose, handleSubmit, searchTerm, showDropdown, filteredPelanggan, isTypingNama]
+    [
+      nama,
+      phone,
+      alamat,
+      layanan,
+      layananList,
+      loading,
+      loadingLayanan,
+      loadingPelanggan,
+      isModal,
+      onClose,
+      handleSubmit,
+      searchTerm,
+      showDropdown,
+      filteredPelanggan,
+      isTypingNama,
+    ]
   );
 
   if (isModal) {
