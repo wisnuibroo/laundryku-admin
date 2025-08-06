@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
 import { useNavigate } from "react-router-dom";
-import { addPesanan } from "../data/service/pesananService";
+import { addPesanan, AddPesananInput, getPesanan } from "../data/service/pesananService"; // Modified: Added getPesanan import
 import {
   findPelangganByNomor,
   getPelangganList,
@@ -32,6 +32,8 @@ export default function TambahPesananPopup({
   const [loading, setLoading] = useState(false);
   const [loadingPelanggan, setLoadingPelanggan] = useState(false);
   const [pelangganList, setPelangganList] = useState<PelangganData[]>([]);
+  // NEW: State for customers from pesanan (for UI indicator)
+  const [pesananCustomerList, setPesananCustomerList] = useState<PelangganData[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isTypingNama, setIsTypingNama] = useState(false);
@@ -44,8 +46,7 @@ export default function TambahPesananPopup({
   const { user, userType } = useStateContext();
   const navigate = useNavigate();
 
-  // PERBAIKAN untuk useEffect fetchLayanan di TambahPesananPopup.tsx
-
+  // Existing useEffect for fetching layanan (unchanged)
   useEffect(() => {
     const fetchLayanan = async () => {
       try {
@@ -59,11 +60,9 @@ export default function TambahPesananPopup({
           return;
         }
 
-        // PERBAIKAN: Tentukan owner ID berdasarkan user type
         let ownerId: number;
 
         if (userType === "admin") {
-          // Jika admin/karyawan, gunakan id_owner
           if (!user.id_owner) {
             console.error("❌ Admin/Karyawan doesn't have id_owner");
             setNotification({
@@ -76,7 +75,6 @@ export default function TambahPesananPopup({
           ownerId = Number(user.id_owner);
           console.log("👨‍💼 Admin/Karyawan mode - using id_owner:", ownerId);
         } else {
-          // Jika owner, gunakan id langsung
           ownerId = Number(user.id);
           console.log("👑 Owner mode - using user.id:", ownerId);
         }
@@ -86,7 +84,6 @@ export default function TambahPesananPopup({
         let data: Layanan[] = [];
 
         try {
-          // PERBAIKAN: Gunakan owner ID yang tepat
           const token =
             localStorage.getItem("ACCESS_TOKEN") ||
             localStorage.getItem("token");
@@ -111,7 +108,6 @@ export default function TambahPesananPopup({
           const responseData = await response.json();
           console.log("📊 Response data:", responseData);
 
-          // Handle response format
           if (responseData.success && Array.isArray(responseData.data)) {
             data = responseData.data;
           } else if (Array.isArray(responseData)) {
@@ -120,7 +116,6 @@ export default function TambahPesananPopup({
             throw new Error("Format response tidak valid");
           }
 
-          // PERBAIKAN: Filter berdasarkan owner ID yang tepat
           data = data.filter((layanan) => layanan.id_owner === ownerId);
 
           console.log("✅ Filtered layanan for owner", ownerId, ":", data);
@@ -130,8 +125,6 @@ export default function TambahPesananPopup({
           );
         } catch (fetchError) {
           console.error("❌ Direct fetch failed:", fetchError);
-
-          // Fallback ke service functions
           try {
             console.log("🔄 Trying fallback with getLayananByOwner...");
             data = await getLayananByOwner(ownerId);
@@ -176,46 +169,98 @@ export default function TambahPesananPopup({
       }
     };
 
-    // Hanya fetch jika user sudah ada
     if (user?.id) {
       fetchLayanan();
     }
-  }, [user?.id, user?.id_owner, userType]); // PERBAIKAN: Tambahkan dependency id_owner dan userType
+  }, [user?.id, user?.id_owner, userType]);
 
-  // PERBAIKAN untuk useEffect fetchPelangganList juga
+  // Modified useEffect to fetch both pelanggan and pesanan
   useEffect(() => {
-    const fetchPelangganList = async () => {
-      if (user?.id) {
-        try {
-          setLoadingPelanggan(true);
+    const fetchCustomerData = async () => {
+      if (!user?.id) return;
 
-          // PERBAIKAN: Tentukan owner ID yang tepat untuk pelanggan juga
-          let ownerId: number;
+      try {
+        setLoadingPelanggan(true);
 
-          if (userType === "admin") {
-            if (!user.id_owner) {
-              console.error(
-                "❌ Admin/Karyawan doesn't have id_owner for pelanggan"
-              );
-              return;
-            }
-            ownerId = Number(user.id_owner);
-          } else {
-            ownerId = Number(user.id);
+        let ownerId: number;
+        if (userType === "admin") {
+          if (!user.id_owner) {
+            console.error("❌ Admin/Karyawan doesn't have id_owner for pelanggan");
+            setNotification({
+              show: true,
+              message: "Admin/Karyawan tidak memiliki ID Owner yang valid",
+              type: "error",
+            });
+            return;
           }
-
-          console.log("👥 Fetching pelanggan for owner:", ownerId);
-          const data = await getPelangganList(ownerId);
-          setPelangganList(data);
-        } catch (error) {
-          console.error("Error fetching pelanggan list:", error);
-        } finally {
-          setLoadingPelanggan(false);
+          ownerId = Number(user.id_owner);
+        } else {
+          ownerId = Number(user.id);
         }
+
+        console.log("👥 Fetching customer data for owner:", ownerId);
+
+        // Fetch pelanggan list
+        const pelangganData = await getPelangganList(ownerId);
+        console.log("📋 Pelanggan list:", pelangganData);
+
+        // Fetch pesanan list to extract customer data
+        const pesananData = await getPesanan(ownerId);
+        console.log("📋 Pesanan list:", pesananData);
+
+        // Extract unique customers from pesanan
+        const pesananCustomers: PelangganData[] = [];
+        const uniqueCustomers = new Map<string, PelangganData>();
+
+        pesananData.forEach((pesanan: Pesanan) => {
+          const key = `${pesanan.nama_pelanggan}-${pesanan.nomor}`;
+          if (!uniqueCustomers.has(key)) {
+            uniqueCustomers.set(key, {
+              nama_pelanggan: pesanan.nama_pelanggan,
+              nomor: pesanan.nomor,
+              alamat: pesanan.alamat || "", // Handle null alamat
+            });
+          }
+        });
+
+        uniqueCustomers.forEach((customer) => {
+          pesananCustomers.push(customer);
+        });
+
+        console.log("📋 Unique customers from pesanan:", pesananCustomers);
+
+        // Merge pelangganData with pesananCustomers, avoiding duplicates
+        const mergedCustomers: PelangganData[] = [...pelangganData];
+        pesananCustomers.forEach((pesananCustomer) => {
+          const exists = mergedCustomers.some(
+            (pelanggan) =>
+              pelanggan.nomor === pesananCustomer.nomor &&
+              pelanggan.nama_pelanggan === pesananCustomer.nama_pelanggan
+          );
+          if (!exists) {
+            mergedCustomers.push(pesananCustomer);
+          }
+        });
+
+        console.log("📋 Merged customer list:", mergedCustomers);
+        setPelangganList(mergedCustomers);
+        setPesananCustomerList(pesananCustomers); // Store for UI indicator
+      } catch (error) {
+        console.error("Error fetching customer data:", error);
+        setNotification({
+          show: true,
+          message: `Gagal memuat data pelanggan: ${(error as Error).message}`,
+          type: "error",
+        });
+        setPelangganList([]);
+        setPesananCustomerList([]);
+      } finally {
+        setLoadingPelanggan(false);
       }
     };
-    fetchPelangganList();
-  }, [user?.id, user?.id_owner, userType]); // PERBAIKAN: Tambahkan dependency
+
+    fetchCustomerData();
+  }, [user?.id, user?.id_owner, userType]);
 
   const closeNotification = () => {
     setNotification((prev) => ({ ...prev, show: false }));
@@ -252,7 +297,6 @@ export default function TambahPesananPopup({
         return;
       }
 
-      // Validasi khusus untuk admin
       if (userType === "admin" && !user.id_owner) {
         setNotification({
           show: true,
@@ -262,7 +306,6 @@ export default function TambahPesananPopup({
         return;
       }
 
-      // Validasi yang lebih detail
       const validationErrors = [];
 
       if (!nama || nama.trim().length === 0) {
@@ -296,7 +339,6 @@ export default function TambahPesananPopup({
 
       setLoading(true);
       try {
-        // ✅ Cari layanan yang dipilih untuk mendapatkan nama layanan
         const selectedLayanan = layananList.find(
           (l) => l.id.toString() === layanan
         );
@@ -312,23 +354,22 @@ export default function TambahPesananPopup({
 
         const layananName = selectedLayanan.nama_layanan;
 
-        console.log("Selected layanan:", selectedLayanan); // Debug log
-        console.log("Layanan name to save:", layananName); // Debug log
-        console.log("User data:", user); // Debug log
-        console.log("User type:", userType); // Debug log
+        console.log("Selected layanan:", selectedLayanan);
+        console.log("Layanan name to save:", layananName);
+        console.log("User data:", user);
+        console.log("User type:", userType);
 
-        // Pastikan semua field required ada dan dalam format yang benar
-        const pesananData: any = {
+        const pesananData: AddPesananInput = {
           id_owner:
             userType === "admin" ? Number(user.id_owner) : Number(user.id),
           nama_pelanggan: nama.trim(),
           nomor: phone.trim(),
           alamat: alamat.trim(),
-          id_layanan: Number(layanan), // Gunakan ID layanan, bukan nama
-          layanan: layananName.trim(), // Nama layanan sebagai backup
+          id_layanan: Number(layanan),
+          layanan: layananName.trim(),
           status: "pending",
-          berat: 0, // Default berat
-          jumlah_harga: 0, // Default harga
+          berat: 0,
+          jumlah_harga: 0,
         };
 
         if (userType === "admin" && user && user.id) {
@@ -352,10 +393,8 @@ export default function TambahPesananPopup({
         });
         console.log("=== END DEBUG ===");
 
-        // Validasi final sebelum kirim sesuai dengan API PHP
         const finalValidationErrors = [];
 
-        // Validasi sesuai dengan rules di PesananController
         if (!pesananData.id_owner || pesananData.id_owner <= 0) {
           console.error("Invalid id_owner:", pesananData.id_owner);
           finalValidationErrors.push("ID Owner tidak valid");
@@ -376,16 +415,12 @@ export default function TambahPesananPopup({
           finalValidationErrors.push("Alamat tidak boleh kosong");
         }
 
-        // Validasi id_layanan (required by API)
         if (!pesananData.id_layanan || pesananData.id_layanan <= 0) {
           console.error("Invalid id_layanan:", pesananData.id_layanan);
           finalValidationErrors.push("ID Layanan tidak valid");
         }
 
-        // Validasi format nomor telepon
-        if (!/^08[0-9]{7,11}$/.test(pesananData.nomor)) {
-          finalValidationErrors.push("Format nomor telepon tidak valid");
-        }
+         
 
         if (finalValidationErrors.length > 0) {
           console.error("Final validation failed:", finalValidationErrors);
@@ -405,8 +440,6 @@ export default function TambahPesananPopup({
           type: "success",
         });
 
-        // Reset form
-        // Reset form
         setNama("");
         setPhone("");
         setAlamat("");
@@ -416,13 +449,11 @@ export default function TambahPesananPopup({
       } catch (error: any) {
         console.error("Error adding pesanan:", error);
 
-        // Handle different types of errors
         let errorMessage = "Gagal menambahkan pesanan";
 
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response?.data?.errors) {
-          // Handle validation errors from API
           const validationErrors = Object.entries(error.response.data.errors)
             .map(
               ([field, messages]) =>
@@ -492,6 +523,15 @@ export default function TambahPesananPopup({
                     <div className="text-sm text-gray-600">
                       {pelanggan.nomor}
                     </div>
+                    {pesananCustomerList.some(
+                      (p) =>
+                        p.nomor === pelanggan.nomor &&
+                        p.nama_pelanggan === pelanggan.nama_pelanggan
+                    ) && (
+                      <div className="text-xs text-blue-500">
+                        (Dari riwayat pesanan)
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
@@ -629,6 +669,7 @@ export default function TambahPesananPopup({
       showDropdown,
       filteredPelanggan,
       isTypingNama,
+      pesananCustomerList, // NEW: Added to dependencies
     ]
   );
 
