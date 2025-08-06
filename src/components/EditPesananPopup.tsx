@@ -3,7 +3,8 @@ import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
 import { getPesananById, updatePesanan } from "../data/service/pesananService";
-import { Pesanan } from "../data/model/Pesanan";
+import { Pesanan, Layanan } from "../data/model/Pesanan";
+import { getLayananByOwner } from "../data/service/ApiService";
 
 interface EditPesananPopupProps {
   pesananId: number;
@@ -18,7 +19,7 @@ export default function EditPesananPopup({
   onUpdated,
   isModal = false,
 }: EditPesananPopupProps) {
-  const { user } = useStateContext();
+  const { user, userType } = useStateContext();
 
   const [pesananData, setPesananData] = useState<Pesanan | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -28,8 +29,8 @@ export default function EditPesananPopup({
   const [phone, setPhone] = useState("");
   const [alamat, setAlamat] = useState("");
   const [layanan, setLayanan] = useState("");
-  const [harga, setHarga] = useState("");
-  const [berat, setBerat] = useState("");
+  const [layananList, setLayananList] = useState<Layanan[]>([]);
+  const [loadingLayanan, setLoadingLayanan] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [notification, setNotification] = useState({
@@ -38,6 +39,129 @@ export default function EditPesananPopup({
     type: "success" as "success" | "error",
   });
 
+  // Fetch layanan list
+  useEffect(() => {
+    const fetchLayanan = async () => {
+      try {
+        setLoadingLayanan(true);
+        console.log("🔍 Starting to fetch layanan for edit...");
+
+        if (!user?.id) {
+          console.warn("⚠️ No user ID available, skipping layanan fetch");
+          return;
+        }
+
+        let ownerId: number;
+
+        if (userType === "admin") {
+          if (!user.id_owner) {
+            console.error("❌ Admin/Karyawan doesn't have id_owner");
+            setNotification({
+              show: true,
+              message: "Admin/Karyawan tidak memiliki ID Owner yang valid",
+              type: "error",
+            });
+            return;
+          }
+          ownerId = Number(user.id_owner);
+          console.log("👨‍💼 Admin/Karyawan mode - using id_owner:", ownerId);
+        } else {
+          ownerId = Number(user.id);
+          console.log("👑 Owner mode - using user.id:", ownerId);
+        }
+
+        console.log("🎯 Final owner ID to fetch layanan:", ownerId);
+
+        let data: Layanan[] = [];
+
+        try {
+          const token =
+            localStorage.getItem("ACCESS_TOKEN") ||
+            localStorage.getItem("token");
+          const url = `https://laundryku.rplrus.com/api/layanan?id_owner=${ownerId}`;
+
+          console.log("📡 Fetching from URL:", url);
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          });
+
+          console.log("📊 Response status:", response.status);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const responseData = await response.json();
+          console.log("📊 Response data:", responseData);
+
+          if (responseData.success && Array.isArray(responseData.data)) {
+            data = responseData.data;
+          } else if (Array.isArray(responseData)) {
+            data = responseData;
+          } else {
+            throw new Error("Format response tidak valid");
+          }
+
+          data = data.filter((layanan) => layanan.id_owner === ownerId);
+
+          console.log("✅ Filtered layanan for owner", ownerId, ":", data);
+        } catch (fetchError) {
+          console.error("❌ Direct fetch failed:", fetchError);
+          try {
+            console.log("🔄 Trying fallback with getLayananByOwner...");
+            data = await getLayananByOwner(ownerId);
+          } catch (serviceError) {
+            console.error("❌ Service fallback failed:", serviceError);
+            throw fetchError;
+          }
+        }
+
+        if (Array.isArray(data)) {
+          setLayananList(data);
+          console.log(
+            "✅ Layanan list set successfully for owner:",
+            ownerId,
+            "- Count:",
+            data.length
+          );
+
+          if (data.length === 0) {
+            console.log("⚠️ No layanan found for this owner");
+            setNotification({
+              show: true,
+              message: `Belum ada layanan untuk owner ini. Owner perlu menambahkan layanan terlebih dahulu.`,
+              type: "error",
+            });
+          }
+        } else {
+          console.error("❌ Invalid data format received");
+          setLayananList([]);
+          throw new Error("Data layanan tidak valid");
+        }
+      } catch (error) {
+        console.error("🚨 Error in fetchLayanan:", error);
+        setNotification({
+          show: true,
+          message: `Gagal memuat layanan: ${(error as Error).message}`,
+          type: "error",
+        });
+        setLayananList([]);
+      } finally {
+        setLoadingLayanan(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchLayanan();
+    }
+  }, [user?.id, user?.id_owner, userType]);
+
+  // Fetch pesanan data
   useEffect(() => {
     const fetchPesanan = async () => {
       try {
@@ -54,33 +178,36 @@ export default function EditPesananPopup({
     fetchPesanan();
   }, [pesananId]);
 
+  // Set form data when pesanan data is loaded
   useEffect(() => {
-    if (pesananData) {
+    if (pesananData && layananList.length > 0) {
       setNama(pesananData.nama_pelanggan || "");
       setPhone(pesananData.nomor || "");
       setAlamat(pesananData.alamat || "");
-      setLayanan(pesananData.layanan || "");
-      setHarga(
-        pesananData.jumlah_harga
-          ? formatRupiah(pesananData.jumlah_harga.toString())
-          : ""
-      );
-      setBerat(pesananData.berat?.toString() || "");
+
+      // Set layanan berdasarkan id_layanan jika tersedia, atau cari berdasarkan nama layanan
+      if (pesananData.layanan) {
+        const matchedLayanan = layananList.find(
+          (l) => l.id.toString() === pesananData.layanan.toString()
+        );
+        if (matchedLayanan) {
+          setLayanan(matchedLayanan.id.toString());
+        }
+      } else if (pesananData.layanan) {
+        // Fallback: cari berdasarkan nama layanan
+        const matchedLayanan = layananList.find(
+          (l) =>
+            l.nama_layanan.toLowerCase() === pesananData.layanan.toLowerCase()
+        );
+        if (matchedLayanan) {
+          setLayanan(matchedLayanan.id.toString());
+        }
+      }
     }
-  }, [pesananData]);
+  }, [pesananData, layananList]);
 
   const closeNotification = () =>
     setNotification((prev) => ({ ...prev, show: false }));
-
-  const formatRupiah = (value: string) => {
-    const angka = value.replace(/[^0-9]/g, "");
-    return angka.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
-
-  const handleHargaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/^Rp\s?/, "").replace(/\./g, "");
-    setHarga(formatRupiah(raw));
-  };
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -95,17 +222,42 @@ export default function EditPesananPopup({
         return;
       }
 
+      // Validasi layanan dipilih
+      if (!layanan) {
+        setNotification({
+          show: true,
+          message: "Layanan harus dipilih",
+          type: "error",
+        });
+        return;
+      }
+
       setLoading(true);
       try {
+        const selectedLayanan = layananList.find(
+          (l) => l.id.toString() === layanan
+        );
+
+        if (!selectedLayanan) {
+          setNotification({
+            show: true,
+            message: "Layanan yang dipilih tidak valid",
+            type: "error",
+          });
+          return;
+        }
+
         const updatedData = {
           nama_pelanggan: nama,
           nomor: phone,
           alamat,
-          layanan,
-          berat: berat ? parseFloat(berat) : 0,
-          jumlah_harga: harga ? parseFloat(harga.replace(/\./g, "")) : 0,
-          id_owner: user.id,
+          layanan: selectedLayanan.nama_layanan, // Simpan nama layanan
+          id_layanan: selectedLayanan.id, // Simpan ID layanan
+          id_owner:
+            userType === "admin" ? Number(user.id_owner) : Number(user.id),
         };
+
+        console.log("Updating pesanan with data:", updatedData);
 
         await updatePesanan(pesananData.id, updatedData);
 
@@ -121,14 +273,27 @@ export default function EditPesananPopup({
         console.error(error);
         setNotification({
           show: true,
-          message: error.message || "Terjadi kesalahan saat memperbarui pesanan",
+          message:
+            error.message || "Terjadi kesalahan saat memperbarui pesanan",
           type: "error",
         });
       } finally {
         setLoading(false);
       }
     },
-    [user?.id, pesananData?.id, nama, phone, alamat, layanan, berat, harga, onUpdated, onClose]
+    [
+      user?.id,
+      userType,
+      user?.id_owner,
+      pesananData?.id,
+      nama,
+      phone,
+      alamat,
+      layanan,
+      layananList,
+      onUpdated,
+      onClose,
+    ]
   );
 
   if (loadingData)
@@ -140,13 +305,16 @@ export default function EditPesananPopup({
   const formContent = (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Nama Pelanggan *</label>
+        <label className="block text-sm font-medium mb-1">
+          Nama Pelanggan *
+        </label>
         <input
           type="text"
           value={nama}
           onChange={(e) => setNama(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           required
+          disabled={loading}
         />
       </div>
 
@@ -157,11 +325,11 @@ export default function EditPesananPopup({
           value={phone}
           onChange={(e) => {
             const value = e.target.value;
-            if (/^[0-9]*$/.test(value) && value.length <= 13)
-              setPhone(value);
+            if (/^[0-9]*$/.test(value) && value.length <= 13) setPhone(value);
           }}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           required
+          disabled={loading}
         />
       </div>
 
@@ -170,46 +338,48 @@ export default function EditPesananPopup({
         <textarea
           value={alamat}
           onChange={(e) => setAlamat(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
           rows={2}
           required
+          disabled={loading}
         />
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Layanan *</label>
-        <textarea
-          value={layanan}
-          onChange={(e) => setLayanan(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
-          rows={2}
-          required
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Harga *</label>
+        <label className="block text-sm font-medium mb-1">
+          Pilih Layanan *
+        </label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">Rp</span>
-          <input
-            type="text"
-            value={harga}
-            onChange={handleHargaChange}
-            className="w-full pl-10 pr-3 py-2 border rounded"
+          <select
+            value={layanan}
+            onChange={(e) => {
+              console.log("🎯 Layanan selected in edit:", e.target.value);
+              const selectedItem = layananList.find(
+                (l) => l.id.toString() === e.target.value
+              );
+              console.log("🎯 Selected layanan object in edit:", selectedItem);
+              setLayanan(e.target.value);
+            }}
+            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring focus:border-blue-300"
             required
-          />
+            disabled={loading || loadingLayanan}
+          >
+            <option value="">-- Pilih layanan --</option>
+            {layananList.map((item) => (
+              <option key={item.id} value={item.id.toString()}>
+                {item.nama_layanan}
+              </option>
+            ))}
+          </select>
+          {loadingLayanan && (
+            <div className="absolute right-8 top-2">
+              <Icon icon="eos-icons:loading" width={20} />
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-1">Berat (kg)</label>
-        <input
-          type="number"
-          value={berat}
-          onChange={(e) => setBerat(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
-        />
-      </div>
+      <div className="mb-6">{/* Bagian harga dan berat dihapus */}</div>
 
       <div className="flex justify-end gap-2">
         {onClose && (
@@ -225,7 +395,7 @@ export default function EditPesananPopup({
         <button
           type="submit"
           className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
-          disabled={loading}
+          disabled={loading || loadingLayanan}
         >
           {loading ? "Menyimpan..." : "Simpan Perubahan"}
         </button>
