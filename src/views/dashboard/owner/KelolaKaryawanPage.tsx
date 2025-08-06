@@ -237,16 +237,16 @@ export default function KelolaKaryawanPage() {
     }
   };
 
-  const handleToggleStatus = async (id: number, currentStatus: string) => {
-    try {
-      const newStatus = currentStatus === "aktif" ? "nonaktif" : "aktif";
-      await adminService.updateAdmin(id, { status: newStatus });
-      await fetchData();
-    } catch (err: any) {
-      console.error("Error updating admin status:", err);
-      setError(err.errors?.general?.[0] || "Gagal mengubah status karyawan");
-    }
-  };
+  // const handleToggleStatus = async (id: number, currentStatus: string) => {
+  //   try {
+  //     const newStatus = currentStatus === "aktif" ? "nonaktif" : "aktif";
+  //     await adminService.updateAdmin(id, { status: newStatus });
+  //     await fetchData();
+  //   } catch (err: any) {
+  //     console.error("Error updating admin status:", err);
+  //     setError(err.errors?.general?.[0] || "Gagal mengubah status karyawan");
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -430,7 +430,7 @@ export default function KelolaKaryawanPage() {
                   <div className="flex items-center gap-4">
                     <div className="text-right text-sm">
                       <p className="text-gray-700">{emp.email}</p>
-                      <button
+                      {/* <button
                         onClick={() => handleToggleStatus(emp.id, emp.status)}
                         className={`font-medium text-sm px-2 py-1 rounded ${
                           emp.status === "aktif"
@@ -439,7 +439,7 @@ export default function KelolaKaryawanPage() {
                         }`}
                       >
                         {emp.status}
-                      </button>
+                      </button> */}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -576,7 +576,7 @@ export default function KelolaKaryawanPage() {
                     <p className="text-red-500 text-sm mt-1">Password tidak cocok</p>
                   )}
                 </div>
-                <label className="block text-sm font-medium mb-1">
+                {/* <label className="block text-sm font-medium mb-1">
                   Status Karyawan Saat Ini *
                 </label>
                 <select
@@ -592,7 +592,7 @@ export default function KelolaKaryawanPage() {
                 >
                   <option value="aktif">Aktif</option>
                   <option value="nonaktif">Non-aktif</option>
-                </select>
+                </select> */}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
