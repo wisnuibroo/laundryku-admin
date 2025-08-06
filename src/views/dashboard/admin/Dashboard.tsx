@@ -1,5 +1,5 @@
 "use client";
-
+import WeightPriceModal from "../../../components/TambahKGPesanan";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -44,8 +44,8 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState(() => {
     // Default tanpa filter tanggal
     return {
-      start: "",  // Kosongkan untuk tidak memfilter tanggal
-      end: "",    // Kosongkan untuk tidak memfilter tanggal
+      start: "",
+      end: "",
     };
   });
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -67,6 +67,13 @@ export default function Dashboard() {
   const [editPesananId, setEditPesananId] = useState<number | null>(null);
   const navigate = useNavigate();
   const { user, token } = useStateContext();
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [selectedPesananForWeight, setSelectedPesananForWeight] = useState<{
+    id: number;
+    nama_pelanggan: string;
+    layanan_harga: number;
+    layanan_nama: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchPesanan = async (showLoader = true) => {
@@ -119,7 +126,7 @@ export default function Dashboard() {
   }, [token, navigate, user?.id, user?.id_owner]);
 
   // Pastikan pesanan adalah array sebelum menggunakan filter
-  const allowedStatuses = ['pending', 'diproses', 'selesai']; // Hapus status lunas
+  const allowedStatuses = ["pending", "diproses", "selesai"]; // Hapus status lunas
   const filteredPesanan = Array.isArray(pesanan)
     ? pesanan.filter((p) => {
         try {
@@ -134,7 +141,7 @@ export default function Dashboard() {
 
           // Parse tanggal dengan benar
           const orderDate = new Date(p.created_at);
-          
+
           // Validasi orderDate
           if (isNaN(orderDate.getTime())) {
             console.log("Invalid order date:", p.created_at);
@@ -148,7 +155,10 @@ export default function Dashboard() {
 
             // Validasi tanggal filter
             if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-              console.log("Invalid filter dates:", {start: dateRange.start, end: dateRange.end});
+              console.log("Invalid filter dates:", {
+                start: dateRange.start,
+                end: dateRange.end,
+              });
               return false;
             }
 
@@ -157,7 +167,7 @@ export default function Dashboard() {
               console.log("Pesanan tidak masuk range tanggal:", {
                 orderDate: orderDate.toISOString(),
                 startDate: startDate.toISOString(),
-                endDate: endDate.toISOString()
+                endDate: endDate.toISOString(),
               });
               return false;
             }
@@ -168,15 +178,17 @@ export default function Dashboard() {
             : true;
 
           const keyword = searchKeyword.toLowerCase();
-          const matchesKeyword = !searchKeyword || (
+          const matchesKeyword =
+            !searchKeyword ||
             p.nama_pelanggan?.toLowerCase().includes(keyword) ||
             p.alamat?.toLowerCase().includes(keyword) ||
             p.nomor?.toLowerCase().includes(keyword) ||
-            p.layanan?.toLowerCase().includes(keyword)
-          );
+            p.layanan?.toLowerCase().includes(keyword);
 
           // Hanya tampilkan pesanan dengan status yang diizinkan
-          const matchesAllowedStatus = allowedStatuses.includes(p.status.toLowerCase());
+          const matchesAllowedStatus = allowedStatuses.includes(
+            p.status.toLowerCase()
+          );
 
           return matchesStatus && matchesKeyword && matchesAllowedStatus;
         } catch (error) {
@@ -188,9 +200,88 @@ export default function Dashboard() {
 
   const handleStatusChange = async (
     id: number,
-    newStatus: "pending" | "diproses" | "selesai"
+    newStatus: "pending" | "diproses" | "selesai",
+    pesananData?: Pesanan // Tambahkan parameter opsional untuk data pesanan
   ) => {
     try {
+      // Jika status berubah ke "selesai", tampilkan modal input berat
+      if (newStatus === "selesai") {
+        const pesananItem = pesananData || pesanan.find((p) => p.id === id);
+        if (!pesananItem) {
+          alert("Data pesanan tidak ditemukan");
+          return;
+        }
+
+        // Ambil harga layanan dari data layanan
+        let layananHarga = 0;
+        let layananNama = "";
+
+        if (typeof pesananItem.layanan === "string") {
+          layananNama = pesananItem.layanan;
+          // Fetch harga layanan berdasarkan id_layanan atau nama layanan
+          try {
+            const token =
+              localStorage.getItem("ACCESS_TOKEN") ||
+              localStorage.getItem("token");
+            const ownerId = user?.id_owner || user?.id;
+            const layananResponse = await fetch(
+              `https://laundryku.rplrus.com/api/layanan?id_owner=${ownerId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              }
+            );
+
+            if (layananResponse.ok) {
+              const layananData = await layananResponse.json();
+              const layananList = layananData.success
+                ? layananData.data
+                : layananData;
+
+              const matchedLayanan = layananList.find(
+                (l: any) =>
+                  l.nama_layanan.toLowerCase() ===
+                    pesananItem.layanan.toLowerCase() ||
+                  l.id === pesananItem.layanan
+              );
+
+              if (matchedLayanan) {
+                layananHarga = matchedLayanan.harga_layanan || 0; // Fix: gunakan harga_layanan bukan harga
+                layananNama = matchedLayanan.nama_layanan;
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching layanan data:", error);
+          }
+        } else {
+          layananNama =
+            (pesananItem.layanan as any)?.nama_layanan ||
+            "Layanan tidak tersedia";
+          layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0; // Fix: gunakan harga_layanan
+        }
+
+        if (layananHarga <= 0) {
+          alert(
+            "Harga layanan tidak ditemukan. Tidak bisa menghitung total harga."
+          );
+          return;
+        }
+
+        // Set data untuk modal dan tampilkan modal
+        setSelectedPesananForWeight({
+          id: pesananItem.id,
+          nama_pelanggan: pesananItem.nama_pelanggan,
+          layanan_harga: layananHarga,
+          layanan_nama: layananNama,
+        });
+        setShowWeightModal(true);
+        return; // Jangan update status dulu, tunggu input berat
+      }
+
+      // Untuk status selain "selesai", langsung update
       await updateStatusPesanan(id, newStatus);
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
@@ -200,8 +291,28 @@ export default function Dashboard() {
         }
         return [];
       });
+
+      setNotification({
+        show: true,
+        message: `Status pesanan berhasil diubah ke ${newStatus}`,
+        type: "success",
+      });
+
+      // Auto hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 3000);
     } catch (error: any) {
-      alert(error.message || "Gagal mengubah status");
+      setNotification({
+        show: true,
+        message: error.message || "Gagal mengubah status",
+        type: "error",
+      });
+
+      // Auto hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 3000);
     }
   };
 
@@ -256,6 +367,94 @@ export default function Dashboard() {
     }
   };
 
+  // Fix: Pindahkan fungsi handleWeightModalClose ke atas sebelum handleWeightConfirm
+  const handleWeightModalClose = () => {
+    setShowWeightModal(false);
+    setSelectedPesananForWeight(null);
+  };
+
+  const handleWeightConfirm = async (berat: number, totalHarga: number) => {
+    if (!selectedPesananForWeight) return;
+
+    try {
+      setLoading(true);
+
+      // Update pesanan dengan berat, harga, dan status selesai
+      const updatedData = {
+        berat: berat,
+        jumlah_harga: totalHarga,
+        status: "selesai",
+      };
+
+      // Gunakan API untuk update pesanan
+      const token =
+        localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("token");
+      const response = await fetch(
+        `https://laundryku.rplrus.com/api/pesanan/${selectedPesananForWeight.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(updatedData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Update state lokal
+      setPesanan((prev) => {
+        if (Array.isArray(prev)) {
+          return prev.map((item) =>
+            item.id === selectedPesananForWeight.id
+              ? {
+                  ...item,
+                  status: "selesai",
+                  berat: berat,
+                  jumlah_harga: totalHarga,
+                }
+              : item
+          );
+        }
+        return [];
+      });
+
+      setNotification({
+        show: true,
+        message: `Pesanan ${
+          selectedPesananForWeight.nama_pelanggan
+        } berhasil diselesaikan dengan berat ${berat} kg dan total harga Rp ${totalHarga.toLocaleString()}`,
+        type: "success",
+      });
+
+      // Auto hide notification after 5 seconds
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 5000);
+
+      // Tutup modal dan reset data
+      handleWeightModalClose();
+    } catch (error: any) {
+      console.error("Error updating pesanan:", error);
+      setNotification({
+        show: true,
+        message: error.message || "Gagal menyelesaikan pesanan",
+        type: "error",
+      });
+
+      // Auto hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cancelDeletePesanan = () => {
     setDeleteModal({
       show: false,
@@ -289,9 +488,10 @@ export default function Dashboard() {
     : 0;
 
   const refreshPesanan = async () => {
-    if (user?.id) {
+    if (user?.id_owner) {
+      // Fix: gunakan id_owner bukan id
       try {
-        const data = await getPesanan(Number(user.id));
+        const data = await getPesanan(Number(user.id_owner));
         setPesanan(data);
       } catch (error: any) {
         console.error("Error refreshing pesanan:", error);
@@ -301,10 +501,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* <Sidebar
-        isOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-      /> */}
       <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
@@ -322,45 +518,45 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-6">
             <div className="relative">
-                <button
-                  onClick={() => setShowOwnerMenu(!showOwnerMenu)}
-                  className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
-                  aria-haspopup="true"
-                  aria-expanded={showOwnerMenu}
+              <button
+                onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+                className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+                aria-haspopup="true"
+                aria-expanded={showOwnerMenu}
+                aria-label="User menu"
+              >
+                <Icon
+                  icon="mdi:account-circle-outline"
+                  width={24}
+                  className="text-gray-700"
+                />
+                <span className="text-sm font-semibold text-gray-700">
+                  {user?.name || "Admin"}
+                </span>
+                <Icon
+                  icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+                  width={20}
+                  className="text-gray-500"
+                />
+              </button>
+
+              {showOwnerMenu && (
+                <div
+                  className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                  role="menu"
+                  aria-orientation="vertical"
                   aria-label="User menu"
                 >
-                  <Icon
-                    icon="mdi:account-circle-outline"
-                    width={24}
-                    className="text-gray-700"
-                  />
-                  <span className="text-sm font-semibold text-gray-700">
-                    {user?.name || "Admin"}
-                  </span>
-                  <Icon
-                    icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
-                    width={20}
-                    className="text-gray-500"
-                  />
-                </button>
-
-                {showOwnerMenu && (
-                  <div
-                    className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-                    role="menu"
-                    aria-orientation="vertical"
-                    aria-label="User menu"
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                    role="menuitem"
                   >
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
-                      role="menuitem"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </nav>
 
@@ -400,7 +596,7 @@ export default function Dashboard() {
                 iconColor="#27AE60"
               />
             </div>
-            <div className="bg-white shadow-md rounded-lg p-4  border">
+            <div className="bg-white shadow-md rounded-lg p-4 border">
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-black">
@@ -492,7 +688,7 @@ export default function Dashboard() {
                         onClose={() => setShowModal(false)}
                         onAdded={() => {
                           setShowModal(false);
-                          refreshPesanan(); // Gunakan function refresh yang baru
+                          refreshPesanan();
                         }}
                       />
                     </div>
@@ -547,7 +743,10 @@ export default function Dashboard() {
                       <tr>
                         <td colSpan={9} className="text-center py-10">
                           <div className="flex flex-col items-center justify-center">
-                            <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
+                            <Icon
+                              icon="mdi:alert-circle-outline"
+                              className="w-8 h-8 text-red-500 mb-2"
+                            />
                             <p className="text-red-500">{error}</p>
                           </div>
                         </td>
@@ -569,87 +768,116 @@ export default function Dashboard() {
                           </td>
                           <td className="px-4 py-3">{item.alamat}</td>
                           <td className="px-4 py-3">
-                            {typeof item.layanan === 'string' 
-                              ? item.layanan 
-                              : (item.layanan as any)?.nama_layanan || 'Layanan tidak tersedia'
-                            }
+                            {typeof item.layanan === "string"
+                              ? item.layanan
+                              : (item.layanan as any)?.nama_layanan ||
+                                "Layanan tidak tersedia"}
                           </td>
                           <td className="px-4 py-3">{item.berat || 0} kg</td>
                           <td className="px-4 py-3">
-                            Rp {item.jumlah_harga ? Math.round(item.jumlah_harga).toLocaleString() : '0'}
+                            Rp{" "}
+                            {item.jumlah_harga
+                              ? Math.round(item.jumlah_harga).toLocaleString()
+                              : "0"}
                           </td>
                           <td className="px-4 py-3">
-                            <select
-                              value={item.status}
-                              disabled={loading}
-                              onChange={(e) =>
-                                handleStatusChange(
-                                  item.id,
-                                  e.target.value as
+                            {item.status === "selesai" ? (
+                              // Status selesai - tidak bisa diubah lagi (fixed)
+                              <span
+                                className="px-3 py-1 rounded-md text-sm font-medium inline-flex items-center"
+                                style={{
+                                  backgroundColor: "#D1FAE5",
+                                  color: "#065F46",
+                                  border: "1px solid #10B981",
+                                }}
+                              >
+                                <Icon
+                                  icon="mdi:check-circle"
+                                  className="w-4 h-4 mr-1"
+                                />
+                                Selesai
+                              </span>
+                            ) : (
+                              // Status pending atau diproses - bisa diubah
+                              <select
+                                value={item.status}
+                                disabled={loading}
+                                onChange={(e) => {
+                                  const newStatus = e.target.value as
                                     | "pending"
                                     | "diproses"
-                                    | "selesai"
-                                )
-                              }
-                              className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                              style={{
-                                backgroundColor:
-                                  item.status === "pending"
-                                    ? "#FEF3C7"
-                                    : item.status === "diproses"
-                                    ? "#DBEAFE"
-                                    : item.status === "selesai"
-                                    ? "#D1FAE5"
-                                    : "",
-                                borderColor:
-                                  item.status === "pending"
-                                    ? "#F59E0B"
-                                    : item.status === "diproses"
-                                    ? "#3B82F6"
-                                    : item.status === "selesai"
-                                    ? "#10B981"
-                                    : "",
-                                color:
-                                  item.status === "pending"
-                                    ? "#92400E"
-                                    : item.status === "diproses"
-                                    ? "#1E40AF"
-                                    : item.status === "selesai"
-                                    ? "#065F46"
-                                    : "",
-                              }}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="diproses">Proses</option>
-                              <option value="selesai">Selesai</option>
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            {item.created_at ? (
-                              new Date(item.created_at).toLocaleDateString(
-                                "id-ID",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                }
-                              )
-                            ) : (
-                              "-"
+                                    | "selesai";
+                                  handleStatusChange(item.id, newStatus, item);
+                                }}
+                                className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                style={{
+                                  backgroundColor:
+                                    item.status === "pending"
+                                      ? "#FEF3C7"
+                                      : item.status === "diproses"
+                                      ? "#DBEAFE"
+                                      : "",
+                                  borderColor:
+                                    item.status === "pending"
+                                      ? "#F59E0B"
+                                      : item.status === "diproses"
+                                      ? "#3B82F6"
+                                      : "",
+                                  color:
+                                    item.status === "pending"
+                                      ? "#92400E"
+                                      : item.status === "diproses"
+                                      ? "#1E40AF"
+                                      : "",
+                                }}
+                              >
+                                {/* Jika pending - bisa pilih pending dan proses */}
+                                {item.status === "pending" && (
+                                  <>
+                                    <option value="pending">Pending</option>
+                                    <option value="diproses">Proses</option>
+                                  </>
+                                )}
+
+                                {/* Jika diproses - bisa pilih proses dan selesai */}
+                                {item.status === "diproses" && (
+                                  <>
+                                    <option value="diproses">Proses</option>
+                                    <option value="selesai">Selesai</option>
+                                  </>
+                                )}
+                              </select>
                             )}
                           </td>
                           <td className="px-4 py-3">
+                            {item.created_at
+                              ? new Date(item.created_at).toLocaleDateString(
+                                  "id-ID",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="flex space-x-2">
-                              <button
-                                className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
-                                title="Edit Pesanan"
-                                onClick={() => {
-                                  setEditPesananId(item.id);
-                                  setShowEditModal(true);
-                                }}
-                              >
-                                <Icon icon="mdi:pencil" width="18" />
-                              </button>
+                              {/* Tombol Edit hanya muncul jika status pending */}
+                              {item.status === "pending" && (
+                                <button
+                                  className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
+                                  title="Edit Pesanan"
+                                  onClick={() => {
+                                    setEditPesananId(item.id);
+                                    setShowEditModal(true);
+                                  }}
+                                >
+                                  <Icon icon="mdi:pencil" width="18" />
+                                </button>
+                              )}
+
+                              {/* Tombol Delete selalu ada */}
                               <button
                                 className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
                                 title="Hapus Pesanan"
@@ -727,6 +955,19 @@ export default function Dashboard() {
             />
           </div>
         </div>
+      )}
+
+      {/* Modal Input Berat dan Harga */}
+      {showWeightModal && selectedPesananForWeight && (
+        <WeightPriceModal
+          show={showWeightModal}
+          pesananId={selectedPesananForWeight.id}
+          namaPelanggan={selectedPesananForWeight.nama_pelanggan}
+          layananHarga={selectedPesananForWeight.layanan_harga}
+          layananNama={selectedPesananForWeight.layanan_nama}
+          onClose={handleWeightModalClose}
+          onConfirm={handleWeightConfirm}
+        />
       )}
 
       {/* Notifikasi */}
