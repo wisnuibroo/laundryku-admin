@@ -8,22 +8,27 @@ import adminService, {
   AdminStats,
 } from "../../../data/service/adminService";
 import { useStateContext } from "../../../contexts/ContextsProvider";
+import Notification from "../../../components/Notification";
 
 export default function KelolaKaryawanPage() {
   const navigate = useNavigate();
   const { user, token } = useStateContext();
   const [openDialog, setOpenDialog] = useState(false);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
-
+  const [openEditPasswordDialog, setOpenEditPasswordDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Admin | null>(null);
   const [searchText, setSearchText] = useState("");
   const [employees, setEmployees] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [phone, setPhone] = useState("");
-
   const [error, setError] = useState<string | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationType, setNotificationType] = useState<"success" | "error">("success");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
@@ -42,19 +47,16 @@ export default function KelolaKaryawanPage() {
       setLoading(true);
       setError(null);
 
-      // Cek token dari localStorage
       const localToken = localStorage.getItem("ACCESS_TOKEN");
       if (!localToken && !token) {
         navigate("/login");
         return;
       }
 
-      // Gunakan token dari localStorage jika token dari context tidak ada
       if (!token && localToken) {
         console.log("Using token from localStorage for employee data");
       }
 
-      // Ambil data karyawan dan statistik secara terpisah untuk error handling yang lebih baik
       let employeesData: Admin[] = [];
       let statsData: AdminStats = {
         total_karyawan: 0,
@@ -76,23 +78,18 @@ export default function KelolaKaryawanPage() {
         setStats(statsData);
       } catch (statsError: any) {
         console.error("Error fetching stats:", statsError);
-        // Jika gagal mengambil statistik, hitung dari data karyawan yang berhasil diambil
         if (employeesData.length > 0) {
           setStats({
             total_karyawan: employeesData.length,
-            karyawan_aktif: employeesData.filter(
-              (emp) => emp.status === "aktif"
-            ).length,
-            karyawan_baru: 0, // Tidak bisa menentukan karyawan baru tanpa timestamp
-            ratarataRating: 0, // Tidak bisa menghitung rating tanpa data rating
+            karyawan_aktif: employeesData.filter((emp) => emp.status === "aktif").length,
+            karyawan_baru: 0,
+            ratarataRating: 0,
           });
         }
       }
     } catch (err: any) {
       console.error("Error in main try block:", err);
-      setError(
-        err.errors?.general?.[0] || "Terjadi kesalahan saat memuat data"
-      );
+      setError(err.errors?.general?.[0] || "Terjadi kesalahan saat memuat data");
     } finally {
       setLoading(false);
     }
@@ -100,13 +97,9 @@ export default function KelolaKaryawanPage() {
 
   useEffect(() => {
     fetchData();
-
-    // Set up interval to refresh data every 60 seconds
     const intervalId = setInterval(() => {
       fetchData();
     }, 60000);
-
-    // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, [token, navigate]);
 
@@ -116,7 +109,7 @@ export default function KelolaKaryawanPage() {
     )
   );
 
-  // Form state for adding new employee
+  // Ensure formData is typed correctly
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
@@ -133,11 +126,23 @@ export default function KelolaKaryawanPage() {
     confirmPassword: "",
   });
 
+  // Form state untuk edit password 
+  const [editPasswordData, setEditPasswordData] = useState({
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+
   const [submitting, setSubmitting] = useState(false);
+  const [submittingPassword, setSubmittingPassword] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditPasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditPasswordData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,7 +159,6 @@ export default function KelolaKaryawanPage() {
         password: "",
         confirmPassword: "",
       });
-      // Refresh data
       await fetchData();
     } catch (err: any) {
       console.error("Error creating admin:", err);
@@ -164,11 +168,68 @@ export default function KelolaKaryawanPage() {
     }
   };
 
+  const handleEditPassword = (employee: Admin) => {
+    setSelectedEmployee(employee);
+    setEditPasswordData({
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setOpenEditPasswordDialog(true);
+  };
+
+  const handleSubmitEditPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedEmployee) return;
+
+    // Validasi semua field sakdurunge submit
+    if (editPasswordData.newPassword !== editPasswordData.confirmNewPassword) {
+      setError("Password baru dan konfirmasi password tidak cocok");
+      return;
+    }
+
+    if (editPasswordData.newPassword.length < 6) {
+      setError("Password baru minimal 6 karakter");
+      return;
+    }
+
+    try {
+      setSubmittingPassword(true);
+      setError(null);
+
+      // Kirim permintaan neng server
+      await adminService.updateAdmin(selectedEmployee.id, {
+        password: editPasswordData.newPassword,
+      });
+
+      // nek berhasil, tutup dialog karo reset form
+      setOpenEditPasswordDialog(false);
+      setSelectedEmployee(null);
+      setEditPasswordData({
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      await fetchData();
+
+      setNotificationType("success");
+      setNotificationMessage("Password berhasil diubah");
+      setShowNotification(true);
+    } catch (err: any) {
+      console.error("Error updating password:", err);
+      setError(err.errors?.general?.[0] || "Gagal mengubah password karyawan");
+      setNotificationType("error");
+      setNotificationMessage(err.errors?.general?.[0] || "Gagal mengubah password karyawan");
+      setShowNotification(true);
+    } finally {
+      setSubmittingPassword(false);
+    }
+  };
+
   const handleDeleteEmployee = async (id: number) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus karyawan ini?")) {
       try {
         await adminService.deleteAdmin(id);
-        await fetchData(); // Refresh data
+        await fetchData();
       } catch (err: any) {
         console.error("Error deleting admin:", err);
         setError(err.errors?.general?.[0] || "Gagal menghapus karyawan");
@@ -176,16 +237,16 @@ export default function KelolaKaryawanPage() {
     }
   };
 
-  const handleToggleStatus = async (id: number, currentStatus: string) => {
-    try {
-      const newStatus = currentStatus === "aktif" ? "nonaktif" : "aktif";
-      await adminService.updateAdmin(id, { status: newStatus });
-      await fetchData(); // Refresh data
-    } catch (err: any) {
-      console.error("Error updating admin status:", err);
-      setError(err.errors?.general?.[0] || "Gagal mengubah status karyawan");
-    }
-  };
+  // const handleToggleStatus = async (id: number, currentStatus: string) => {
+  //   try {
+  //     const newStatus = currentStatus === "aktif" ? "nonaktif" : "aktif";
+  //     await adminService.updateAdmin(id, { status: newStatus });
+  //     await fetchData();
+  //   } catch (err: any) {
+  //     console.error("Error updating admin status:", err);
+  //     setError(err.errors?.general?.[0] || "Gagal mengubah status karyawan");
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -194,7 +255,7 @@ export default function KelolaKaryawanPage() {
           <div className="flex items-center gap-2">
             <Icon
               icon={"material-symbols-light:arrow-back-rounded"}
-              className="w-7 h-7 object-contain"
+              className="w-7 h-7 object-contain cursor-pointer"
               onClick={() => navigate(-1)}
             />
             <Icon
@@ -230,7 +291,7 @@ export default function KelolaKaryawanPage() {
         <div className="flex items-center gap-2">
           <Icon
             icon={"material-symbols-light:arrow-back-rounded"}
-            className="w-7 h-7 object-contain"
+            className="w-7 h-7 object-contain cursor-pointer"
             onClick={() => navigate(-1)}
           />
           <Icon
@@ -332,187 +393,6 @@ export default function KelolaKaryawanPage() {
               <Icon icon="tabler:user-plus" className="w-5 h-5" />
               <span className="font-semibold">Tambah Karyawan</span>
             </button>
-
-            {openDialog && (
-              <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-md">
-                  <h2 className="text-xl font-bold mb-4">Tambah Karyawan</h2>
-                  <form onSubmit={handleSubmit}>
-                    <label className="block text-sm font-medium mb-1">
-                      Nama Karyawan *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Nama"
-                      required
-                      className="w-full border p-2 rounded mb-3"
-                    />
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">
-                        Nomor HP (Whatsapp) *
-                      </label>
-                      <input
-                        type="text"
-                        name="nomor"
-                        value={formData.nomor}
-                        onChange={(e) => {
-                          const value = e.target.value;
-
-                          // Hanya angka, panjang maksimal 13, dan harus diawali dengan "08"
-                          if (/^0?$|^08[0-9]{0,11}$/.test(value)) {
-                            setFormData((prev) => ({ ...prev, nomor: value }));
-                          }
-                        }}
-                        className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                        required
-                        disabled={loading}
-                        placeholder="Contoh: 081234567890"
-                        autoComplete="off"
-                      />
-                    </div>
-                    <label className="block text-sm font-medium mb-1">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="Email"
-                      required
-                      className="w-full border p-2 rounded mb-3"
-                    />
-                    <div className="relative mb-3">
-                      <label className="block text-sm font-medium mb-1">
-                        Password *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          placeholder="Password"
-                          required
-                          minLength={6}
-                          className="w-full border p-2 pr-10 rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                        >
-                          <Icon
-                            icon={
-                              showPassword
-                                ? "mdi:eye-outline"
-                                : "mdi:eye-off-outline"
-                            }
-                            className="text-xl"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="relative mb-3">
-                      <label className="block text-sm font-medium mb-1">
-                        Ulangi Password (Konfirmasi) *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          placeholder="Masukkan kembali password"
-                          required
-                          minLength={6}
-                          className={`w-full border p-2 pr-10 rounded ${
-                            formData.confirmPassword &&
-                            formData.confirmPassword !== formData.password
-                              ? "border-red-500"
-                              : ""
-                          }`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowConfirmPassword((prev) => !prev)
-                          }
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                        >
-                          <Icon
-                            icon={
-                              showConfirmPassword
-                                ? "mdi:eye-outline"
-                                : "mdi:eye-off-outline"
-                            }
-                            className="text-xl"
-                          />
-                        </button>
-                      </div>
-
-                      {formData.confirmPassword &&
-                        formData.confirmPassword !== formData.password && (
-                          <p className="text-red-500 text-sm mt-1">
-                            Password tidak cocok
-                          </p>
-                        )}
-                    </div>
-
-                    <label className="block text-sm font-medium mb-1">
-                      Status Karyawan Saat Ini *
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          status: e.target.value as "aktif" | "nonaktif",
-                        }))
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    >
-                      <option value="aktif">Aktif</option>
-                      <option value="nonaktif">Non-aktif</option>
-                    </select>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenDialog(false);
-                          setFormData({
-                            name: "",
-                            email: "",
-                            nomor: "",
-                            status: "aktif",
-                            password: "",
-                            confirmPassword: "",
-                          });
-                        }}
-                        disabled={submitting}
-                        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {submitting && (
-                          <Icon icon="eos-icons:loading" className="w-4 h-4" />
-                        )}
-                        {submitting ? "Menambahkan..." : "Tambahkan"}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
           </div>
 
           {filteredEmployees.length === 0 ? (
@@ -550,7 +430,7 @@ export default function KelolaKaryawanPage() {
                   <div className="flex items-center gap-4">
                     <div className="text-right text-sm">
                       <p className="text-gray-700">{emp.email}</p>
-                      <button
+                      {/* <button
                         onClick={() => handleToggleStatus(emp.id, emp.status)}
                         className={`font-medium text-sm px-2 py-1 rounded ${
                           emp.status === "aktif"
@@ -559,9 +439,16 @@ export default function KelolaKaryawanPage() {
                         }`}
                       >
                         {emp.status}
-                      </button>
+                      </button> */}
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditPassword(emp)}
+                        className="text-blue-500 hover:text-blue-700 p-1"
+                        title="Edit password karyawan"
+                      >
+                        <Icon icon="mdi:key-outline" className="w-5 h-5" />
+                      </button>
                       <button
                         onClick={() => handleDeleteEmployee(emp.id)}
                         className="text-red-500 hover:text-red-700 p-1"
@@ -576,6 +463,285 @@ export default function KelolaKaryawanPage() {
             </ul>
           )}
         </div>
+
+        {/* Dialog Tambah Karyawan */}
+        {openDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-md max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-bold mb-4">Tambah Karyawan</h2>
+              <form onSubmit={handleSubmit}>
+                <label className="block text-sm font-medium mb-1">
+                  Nama Karyawan *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Nama"
+                  required
+                  className="w-full border p-2 rounded mb-3"
+                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">
+                    Nomor HP (Whatsapp) *
+                  </label>
+                  <input
+                    type="text"
+                    name="nomor"
+                    value={formData.nomor}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^0?$|^08[0-9]{0,11}$/.test(value)) {
+                        setFormData((prev) => ({ ...prev, nomor: value }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+                    required
+                    disabled={loading}
+                    placeholder="Contoh: 081234567890"
+                    autoComplete="off"
+                  />
+                </div>
+                <label className="block text-sm font-medium mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Email"
+                  required
+                  className="w-full border p-2 rounded mb-3"
+                />
+                <div className="relative mb-3">
+                  <label className="block text-sm font-medium mb-1">
+                    Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Password"
+                      required
+                      minLength={6}
+                      className="w-full border p-2 pr-10 rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      <Icon
+                        icon={showPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"}
+                        className="text-xl"
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div className="relative mb-3">
+                  <label className="block text-sm font-medium mb-1">
+                    Ulangi Password (Konfirmasi) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Masukkan kembali password"
+                      required
+                      minLength={6}
+                      className={`w-full border p-2 pr-10 rounded ${
+                        formData.confirmPassword && formData.confirmPassword !== formData.password
+                          ? "border-red-500"
+                          : ""
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      <Icon
+                        icon={showConfirmPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"}
+                        className="text-xl"
+                      />
+                    </button>
+                  </div>
+                  {formData.confirmPassword && formData.confirmPassword !== formData.password && (
+                    <p className="text-red-500 text-sm mt-1">Password tidak cocok</p>
+                  )}
+                </div>
+                {/* <label className="block text-sm font-medium mb-1">
+                  Status Karyawan Saat Ini *
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      status: e.target.value as "aktif" | "nonaktif",
+                    }))
+                  }
+                  className="w-full border p-2 rounded mb-3"
+                >
+                  <option value="aktif">Aktif</option>
+                  <option value="nonaktif">Non-aktif</option>
+                </select> */}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenDialog(false);
+                      setFormData({
+                        name: "",
+                        email: "",
+                        nomor: "",
+                        status: "aktif",
+                        password: "",
+                        confirmPassword: "",
+                      });
+                      setError(null);
+                    }}
+                    disabled={submitting}
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {submitting && <Icon icon="eos-icons:loading" className="w-4 h-4" />}
+                    {submitting ? "Menambahkan..." : "Tambahkan"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Dialog Edit Password */}
+        {openEditPasswordDialog && selectedEmployee && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-md">
+              <h2 className="text-xl font-bold mb-4">
+                Edit Password - {selectedEmployee.name}
+              </h2>
+              <form onSubmit={handleSubmitEditPassword}>
+                <div className="relative mb-4">
+                  <label className="block text-sm font-medium mb-1">
+                    Password Baru *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      name="newPassword"
+                      value={editPasswordData.newPassword}
+                      onChange={handleEditPasswordInputChange}
+                      placeholder="Masukkan password baru"
+                      required
+                      minLength={6}
+                      className="w-full border p-2 pr-10 rounded focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      <Icon
+                        icon={showNewPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"}
+                        className="text-xl"
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div className="relative mb-4">
+                  <label className="block text-sm font-medium mb-1">
+                    Konfirmasi Password Baru *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmNewPassword ? "text" : "password"}
+                      name="confirmNewPassword"
+                      value={editPasswordData.confirmNewPassword}
+                      onChange={handleEditPasswordInputChange}
+                      placeholder="Ulangi password baru"
+                      required
+                      minLength={6}
+                      className={`w-full border p-2 pr-10 rounded focus:outline-none focus:border-blue-500 ${
+                        editPasswordData.confirmNewPassword &&
+                        editPasswordData.confirmNewPassword !== editPasswordData.newPassword
+                          ? "border-red-500"
+                          : ""
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      <Icon
+                        icon={showConfirmNewPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"}
+                        className="text-xl"
+                      />
+                    </button>
+                  </div>
+                  {editPasswordData.confirmNewPassword &&
+                    editPasswordData.confirmNewPassword !== editPasswordData.newPassword && (
+                      <p className="text-red-500 text-sm mt-1">Password tidak cocok</p>
+                    )}
+                </div>
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>• Password baru minimal 6 karakter</p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenEditPasswordDialog(false);
+                      setSelectedEmployee(null);
+                      setEditPasswordData({
+                        newPassword: "",
+                        confirmNewPassword: "",
+                      });
+                      setError(null);
+                    }}
+                    disabled={submittingPassword}
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      submittingPassword ||
+                      editPasswordData.newPassword !== editPasswordData.confirmNewPassword ||
+                      editPasswordData.newPassword.length < 6
+                    }
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {submittingPassword && <Icon icon="eos-icons:loading" className="w-4 h-4" />}
+                    {submittingPassword ? "Mengubah..." : "Ubah Password"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <Notification
+          show={showNotification}
+          message={notificationMessage}
+          type={notificationType}
+          onClose={() => setShowNotification(false)}
+        />
       </div>
     </div>
   );
