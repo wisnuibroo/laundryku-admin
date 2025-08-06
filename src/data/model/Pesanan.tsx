@@ -8,6 +8,7 @@ export interface Pesanan {
   nama_pelanggan: string;
   nomor: string;
   alamat: string;
+  id_layanan: number;
   layanan: string;
   berat?: number;
   jumlah_harga?: number;
@@ -32,7 +33,18 @@ export interface Layanan {
   nama_layanan: string;
   harga_layanan: number;
   keterangan_layanan: string;
+  tipe: "Kiloan" | "Satuan"; // NEW: Added tipe field
+  waktu_pengerjaan?: number; // NEW: Added optional waktu_pengerjaan field
   id_owner: number;
+  created_at?: string;
+  updated_at?: string;
+  status?: "aktif" | "nonaktif";
+  owner?: {
+    id: number;
+    username: string;
+    nama_laundry: string;
+    email: string;
+  };
 }
 
 export class PesananImpl implements Pesanan {
@@ -42,8 +54,14 @@ export class PesananImpl implements Pesanan {
     public nama_pelanggan: string,
     public nomor: string,
     public alamat: string,
+    public id_layanan: number,
     public layanan: string,
-    public status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas",
+    public status:
+      | "pending"
+      | "diproses"
+      | "selesai"
+      | "dikembalikan"
+      | "lunas",
     public created_at: string,
     public updated_at: string,
     public id_admin?: number,
@@ -64,29 +82,36 @@ export class PesananImpl implements Pesanan {
 
   static fromJson(json: Record<string, any>): PesananImpl {
     return new PesananImpl(
-      parseInt(json['id'].toString()),
-      parseInt(json['id_owner'].toString()),
-      json['nama_pelanggan'],
-      json['nomor'],
-      json['alamat'],
-      json['layanan'],
-      json['status'],
-      json['created_at'],
-      json['updated_at'],
-      json['id_admin'] ? parseInt(json['id_admin'].toString()) : undefined,
-      json['berat'] ? parseFloat(json['berat'].toString()) : undefined,
-      json['jumlah_harga'] ? parseFloat(json['jumlah_harga'].toString()) : undefined,
-      json['jenis_pembayaran'],
-      json['owner'] ? {
-        id: parseInt(json['owner']['id'].toString()),
-        username: json['owner']['username'],
-        nama_laundry: json['owner']['nama_laundry']
-      } : undefined,
-      json['admin'] ? {
-        id: parseInt(json['admin']['id'].toString()),
-        username: json['admin']['username'],
-        nama_laundry: json['admin']['nama_laundry']
-      } : undefined
+      parseInt(json["id"].toString()),
+      parseInt(json["id_owner"].toString()),
+      json["nama_pelanggan"],
+      json["nomor"],
+      json["alamat"],
+      json["id_layanan"],
+      json["layanan"],
+      json["status"],
+      json["created_at"],
+      json["updated_at"],
+      json["id_admin"] ? parseInt(json["id_admin"].toString()) : undefined,
+      json["berat"] ? parseFloat(json["berat"].toString()) : undefined,
+      json["jumlah_harga"]
+        ? parseFloat(json["jumlah_harga"].toString())
+        : undefined,
+      json["jenis_pembayaran"],
+      json["owner"]
+        ? {
+            id: parseInt(json["owner"]["id"].toString()),
+            username: json["owner"]["username"],
+            nama_laundry: json["owner"]["nama_laundry"],
+          }
+        : undefined,
+      json["admin"]
+        ? {
+            id: parseInt(json["admin"]["id"].toString()),
+            username: json["admin"]["username"],
+            nama_laundry: json["admin"]["nama_laundry"],
+          }
+        : undefined
     );
   }
 
@@ -106,7 +131,7 @@ export class PesananImpl implements Pesanan {
       created_at: this.created_at,
       updated_at: this.updated_at,
       owner: this.owner,
-      admin: this.admin
+      admin: this.admin,
     };
   }
 }

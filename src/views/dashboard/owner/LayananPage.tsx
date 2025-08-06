@@ -31,6 +31,7 @@ export default function LayananPage() {
     waktu_pengerjaan: string;
     status: "aktif" | "nonaktif";
     keterangan_layanan: string;
+    tipe: "Kiloan" | "Satuan";
   }>({
     nama_layanan: "",
     kategori: "",
@@ -39,6 +40,7 @@ export default function LayananPage() {
     waktu_pengerjaan: "",
     status: "aktif",
     keterangan_layanan: "",
+    tipe: "Kiloan",
   });
 
   useEffect(() => {
@@ -179,6 +181,10 @@ export default function LayananPage() {
         nama_layanan: formData.nama_layanan.trim(),
         harga_layanan: formData.harga_layanan.toString(), // String sesuai validasi PHP
         keterangan_layanan: formData.keterangan_layanan.trim(),
+        tipe: formData.tipe, // NEW: Added tipe field
+        waktu_pengerjaan: formData.waktu_pengerjaan
+          ? Number(formData.waktu_pengerjaan)
+          : null,
         id_owner: Number(user.id),
       };
 
@@ -199,6 +205,7 @@ export default function LayananPage() {
         waktu_pengerjaan: "",
         status: "aktif",
         keterangan_layanan: "",
+        tipe: "Kiloan",
       });
 
       await fetchLayanan();
@@ -331,6 +338,18 @@ export default function LayananPage() {
     if (popularitas >= 60) return "bg-blue-500";
     if (popularitas >= 40) return "bg-yellow-500";
     return "bg-red-500";
+  };
+
+  // NEW: Get tipe color
+  const getTipeColor = (tipe: string) => {
+    switch (tipe) {
+      case "Kiloan":
+        return "bg-green-100 text-green-800";
+      case "Satuan":
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
 
   if (loading) {
@@ -470,13 +489,13 @@ export default function LayananPage() {
                     Layanan
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Tipe
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Kategori
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Harga
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Satuan
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Waktu
@@ -530,6 +549,15 @@ export default function LayananPage() {
                       </td>
                       <td className="py-4 px-4">
                         <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getTipeColor(
+                            layanan.tipe || "Kiloan"
+                          )}`}
+                        >
+                          {layanan.tipe || "Kiloan"}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(
                             kategori
                           )}`}
@@ -541,9 +569,9 @@ export default function LayananPage() {
                         <span className="font-semibold text-green-600">
                           Rp {layanan.harga_layanan.toLocaleString("id-ID")}
                         </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-gray-600">kg</span>
+                        <div className="text-xs text-gray-500">
+                          per {layanan.tipe === "Satuan" ? "item" : "kg"}
+                        </div>
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-1 text-gray-600">
@@ -551,7 +579,11 @@ export default function LayananPage() {
                             icon="material-symbols:schedule"
                             className="w-4 h-4"
                           />
-                          <span className="text-sm">1-2 hari</span>
+                          <span className="text-sm">
+                            {layanan.waktu_pengerjaan
+                              ? `${layanan.waktu_pengerjaan} hari`
+                              : "1-2 hari"}
+                          </span>
                         </div>
                       </td>
                       <td className="py-4 px-4">
@@ -635,6 +667,27 @@ export default function LayananPage() {
                     />
                   </div>
 
+                  {/* NEW: Tipe Selection */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">
+                      Tipe Layanan *
+                    </label>
+                    <select
+                      name="tipe"
+                      value={formData.tipe}
+                      onChange={handleInputChange}
+                      className="w-full border p-2 rounded focus:outline-none focus:border-blue-500"
+                      required
+                    >
+                      <option value="Kiloan">Kiloan (per kg)</option>
+                      <option value="Satuan">Satuan (per item)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Pilih apakah layanan ini dihitung per kilogram atau per
+                      satuan item
+                    </p>
+                  </div>
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">
                       Harga (Rp) *
@@ -649,6 +702,30 @@ export default function LayananPage() {
                       min="1"
                       className="w-full border p-2 rounded focus:outline-none focus:border-blue-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Harga per{" "}
+                      {formData.tipe === "Satuan" ? "item/satuan" : "kilogram"}
+                    </p>
+                  </div>
+
+                  {/* NEW: Waktu Pengerjaan */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">
+                      Waktu Pengerjaan (hari)
+                    </label>
+                    <input
+                      type="number"
+                      name="waktu_pengerjaan"
+                      value={formData.waktu_pengerjaan}
+                      onChange={handleInputChange}
+                      placeholder="1"
+                      min="1"
+                      max="30"
+                      className="w-full border p-2 rounded focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimasi waktu pengerjaan dalam hari (opsional)
+                    </p>
                   </div>
 
                   <div className="mb-4">
@@ -682,6 +759,7 @@ export default function LayananPage() {
                           waktu_pengerjaan: "",
                           status: "aktif",
                           keterangan_layanan: "",
+                          tipe: "Kiloan",
                         });
                         setError(null);
                       }}

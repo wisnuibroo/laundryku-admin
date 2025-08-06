@@ -42,7 +42,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [dateRange, setDateRange] = useState(() => {
-    // Default tanpa filter tanggal
     return {
       start: "",
       end: "",
@@ -73,6 +72,7 @@ export default function Dashboard() {
     nama_pelanggan: string;
     layanan_harga: number;
     layanan_nama: string;
+    layanan_tipe: "Kiloan" | "Satuan";
   } | null>(null);
 
   useEffect(() => {
@@ -92,14 +92,12 @@ export default function Dashboard() {
           return;
         }
 
-        // Pastikan admin memiliki id_owner
         if (!user.id_owner) {
           setError("ID Owner tidak ditemukan untuk admin ini");
           if (showLoader) setLoading(false);
           return;
         }
 
-        // Gunakan id_owner untuk fetch pesanan
         console.log("Fetching pesanan for admin with owner ID:", user.id_owner);
         const data = await getPesanan(Number(user.id_owner));
         console.log("Fetched pesanan:", data);
@@ -114,10 +112,8 @@ export default function Dashboard() {
       }
     };
 
-    // Fetch pertama (dengan loading)
     fetchPesanan(true);
 
-    // Refresh otomatis tiap 30 detik tanpa loading spinner
     const intervalId = setInterval(() => {
       fetchPesanan(false);
     }, 30000);
@@ -125,35 +121,28 @@ export default function Dashboard() {
     return () => clearInterval(intervalId);
   }, [token, navigate, user?.id, user?.id_owner]);
 
-  // Pastikan pesanan adalah array sebelum menggunakan filter
-  const allowedStatuses = ["pending", "diproses", "selesai"]; // Hapus status lunas
+  const allowedStatuses = ["pending", "diproses", "selesai"];
   const filteredPesanan = Array.isArray(pesanan)
     ? pesanan.filter((p) => {
         try {
-          // Debug log untuk melihat data yang difilter
           console.log("Filtering pesanan:", p);
 
-          // Validasi tanggal pesanan
           if (!p.created_at) {
             console.log("Pesanan tidak memiliki created_at:", p);
             return false;
           }
 
-          // Parse tanggal dengan benar
           const orderDate = new Date(p.created_at);
 
-          // Validasi orderDate
           if (isNaN(orderDate.getTime())) {
             console.log("Invalid order date:", p.created_at);
             return false;
           }
 
-          // Hanya check tanggal jika ada filter tanggal aktif
           if (dateRange.start && dateRange.end) {
             const startDate = new Date(dateRange.start + "T00:00:00");
             const endDate = new Date(dateRange.end + "T23:59:59");
 
-            // Validasi tanggal filter
             if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
               console.log("Invalid filter dates:", {
                 start: dateRange.start,
@@ -185,7 +174,6 @@ export default function Dashboard() {
             p.nomor?.toLowerCase().includes(keyword) ||
             p.layanan?.toLowerCase().includes(keyword);
 
-          // Hanya tampilkan pesanan dengan status yang diizinkan
           const matchesAllowedStatus = allowedStatuses.includes(
             p.status.toLowerCase()
           );
@@ -201,24 +189,26 @@ export default function Dashboard() {
   const handleStatusChange = async (
     id: number,
     newStatus: "pending" | "diproses" | "selesai",
-    pesananData?: Pesanan // Tambahkan parameter opsional untuk data pesanan
+    pesananData?: Pesanan
   ) => {
     try {
-      // Jika status berubah ke "selesai", tampilkan modal input berat
       if (newStatus === "selesai") {
         const pesananItem = pesananData || pesanan.find((p) => p.id === id);
         if (!pesananItem) {
-          alert("Data pesanan tidak ditemukan");
+          setNotification({
+            show: true,
+            message: "Data pesanan tidak ditemukan",
+            type: "error",
+          });
           return;
         }
 
-        // Ambil harga layanan dari data layanan
         let layananHarga = 0;
         let layananNama = "";
+        let layananTipe: "Kiloan" | "Satuan" = "Kiloan"; // Default to Kiloan
 
         if (typeof pesananItem.layanan === "string") {
           layananNama = pesananItem.layanan;
-          // Fetch harga layanan berdasarkan id_layanan atau nama layanan
           try {
             const token =
               localStorage.getItem("ACCESS_TOKEN") ||
@@ -245,43 +235,53 @@ export default function Dashboard() {
                 (l: any) =>
                   l.nama_layanan.toLowerCase() ===
                     pesananItem.layanan.toLowerCase() ||
-                  l.id === pesananItem.layanan
+                  l.id === pesananItem.id_layanan
               );
 
               if (matchedLayanan) {
-                layananHarga = matchedLayanan.harga_layanan || 0; // Fix: gunakan harga_layanan bukan harga
+                layananHarga = matchedLayanan.harga_layanan || 0;
                 layananNama = matchedLayanan.nama_layanan;
+                layananTipe = matchedLayanan.tipe || "Kiloan"; // Fetch tipe from API
               }
             }
           } catch (error) {
             console.error("Error fetching layanan data:", error);
+            setNotification({
+              show: true,
+              message: "Gagal mengambil data layanan",
+              type: "error",
+            });
+            return;
           }
         } else {
           layananNama =
             (pesananItem.layanan as any)?.nama_layanan ||
             "Layanan tidak tersedia";
-          layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0; // Fix: gunakan harga_layanan
+          layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0;
+          layananTipe = (pesananItem.layanan as any)?.tipe || "Kiloan";
         }
 
         if (layananHarga <= 0) {
-          alert(
-            "Harga layanan tidak ditemukan. Tidak bisa menghitung total harga."
-          );
+          setNotification({
+            show: true,
+            message:
+              "Harga layanan tidak ditemukan. Tidak bisa menghitung total harga.",
+            type: "error",
+          });
           return;
         }
 
-        // Set data untuk modal dan tampilkan modal
         setSelectedPesananForWeight({
           id: pesananItem.id,
           nama_pelanggan: pesananItem.nama_pelanggan,
           layanan_harga: layananHarga,
           layanan_nama: layananNama,
+          layanan_tipe: layananTipe,
         });
         setShowWeightModal(true);
-        return; // Jangan update status dulu, tunggu input berat
+        return;
       }
 
-      // Untuk status selain "selesai", langsung update
       await updateStatusPesanan(id, newStatus);
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
@@ -298,7 +298,6 @@ export default function Dashboard() {
         type: "success",
       });
 
-      // Auto hide notification after 3 seconds
       setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
       }, 3000);
@@ -309,7 +308,6 @@ export default function Dashboard() {
         type: "error",
       });
 
-      // Auto hide notification after 3 seconds
       setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
       }, 3000);
@@ -344,7 +342,6 @@ export default function Dashboard() {
           type: "success",
         });
 
-        // Auto hide notification after 3 seconds
         setTimeout(() => {
           setNotification((prev) => ({ ...prev, show: false }));
         }, 3000);
@@ -358,7 +355,6 @@ export default function Dashboard() {
         type: "error",
       });
 
-      // Auto hide notification after 3 seconds
       setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
       }, 3000);
@@ -367,26 +363,29 @@ export default function Dashboard() {
     }
   };
 
-  // Fix: Pindahkan fungsi handleWeightModalClose ke atas sebelum handleWeightConfirm
   const handleWeightModalClose = () => {
     setShowWeightModal(false);
     setSelectedPesananForWeight(null);
   };
 
-  const handleWeightConfirm = async (berat: number, totalHarga: number) => {
+  const handleWeightConfirm = async (
+    beratOrQuantity: number,
+    totalHarga: number
+  ) => {
     if (!selectedPesananForWeight) return;
 
     try {
       setLoading(true);
 
-      // Update pesanan dengan berat, harga, dan status selesai
       const updatedData = {
-        berat: berat,
+        berat:
+          selectedPesananForWeight.layanan_tipe === "Kiloan"
+            ? beratOrQuantity
+            : 0,
         jumlah_harga: totalHarga,
         status: "selesai",
       };
 
-      // Gunakan API untuk update pesanan
       const token =
         localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("token");
       const response = await fetch(
@@ -406,7 +405,6 @@ export default function Dashboard() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Update state lokal
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
           return prev.map((item) =>
@@ -414,7 +412,10 @@ export default function Dashboard() {
               ? {
                   ...item,
                   status: "selesai",
-                  berat: berat,
+                  berat:
+                    selectedPesananForWeight.layanan_tipe === "Kiloan"
+                      ? beratOrQuantity
+                      : 0,
                   jumlah_harga: totalHarga,
                 }
               : item
@@ -427,16 +428,18 @@ export default function Dashboard() {
         show: true,
         message: `Pesanan ${
           selectedPesananForWeight.nama_pelanggan
-        } berhasil diselesaikan dengan berat ${berat} kg dan total harga Rp ${totalHarga.toLocaleString()}`,
+        } berhasil diselesaikan dengan ${
+          selectedPesananForWeight.layanan_tipe === "Kiloan"
+            ? `berat ${beratOrQuantity} kg`
+            : `jumlah ${beratOrQuantity} item`
+        } dan total harga Rp ${totalHarga.toLocaleString()}`,
         type: "success",
       });
 
-      // Auto hide notification after 5 seconds
       setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
       }, 5000);
 
-      // Tutup modal dan reset data
       handleWeightModalClose();
     } catch (error: any) {
       console.error("Error updating pesanan:", error);
@@ -446,7 +449,6 @@ export default function Dashboard() {
         type: "error",
       });
 
-      // Auto hide notification after 3 seconds
       setTimeout(() => {
         setNotification((prev) => ({ ...prev, show: false }));
       }, 3000);
@@ -489,7 +491,6 @@ export default function Dashboard() {
 
   const refreshPesanan = async () => {
     if (user?.id_owner) {
-      // Fix: gunakan id_owner bukan id
       try {
         const data = await getPesanan(Number(user.id_owner));
         setPesanan(data);
@@ -679,7 +680,6 @@ export default function Dashboard() {
                   + Pesanan Baru
                 </button>
 
-                {/* Modal Tambah Pesanan */}
                 {showModal && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
@@ -782,7 +782,6 @@ export default function Dashboard() {
                           </td>
                           <td className="px-4 py-3">
                             {item.status === "selesai" ? (
-                              // Status selesai - tidak bisa diubah lagi (fixed)
                               <span
                                 className="px-3 py-1 rounded-md text-sm font-medium inline-flex items-center"
                                 style={{
@@ -798,7 +797,6 @@ export default function Dashboard() {
                                 Selesai
                               </span>
                             ) : (
-                              // Status pending atau diproses - bisa diubah
                               <select
                                 value={item.status}
                                 disabled={loading}
@@ -831,15 +829,12 @@ export default function Dashboard() {
                                       : "",
                                 }}
                               >
-                                {/* Jika pending - bisa pilih pending dan proses */}
                                 {item.status === "pending" && (
                                   <>
                                     <option value="pending">Pending</option>
                                     <option value="diproses">Proses</option>
                                   </>
                                 )}
-
-                                {/* Jika diproses - bisa pilih proses dan selesai */}
                                 {item.status === "diproses" && (
                                   <>
                                     <option value="diproses">Proses</option>
@@ -863,7 +858,6 @@ export default function Dashboard() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex space-x-2">
-                              {/* Tombol Edit hanya muncul jika status pending */}
                               {item.status === "pending" && (
                                 <button
                                   className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
@@ -876,8 +870,6 @@ export default function Dashboard() {
                                   <Icon icon="mdi:pencil" width="18" />
                                 </button>
                               )}
-
-                              {/* Tombol Delete selalu ada */}
                               <button
                                 className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
                                 title="Hapus Pesanan"
@@ -921,7 +913,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Modal Konfirmasi Hapus */}
       <DeleteModal
         show={deleteModal.show}
         title="Konfirmasi Hapus Pesanan"
@@ -936,7 +927,6 @@ export default function Dashboard() {
         onConfirm={confirmDeletePesanan}
       />
 
-      {/* Modal Edit Pesanan */}
       {showEditModal && editPesananId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
@@ -957,7 +947,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Modal Input Berat dan Harga */}
       {showWeightModal && selectedPesananForWeight && (
         <WeightPriceModal
           show={showWeightModal}
@@ -965,12 +954,12 @@ export default function Dashboard() {
           namaPelanggan={selectedPesananForWeight.nama_pelanggan}
           layananHarga={selectedPesananForWeight.layanan_harga}
           layananNama={selectedPesananForWeight.layanan_nama}
+          layananTipe={selectedPesananForWeight.layanan_tipe}
           onClose={handleWeightModalClose}
           onConfirm={handleWeightConfirm}
         />
       )}
 
-      {/* Notifikasi */}
       <Notification
         show={notification.show}
         message={notification.message}

@@ -3,14 +3,18 @@ import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
 import { useNavigate } from "react-router-dom";
-import { addPesanan, AddPesananInput, getPesanan } from "../data/service/pesananService"; // Modified: Added getPesanan import
+import {
+  addPesanan,
+  AddPesananInput,
+  getPesanan,
+} from "../data/service/pesananService";
 import {
   findPelangganByNomor,
   getPelangganList,
   PelangganData,
 } from "../data/service/pelangganService";
 import { Layanan, Pesanan } from "../data/model/Pesanan";
-import { getLayanan, getLayananByOwner } from "../data/service/ApiService";
+import { getLayananByOwner } from "../data/service/ApiService";
 
 interface TambahPesananPopupProps {
   onClose?: () => void;
@@ -32,8 +36,9 @@ export default function TambahPesananPopup({
   const [loading, setLoading] = useState(false);
   const [loadingPelanggan, setLoadingPelanggan] = useState(false);
   const [pelangganList, setPelangganList] = useState<PelangganData[]>([]);
-  // NEW: State for customers from pesanan (for UI indicator)
-  const [pesananCustomerList, setPesananCustomerList] = useState<PelangganData[]>([]);
+  const [pesananCustomerList, setPesananCustomerList] = useState<
+    PelangganData[]
+  >([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isTypingNama, setIsTypingNama] = useState(false);
@@ -46,25 +51,32 @@ export default function TambahPesananPopup({
   const { user, userType } = useStateContext();
   const navigate = useNavigate();
 
-  // Existing useEffect for fetching layanan (unchanged)
+  const selectedLayananInfo = useMemo(() => {
+    return layananList.find((l) => l.id.toString() === layanan);
+  }, [layanan, layananList]);
+
+  const layananByType = useMemo(() => {
+    const kiloan = layananList.filter((l) => l.tipe === "Kiloan");
+    const satuan = layananList.filter((l) => l.tipe === "Satuan");
+    return { kiloan, satuan };
+  }, [layananList]);
+
   useEffect(() => {
     const fetchLayanan = async () => {
       try {
         setLoadingLayanan(true);
-        console.log("🔍 Starting to fetch layanan...");
-        console.log("👤 User data:", user);
-        console.log("🔑 User type:", userType);
-
         if (!user?.id) {
-          console.warn("⚠️ No user ID available, skipping layanan fetch");
+          setNotification({
+            show: true,
+            message: "User ID tidak tersedia",
+            type: "error",
+          });
           return;
         }
 
         let ownerId: number;
-
         if (userType === "admin") {
           if (!user.id_owner) {
-            console.error("❌ Admin/Karyawan doesn't have id_owner");
             setNotification({
               show: true,
               message: "Admin/Karyawan tidak memiliki ID Owner yang valid",
@@ -73,91 +85,46 @@ export default function TambahPesananPopup({
             return;
           }
           ownerId = Number(user.id_owner);
-          console.log("👨‍💼 Admin/Karyawan mode - using id_owner:", ownerId);
         } else {
           ownerId = Number(user.id);
-          console.log("👑 Owner mode - using user.id:", ownerId);
         }
 
-        console.log("🎯 Final owner ID to fetch layanan:", ownerId);
+        const token =
+          localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("token");
+        const url = `https://laundryku.rplrus.com/api/layanan?id_owner=${ownerId}`;
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
 
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const responseData = await response.json();
         let data: Layanan[] = [];
-
-        try {
-          const token =
-            localStorage.getItem("ACCESS_TOKEN") ||
-            localStorage.getItem("token");
-          const url = `https://laundryku.rplrus.com/api/layanan?id_owner=${ownerId}`;
-
-          console.log("📡 Fetching from URL:", url);
-
-          const response = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-          });
-
-          console.log("📊 Response status:", response.status);
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const responseData = await response.json();
-          console.log("📊 Response data:", responseData);
-
-          if (responseData.success && Array.isArray(responseData.data)) {
-            data = responseData.data;
-          } else if (Array.isArray(responseData)) {
-            data = responseData;
-          } else {
-            throw new Error("Format response tidak valid");
-          }
-
-          data = data.filter((layanan) => layanan.id_owner === ownerId);
-
-          console.log("✅ Filtered layanan for owner", ownerId, ":", data);
-          console.log(
-            "📋 Layanan names:",
-            data.map((l) => l.nama_layanan)
-          );
-        } catch (fetchError) {
-          console.error("❌ Direct fetch failed:", fetchError);
-          try {
-            console.log("🔄 Trying fallback with getLayananByOwner...");
-            data = await getLayananByOwner(ownerId);
-          } catch (serviceError) {
-            console.error("❌ Service fallback failed:", serviceError);
-            throw fetchError;
-          }
+        if (responseData.success && Array.isArray(responseData.data)) {
+          data = responseData.data;
+        } else if (Array.isArray(responseData)) {
+          data = responseData;
+        } else {
+          throw new Error("Format response tidak valid");
         }
 
-        if (Array.isArray(data)) {
-          setLayananList(data);
-          console.log(
-            "✅ Layanan list set successfully for owner:",
-            ownerId,
-            "- Count:",
-            data.length
-          );
+        data = data.filter((layanan) => layanan.id_owner === ownerId);
+        setLayananList(data);
 
-          if (data.length === 0) {
-            console.log("⚠️ No layanan found for this owner");
-            setNotification({
-              show: true,
-              message: `Belum ada layanan untuk owner ini. Owner perlu menambahkan layanan terlebih dahulu.`,
-              type: "error",
-            });
-          }
-        } else {
-          console.error("❌ Invalid data format received");
-          setLayananList([]);
-          throw new Error("Data layanan tidak valid");
+        if (data.length === 0) {
+          setNotification({
+            show: true,
+            message: `Belum ada layanan untuk owner ini.`,
+            type: "error",
+          });
         }
       } catch (error) {
-        console.error("🚨 Error in fetchLayanan:", error);
         setNotification({
           show: true,
           message: `Gagal memuat layanan: ${(error as Error).message}`,
@@ -174,18 +141,15 @@ export default function TambahPesananPopup({
     }
   }, [user?.id, user?.id_owner, userType]);
 
-  // Modified useEffect to fetch both pelanggan and pesanan
   useEffect(() => {
     const fetchCustomerData = async () => {
       if (!user?.id) return;
 
       try {
         setLoadingPelanggan(true);
-
         let ownerId: number;
         if (userType === "admin") {
           if (!user.id_owner) {
-            console.error("❌ Admin/Karyawan doesn't have id_owner for pelanggan");
             setNotification({
               show: true,
               message: "Admin/Karyawan tidak memiliki ID Owner yang valid",
@@ -198,17 +162,8 @@ export default function TambahPesananPopup({
           ownerId = Number(user.id);
         }
 
-        console.log("👥 Fetching customer data for owner:", ownerId);
-
-        // Fetch pelanggan list
         const pelangganData = await getPelangganList(ownerId);
-        console.log("📋 Pelanggan list:", pelangganData);
-
-        // Fetch pesanan list to extract customer data
         const pesananData = await getPesanan(ownerId);
-        console.log("📋 Pesanan list:", pesananData);
-
-        // Extract unique customers from pesanan
         const pesananCustomers: PelangganData[] = [];
         const uniqueCustomers = new Map<string, PelangganData>();
 
@@ -218,7 +173,7 @@ export default function TambahPesananPopup({
             uniqueCustomers.set(key, {
               nama_pelanggan: pesanan.nama_pelanggan,
               nomor: pesanan.nomor,
-              alamat: pesanan.alamat || "", // Handle null alamat
+              alamat: pesanan.alamat || "",
             });
           }
         });
@@ -227,9 +182,6 @@ export default function TambahPesananPopup({
           pesananCustomers.push(customer);
         });
 
-        console.log("📋 Unique customers from pesanan:", pesananCustomers);
-
-        // Merge pelangganData with pesananCustomers, avoiding duplicates
         const mergedCustomers: PelangganData[] = [...pelangganData];
         pesananCustomers.forEach((pesananCustomer) => {
           const exists = mergedCustomers.some(
@@ -242,11 +194,9 @@ export default function TambahPesananPopup({
           }
         });
 
-        console.log("📋 Merged customer list:", mergedCustomers);
         setPelangganList(mergedCustomers);
-        setPesananCustomerList(pesananCustomers); // Store for UI indicator
+        setPesananCustomerList(pesananCustomers);
       } catch (error) {
-        console.error("Error fetching customer data:", error);
         setNotification({
           show: true,
           message: `Gagal memuat data pelanggan: ${(error as Error).message}`,
@@ -353,12 +303,6 @@ export default function TambahPesananPopup({
         }
 
         const layananName = selectedLayanan.nama_layanan;
-
-        console.log("Selected layanan:", selectedLayanan);
-        console.log("Layanan name to save:", layananName);
-        console.log("User data:", user);
-        console.log("User type:", userType);
-
         const pesananData: AddPesananInput = {
           id_owner:
             userType === "admin" ? Number(user.id_owner) : Number(user.id),
@@ -376,27 +320,9 @@ export default function TambahPesananPopup({
           pesananData.id_admin = Number(user.id);
         }
 
-        console.log("=== DEBUG INFO ===");
-        console.log("Pesanan data to submit:", pesananData);
-        console.log("User ID:", user.id);
-        console.log("User ID Owner:", user.id_owner);
-        console.log("User Type:", userType);
-        console.log("Selected layanan ID:", layanan);
-        console.log("Layanan name:", layananName);
-        console.log("ID Layanan to send:", pesananData.id_layanan);
-        console.log("Data types:", {
-          id_owner: typeof pesananData.id_owner,
-          id_layanan: typeof pesananData.id_layanan,
-          nama_pelanggan: typeof pesananData.nama_pelanggan,
-          nomor: typeof pesananData.nomor,
-          alamat: typeof pesananData.alamat,
-        });
-        console.log("=== END DEBUG ===");
-
         const finalValidationErrors = [];
 
         if (!pesananData.id_owner || pesananData.id_owner <= 0) {
-          console.error("Invalid id_owner:", pesananData.id_owner);
           finalValidationErrors.push("ID Owner tidak valid");
         }
 
@@ -416,14 +342,10 @@ export default function TambahPesananPopup({
         }
 
         if (!pesananData.id_layanan || pesananData.id_layanan <= 0) {
-          console.error("Invalid id_layanan:", pesananData.id_layanan);
           finalValidationErrors.push("ID Layanan tidak valid");
         }
 
-         
-
         if (finalValidationErrors.length > 0) {
-          console.error("Final validation failed:", finalValidationErrors);
           setNotification({
             show: true,
             message: `Data tidak valid: ${finalValidationErrors.join(", ")}`,
@@ -447,10 +369,7 @@ export default function TambahPesananPopup({
 
         if (onAdded) onAdded();
       } catch (error: any) {
-        console.error("Error adding pesanan:", error);
-
         let errorMessage = "Gagal menambahkan pesanan";
-
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response?.data?.errors) {
@@ -601,28 +520,41 @@ export default function TambahPesananPopup({
           <label className="block text-sm font-medium mb-1">
             Pilih Layanan *
           </label>
-
           <div className="relative">
             <select
               value={layanan}
-              onChange={(e) => {
-                console.log("🎯 Layanan selected:", e.target.value);
-                const selectedItem = layananList.find(
-                  (l) => l.id.toString() === e.target.value
-                );
-                console.log("🎯 Selected layanan object:", selectedItem);
-                setLayanan(e.target.value);
-              }}
+              onChange={(e) => setLayanan(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring focus:border-blue-300"
               required
               disabled={loading || loadingLayanan}
             >
               <option value="">-- Pilih layanan --</option>
-              {layananList.map((item) => (
-                <option key={item.id} value={item.id.toString()}>
-                  {item.nama_layanan}
-                </option>
-              ))}
+              {layananByType.kiloan.length > 0 && (
+                <optgroup label="📏 Layanan Kiloan">
+                  {layananByType.kiloan.map((item) => (
+                    <option
+                      key={`kiloan-${item.id}`}
+                      value={item.id.toString()}
+                    >
+                      {item.nama_layanan} - Rp{" "}
+                      {item.harga_layanan.toLocaleString("id-ID")}/kg
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {layananByType.satuan.length > 0 && (
+                <optgroup label="🔢 Layanan Satuan">
+                  {layananByType.satuan.map((item) => (
+                    <option
+                      key={`satuan-${item.id}`}
+                      value={item.id.toString()}
+                    >
+                      {item.nama_layanan} - Rp{" "}
+                      {item.harga_layanan.toLocaleString("id-ID")}/item
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             {loadingLayanan && (
               <div className="absolute right-8 top-2">
@@ -630,6 +562,24 @@ export default function TambahPesananPopup({
               </div>
             )}
           </div>
+          {selectedLayananInfo && (
+            <div className="mt-2 p-2 bg-gray-50 rounded-md text-sm">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedLayananInfo.tipe === "Kiloan"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-blue-100 text-blue-800"
+                  }`}
+                >
+                  {selectedLayananInfo.tipe}
+                </span>
+                <span className="text-gray-600">
+                  {selectedLayananInfo.keterangan_layanan}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">
@@ -658,6 +608,7 @@ export default function TambahPesananPopup({
       phone,
       alamat,
       layanan,
+      layananByType,
       layananList,
       loading,
       loadingLayanan,
@@ -669,7 +620,7 @@ export default function TambahPesananPopup({
       showDropdown,
       filteredPelanggan,
       isTypingNama,
-      pesananCustomerList, // NEW: Added to dependencies
+      pesananCustomerList,
     ]
   );
 
