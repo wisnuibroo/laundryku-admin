@@ -320,7 +320,7 @@ export default function OwnerDashboard() {
             icon="material-symbols:local-laundry-service"
             title="Daftar Layanan"
             subtitle="Kelola layanan"
-            bgColor="#74512D"
+            bgColor="#0432b3"
             to="/dashboard/owner/layanan"
           />
           <CardManage

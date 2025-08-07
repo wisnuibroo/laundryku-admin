@@ -233,30 +233,28 @@ export default function LayananPage() {
   };
 
   const handleDeleteService = async (id: number) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus layanan ini?")) {
-      try {
-        const token = localStorage.getItem("ACCESS_TOKEN");
-        const response = await fetch(
-          `https://laundryku.rplrus.com/api/layanan/${id}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    try {
+      const token = localStorage.getItem("ACCESS_TOKEN");
+      const response = await fetch(
+        `https://laundryku.rplrus.com/api/layanan/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
+      );
 
-        await fetchLayanan();
-      } catch (err: any) {
-        console.error("Error deleting service:", err);
-        setError(err.message || "Gagal menghapus layanan");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      await fetchLayanan();
+    } catch (err: any) {
+      console.error("Error deleting service:", err);
+      setError(err.message || "Gagal menghapus layanan");
     }
   };
 
@@ -392,7 +390,7 @@ export default function LayananPage() {
           />
           <Icon
             icon={"material-symbols:local-laundry-service"}
-            className="w-7 h-7 text-[#74512D]"
+            className="w-7 h-7 text-[#0432b3]"
           />
           <span className="text-lg font-bold text-gray-900">
             Daftar Layanan
@@ -500,12 +498,12 @@ export default function LayananPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Waktu
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                  {/* <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Popularitas
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                  </th> */}
+                  {/* <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Status
-                  </th>
+                  </th> */}
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Aksi
                   </th>
@@ -586,7 +584,7 @@ export default function LayananPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      {/* <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-16 bg-gray-200 rounded-full h-2">
                             <div
@@ -600,8 +598,8 @@ export default function LayananPage() {
                             {popularitas}%
                           </span>
                         </div>
-                      </td>
-                      <td className="py-4 px-4">
+                      </td> */}
+                      {/* <td className="py-4 px-4">
                         <button
                           onClick={() =>
                             handleToggleStatus(layanan.id, "aktif")
@@ -610,7 +608,7 @@ export default function LayananPage() {
                         >
                           Aktif
                         </button>
-                      </td>
+                      </td> */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           <button

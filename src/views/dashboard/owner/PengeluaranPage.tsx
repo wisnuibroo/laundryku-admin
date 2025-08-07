@@ -30,6 +30,7 @@ export default function PengeluaranPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const { user } = useStateContext();
   
   // Form state
@@ -140,23 +141,51 @@ export default function PengeluaranPage() {
       <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
         <div className="flex items-center gap-2">
           <Icon icon="material-symbols-light:arrow-back-rounded" className="w-7 h-7 object-contain cursor-pointer" onClick={() => navigate("/dashboard/owner")} />
-          <Icon icon="uil:chart-bar" className="w-7 h-7 text-[#0065F8]" />
+          <Icon icon="uil:chart-bar" className="w-7 h-7 text-[#ED3500]" />
           <span className="text-lg font-bold text-gray-900">Laporan Keuangan</span>
         </div>
         <div className="relative">
           <button
-            onClick={() => {
-              localStorage.clear();
-              navigate("/login");
-            }}
+            onClick={() => setShowOwnerMenu(!showOwnerMenu)}
             className="flex items-center gap-2 focus:outline-none rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-colors"
+            aria-haspopup="true"
+            aria-expanded={showOwnerMenu}
+            aria-label="User menu"
           >
-            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <Icon
+              icon="mdi:account-circle-outline"
+              width={24}
+              className="text-gray-700"
+            />
             <span className="text-sm font-semibold text-gray-700">
               {user?.nama_laundry || "Owner"}
             </span>
-            <Icon icon="mdi:logout" width={20} className="text-red-500" />
+            <Icon
+              icon={showOwnerMenu ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={20}
+              className="text-gray-500"
+            />
           </button>
+
+          {showOwnerMenu && (
+            <div
+              className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="User menu"
+            >
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                role="menuitem"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
