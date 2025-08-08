@@ -219,7 +219,7 @@ export default function Login() {
                 type="button"
                 className={`flex-1 py-2 text-center font-semibold ${
                   role === "admin"
-                    ? "bg-[#f8fbff] text-[#222831]"
+                    ? "bg-blue-100 text-[#222831]"
                     : "bg-white text-[#222831]"
                 } transition`}
                 onClick={() => setRole("admin")}
@@ -230,7 +230,7 @@ export default function Login() {
                 type="button"
                 className={`flex-1 py-2 text-center font-semibold ${
                   role === "owner"
-                    ? "bg-[#f8fbff] text-[#222831]"
+                    ? "bg-green-100 text-[#222831]"
                     : "bg-white text-[#222831]"
                 } transition`}
                 onClick={() => setRole("owner")}
