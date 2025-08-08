@@ -74,6 +74,9 @@ export default function Dashboard() {
     layanan_nama: string;
     layanan_tipe: "Kiloan" | "Satuan";
   } | null>(null);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   useEffect(() => {
     const fetchPesanan = async (showLoader = true) => {
@@ -185,6 +188,19 @@ export default function Dashboard() {
         }
       })
     : [];
+
+  // Pagination logic
+  const totalItems = filteredPesanan.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPesanan = filteredPesanan.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const handleStatusChange = async (
     id: number,
@@ -342,6 +358,11 @@ export default function Dashboard() {
           type: "success",
         });
 
+        // Reset to first page if current page is empty after deletion
+        if (paginatedPesanan.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        }
+
         setTimeout(() => {
           setNotification((prev) => ({ ...prev, show: false }));
         }, 3000);
@@ -494,6 +515,8 @@ export default function Dashboard() {
       try {
         const data = await getPesanan(Number(user.id_owner));
         setPesanan(data);
+        // Reset to first page after refresh
+        setCurrentPage(1);
       } catch (error: any) {
         console.error("Error refreshing pesanan:", error);
       }
@@ -647,6 +670,7 @@ export default function Dashboard() {
                           onChange={(e) => {
                             setFilterStatus(e.target.value);
                             setShowFilter(false);
+                            setCurrentPage(1); // Reset to first page on filter change
                           }}
                         >
                           <option value="">Semua Status</option>
@@ -662,6 +686,7 @@ export default function Dashboard() {
                               setSearchKeyword("");
                               setDateRange({ start: "", end: "" });
                               setShowFilter(false);
+                              setCurrentPage(1); // Reset to first page on filter reset
                             }}
                             className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium transition-all duration-200"
                           >
@@ -751,8 +776,8 @@ export default function Dashboard() {
                           </div>
                         </td>
                       </tr>
-                    ) : filteredPesanan.length > 0 ? (
-                      filteredPesanan.map((item) => (
+                    ) : paginatedPesanan.length > 0 ? (
+                      paginatedPesanan.map((item) => (
                         <tr
                           key={item.id}
                           className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
@@ -908,6 +933,60 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+
+
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-4">
+                  <div className="text-sm text-gray-600">
+                    Menampilkan {startIndex + 1} -{" "}
+                    {Math.min(endIndex, totalItems)} dari {totalItems} pesanan
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        currentPage === 1
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      🢀
+                    </button>
+                    {Array.from({ length: totalPages }, (_, index) => index + 1)
+                      .filter(
+                        (page) =>
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 2 && page <= currentPage + 2)
+                      )
+                      .map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 rounded-full text-sm font-medium flex items-center justify-center transition-all duration-200 ${
+                          currentPage === page
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        currentPage === totalPages
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      🢂
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
