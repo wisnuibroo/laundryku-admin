@@ -181,26 +181,48 @@ export default function EditPesananPopup({
   // Set form data when pesanan data is loaded
   useEffect(() => {
     if (pesananData && layananList.length > 0) {
+      console.log("🔄 Setting form data from pesanan:", pesananData);
+      console.log("📊 Available layanan list:", layananList);
+      
       setNama(pesananData.nama_pelanggan || "");
       setPhone(pesananData.nomor || "");
       setAlamat(pesananData.alamat || "");
 
-      // Set layanan berdasarkan id_layanan jika tersedia, atau cari berdasarkan nama layanan
-      if (pesananData.layanan) {
+      // Set layanan berdasarkan id_layanan jika tersedia
+      if (pesananData.id_layanan) {
+        console.log("🎯 Looking for layanan with ID:", pesananData.id_layanan);
         const matchedLayanan = layananList.find(
-          (l) => l.id.toString() === pesananData.layanan.toString()
+          (l) => l.id === pesananData.id_layanan
         );
         if (matchedLayanan) {
+          console.log("✅ Found matching layanan by ID:", matchedLayanan);
           setLayanan(matchedLayanan.id.toString());
+        } else {
+          console.log("⚠️ No layanan found with ID, trying by name...");
+          // Fallback: cari berdasarkan nama layanan
+          const matchedByName = layananList.find(
+            (l) =>
+              l.nama_layanan.toLowerCase() === pesananData.layanan.toLowerCase()
+          );
+          if (matchedByName) {
+            console.log("✅ Found matching layanan by name:", matchedByName);
+            setLayanan(matchedByName.id.toString());
+          } else {
+            console.log("❌ No matching layanan found");
+          }
         }
       } else if (pesananData.layanan) {
+        console.log("🎯 Looking for layanan by name:", pesananData.layanan);
         // Fallback: cari berdasarkan nama layanan
         const matchedLayanan = layananList.find(
           (l) =>
             l.nama_layanan.toLowerCase() === pesananData.layanan.toLowerCase()
         );
         if (matchedLayanan) {
+          console.log("✅ Found matching layanan by name:", matchedLayanan);
           setLayanan(matchedLayanan.id.toString());
+        } else {
+          console.log("❌ No matching layanan found by name");
         }
       }
     }
@@ -212,8 +234,10 @@ export default function EditPesananPopup({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      console.log("🚀 Starting edit pesanan submit...");
 
       if (!user?.id || !pesananData?.id) {
+        console.error("❌ Missing user ID or pesanan data");
         setNotification({
           show: true,
           message: "User atau data pesanan tidak ditemukan",
@@ -224,6 +248,7 @@ export default function EditPesananPopup({
 
       // Validasi layanan dipilih
       if (!layanan) {
+        console.error("❌ No layanan selected");
         setNotification({
           show: true,
           message: "Layanan harus dipilih",
@@ -239,6 +264,7 @@ export default function EditPesananPopup({
         );
 
         if (!selectedLayanan) {
+          console.error("❌ Selected layanan not found in list");
           setNotification({
             show: true,
             message: "Layanan yang dipilih tidak valid",
@@ -252,14 +278,16 @@ export default function EditPesananPopup({
           nomor: phone,
           alamat,
           layanan: selectedLayanan.nama_layanan, // Simpan nama layanan
-          id_layanan: selectedLayanan.id, // Simpan ID layanan
+          id_layanan: selectedLayanan.id, // 🔥 PENTING: Simpan ID layanan untuk API
           id_owner:
             userType === "admin" ? Number(user.id_owner) : Number(user.id),
         };
 
-        console.log("Updating pesanan with data:", updatedData);
+        console.log("📝 Updating pesanan ID:", pesananData.id);
+        console.log("📊 Updated data:", updatedData);
 
-        await updatePesanan(pesananData.id, updatedData);
+        const result = await updatePesanan(pesananData.id, updatedData);
+        console.log("✅ Update pesanan result:", result);
 
         setNotification({
           show: true,
@@ -267,10 +295,24 @@ export default function EditPesananPopup({
           type: "success",
         });
 
-        if (onUpdated) onUpdated();
-        if (onClose) onClose();
+        console.log("🎉 Edit success, calling callbacks in 1.5s...");
+        
+        // Wait a bit to show success message
+        setTimeout(() => {
+          console.log("🔄 Calling onUpdated callback");
+          // Call onUpdated to refresh the parent component
+          if (onUpdated) {
+            onUpdated();
+          }
+          console.log("🚪 Calling onClose callback");
+          // Close the modal
+          if (onClose) {
+            onClose();
+          }
+        }, 1500); // 1.5 second delay to show success message
+        
       } catch (error: any) {
-        console.error(error);
+        console.error("❌ Error updating pesanan:", error);
         setNotification({
           show: true,
           message:

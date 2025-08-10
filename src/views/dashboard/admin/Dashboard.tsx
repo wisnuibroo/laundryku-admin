@@ -511,15 +511,53 @@ export default function Dashboard() {
     : 0;
 
   const refreshPesanan = async () => {
-    if (user?.id_owner) {
-      try {
-        const data = await getPesanan(Number(user.id_owner));
-        setPesanan(data);
-        // Reset to first page after refresh
+    console.log("🔄 Refreshing pesanan data...");
+
+    if (!user?.id_owner) {
+      console.error("❌ No owner ID available for refresh");
+      return;
+    }
+
+    try {
+      // Don't show loading overlay for refresh, just update data
+      const data = await getPesanan(Number(user.id_owner));
+      console.log("✅ Refreshed pesanan data:", data);
+      console.log("📊 Previous pesanan count:", pesanan.length);
+      console.log(
+        "📊 New pesanan count:",
+        Array.isArray(data) ? data.length : 0
+      );
+
+      // Force React to re-render by creating new array reference
+      setPesanan([...data]);
+      setError("");
+
+      // Reset to first page if current page is empty after refresh
+      const filteredCount = Array.isArray(data)
+        ? data.filter((p) => {
+            const matchesStatus = filterStatus
+              ? p.status.toLowerCase() === filterStatus.toLowerCase()
+              : true;
+            const keyword = searchKeyword.toLowerCase();
+            const matchesKeyword =
+              !searchKeyword ||
+              p.nama_pelanggan?.toLowerCase().includes(keyword) ||
+              p.alamat?.toLowerCase().includes(keyword) ||
+              p.nomor?.toLowerCase().includes(keyword) ||
+              p.layanan?.toLowerCase().includes(keyword);
+            return matchesStatus && matchesKeyword;
+          }).length
+        : 0;
+
+      const newTotalPages = Math.ceil(filteredCount / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
         setCurrentPage(1);
-      } catch (error: any) {
-        console.error("Error refreshing pesanan:", error);
       }
+
+      console.log("🎯 Refresh completed successfully");
+    } catch (error: any) {
+      console.error("❌ Error refreshing pesanan:", error);
+      setError(error.message || "Gagal memuat ulang data pesanan");
     }
   };
 
@@ -704,16 +742,34 @@ export default function Dashboard() {
                 >
                   + Pesanan Baru
                 </button>
-
                 {showModal && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
                       <TambahPesananPopup
                         isModal={true}
-                        onClose={() => setShowModal(false)}
-                        onAdded={() => {
+                        onClose={() => {
+                          console.log("🚪 Closing add modal");
                           setShowModal(false);
-                          refreshPesanan();
+                        }}
+                        onAdded={async () => {
+                          console.log("✅ Add completed, refreshing data");
+                          setShowModal(false);
+                          // Force refresh after successful add
+                          await refreshPesanan();
+
+                          // Show success message
+                          setNotification({
+                            show: true,
+                            message: "Pesanan berhasil ditambahkan!",
+                            type: "success",
+                          });
+
+                          setTimeout(() => {
+                            setNotification((prev) => ({
+                              ...prev,
+                              show: false,
+                            }));
+                          }, 3000);
                         }}
                       />
                     </div>
@@ -934,7 +990,6 @@ export default function Dashboard() {
                 </table>
               </div>
 
-
               {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-gray-600">
@@ -965,10 +1020,10 @@ export default function Dashboard() {
                           key={page}
                           onClick={() => handlePageChange(page)}
                           className={`w-10 h-10 rounded-full text-sm font-medium flex items-center justify-center transition-all duration-200 ${
-                          currentPage === page
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
+                            currentPage === page
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
                         >
                           {page}
                         </button>
@@ -1013,13 +1068,35 @@ export default function Dashboard() {
               pesananId={editPesananId}
               isModal={true}
               onClose={() => {
+                console.log("🚪 Closing edit modal without save");
                 setShowEditModal(false);
                 setEditPesananId(null);
               }}
-              onUpdated={() => {
+              onUpdated={async () => {
+                console.log(
+                  "🎯 EditPesananPopup onUpdated callback triggered!"
+                );
+                console.log("📝 Edit pesanan ID was:", editPesananId);
+
+                // Close modal first
                 setShowEditModal(false);
                 setEditPesananId(null);
-                refreshPesanan();
+
+                // Then refresh data
+                console.log("🔄 About to call refreshPesanan...");
+                await refreshPesanan();
+                console.log("✅ refreshPesanan completed from onUpdated");
+
+                // Show a brief success message
+                setNotification({
+                  show: true,
+                  message: "Data pesanan berhasil diperbarui dan dimuat ulang!",
+                  type: "success",
+                });
+
+                setTimeout(() => {
+                  setNotification((prev) => ({ ...prev, show: false }));
+                }, 3000);
               }}
             />
           </div>
