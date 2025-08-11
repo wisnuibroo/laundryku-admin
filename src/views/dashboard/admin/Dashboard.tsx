@@ -1,5 +1,6 @@
 "use client";
-import WeightPriceModal from "../../../components/TambahKGPesanan";
+import WeightModal from "../../../components/TambahKGPesanan";
+import QuantityModal from "../../../components/TambahSatuanPesanan";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -66,14 +67,23 @@ export default function Dashboard() {
   const [editPesananId, setEditPesananId] = useState<number | null>(null);
   const navigate = useNavigate();
   const { user, token } = useStateContext();
+
+  // Separate states for Weight and Quantity modals
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [selectedPesananForWeight, setSelectedPesananForWeight] = useState<{
     id: number;
     nama_pelanggan: string;
     layanan_harga: number;
     layanan_nama: string;
-    layanan_tipe: "Kiloan" | "Satuan";
   } | null>(null);
+  const [selectedPesananForQuantity, setSelectedPesananForQuantity] = useState<{
+    id: number;
+    nama_pelanggan: string;
+    layanan_harga: number;
+    layanan_nama: string;
+  } | null>(null);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -223,8 +233,24 @@ export default function Dashboard() {
         let layananNama = "";
         let layananTipe: "Kiloan" | "Satuan" = "Kiloan"; // Default to Kiloan
 
-        if (typeof pesananItem.layanan === "string") {
-          layananNama = pesananItem.layanan;
+        // Prioritas: ambil dari object layanan dulu, lalu fetch dari API jika perlu
+        if (
+          typeof pesananItem.layanan === "object" &&
+          (pesananItem.layanan as any)?.tipe
+        ) {
+          // Jika layanan sudah berupa object dengan tipe
+          layananNama =
+            (pesananItem.layanan as any)?.nama_layanan ||
+            "Layanan tidak tersedia";
+          layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0;
+          layananTipe = (pesananItem.layanan as any)?.tipe || "Kiloan";
+        } else {
+          // Jika layanan hanya string, fetch dari API
+          layananNama =
+            typeof pesananItem.layanan === "string"
+              ? pesananItem.layanan
+              : "Layanan tidak tersedia";
+
           try {
             const token =
               localStorage.getItem("ACCESS_TOKEN") ||
@@ -249,8 +275,7 @@ export default function Dashboard() {
 
               const matchedLayanan = layananList.find(
                 (l: any) =>
-                  l.nama_layanan.toLowerCase() ===
-                    pesananItem.layanan.toLowerCase() ||
+                  l.nama_layanan.toLowerCase() === layananNama.toLowerCase() ||
                   l.id === pesananItem.id_layanan
               );
 
@@ -269,12 +294,6 @@ export default function Dashboard() {
             });
             return;
           }
-        } else {
-          layananNama =
-            (pesananItem.layanan as any)?.nama_layanan ||
-            "Layanan tidak tersedia";
-          layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0;
-          layananTipe = (pesananItem.layanan as any)?.tipe || "Kiloan";
         }
 
         if (layananHarga <= 0) {
@@ -287,17 +306,27 @@ export default function Dashboard() {
           return;
         }
 
-        setSelectedPesananForWeight({
-          id: pesananItem.id,
-          nama_pelanggan: pesananItem.nama_pelanggan,
-          layanan_harga: layananHarga,
-          layanan_nama: layananNama,
-          layanan_tipe: layananTipe,
-        });
-        setShowWeightModal(true);
+        if (layananTipe === "Kiloan") {
+          setSelectedPesananForWeight({
+            id: pesananItem.id,
+            nama_pelanggan: pesananItem.nama_pelanggan,
+            layanan_harga: layananHarga,
+            layanan_nama: layananNama,
+          });
+          setShowWeightModal(true);
+        } else {
+          setSelectedPesananForQuantity({
+            id: pesananItem.id,
+            nama_pelanggan: pesananItem.nama_pelanggan,
+            layanan_harga: layananHarga,
+            layanan_nama: layananNama,
+          });
+          setShowQuantityModal(true);
+        }
         return;
       }
 
+      // Handle other status changes
       await updateStatusPesanan(id, newStatus);
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
@@ -384,28 +413,27 @@ export default function Dashboard() {
     }
   };
 
+  // Weight modal handlers
   const handleWeightModalClose = () => {
     setShowWeightModal(false);
     setSelectedPesananForWeight(null);
   };
 
-  const handleWeightConfirm = async (
-    beratOrQuantity: number,
-    totalHarga: number
-  ) => {
+  const handleWeightConfirm = async (berat: number, totalHarga: number) => {
     if (!selectedPesananForWeight) return;
 
     try {
       setLoading(true);
 
+      // ✅ FIX: Use correct field mapping for backend
       const updatedData = {
-        berat:
-          selectedPesananForWeight.layanan_tipe === "Kiloan"
-            ? beratOrQuantity
-            : 0,
+        berat: berat,
+        banyak_satuan: 0, // ✅ CORRECT: For Kiloan services, set banyak_satuan to 0
         jumlah_harga: totalHarga,
         status: "selesai",
       };
+
+      console.log("📊 Sending update data to backend:", updatedData);
 
       const token =
         localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("token");
@@ -423,9 +451,15 @@ export default function Dashboard() {
       );
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ Backend error response:", errorData);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      const responseData = await response.json();
+      console.log("✅ Backend response:", responseData);
+
+      // Update local state
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
           return prev.map((item) =>
@@ -433,10 +467,8 @@ export default function Dashboard() {
               ? {
                   ...item,
                   status: "selesai",
-                  berat:
-                    selectedPesananForWeight.layanan_tipe === "Kiloan"
-                      ? beratOrQuantity
-                      : 0,
+                  berat: berat,
+                  banyak_satuan: 0, // ✅ Reset banyak_satuan for kiloan service
                   jumlah_harga: totalHarga,
                 }
               : item
@@ -449,11 +481,7 @@ export default function Dashboard() {
         show: true,
         message: `Pesanan ${
           selectedPesananForWeight.nama_pelanggan
-        } berhasil diselesaikan dengan ${
-          selectedPesananForWeight.layanan_tipe === "Kiloan"
-            ? `berat ${beratOrQuantity} kg`
-            : `jumlah ${beratOrQuantity} item`
-        } dan total harga Rp ${totalHarga.toLocaleString()}`,
+        } berhasil diselesaikan dengan berat ${berat} kg dan total harga Rp ${totalHarga.toLocaleString()}`,
         type: "success",
       });
 
@@ -463,7 +491,103 @@ export default function Dashboard() {
 
       handleWeightModalClose();
     } catch (error: any) {
-      console.error("Error updating pesanan:", error);
+      console.error("❌ Error updating pesanan:", error);
+      setNotification({
+        show: true,
+        message: error.message || "Gagal menyelesaikan pesanan",
+        type: "error",
+      });
+
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quantity modal handlers
+  const handleQuantityModalClose = () => {
+    setShowQuantityModal(false);
+    setSelectedPesananForQuantity(null);
+  };
+
+  const handleQuantityConfirm = async (
+    quantity: number,
+    totalHarga: number
+  ) => {
+    if (!selectedPesananForQuantity) return;
+
+    try {
+      setLoading(true);
+
+      // ✅ FIX: Use correct field mapping for backend
+      const updatedData = {
+        berat: 0, // For Satuan services, set berat to 0
+        banyak_satuan: quantity, // ✅ CORRECT: Use banyak_satuan field name
+        jumlah_harga: totalHarga,
+        status: "selesai",
+      };
+
+      console.log("📊 Sending update data to backend:", updatedData);
+
+      const token =
+        localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("token");
+      const response = await fetch(
+        `https://laundryku.rplrus.com/api/pesanan/${selectedPesananForQuantity.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(updatedData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ Backend error response:", errorData);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("✅ Backend response:", responseData);
+
+      // Update local state
+      setPesanan((prev) => {
+        if (Array.isArray(prev)) {
+          return prev.map((item) =>
+            item.id === selectedPesananForQuantity.id
+              ? {
+                  ...item,
+                  status: "selesai",
+                  berat: 0,
+                  banyak_satuan: quantity, // ✅ Update banyak_satuan field
+                  jumlah_harga: totalHarga,
+                }
+              : item
+          );
+        }
+        return [];
+      });
+
+      setNotification({
+        show: true,
+        message: `Pesanan ${
+          selectedPesananForQuantity.nama_pelanggan
+        } berhasil diselesaikan dengan jumlah ${quantity} item dan total harga Rp ${totalHarga.toLocaleString()}`,
+        type: "success",
+      });
+
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, show: false }));
+      }, 5000);
+
+      handleQuantityModalClose();
+    } catch (error: any) {
+      console.error("❌ Error updating pesanan:", error);
       setNotification({
         show: true,
         message: error.message || "Gagal menyelesaikan pesanan",
@@ -492,7 +616,32 @@ export default function Dashboard() {
     localStorage.removeItem("user");
     navigate("/login");
   };
+  const getLayananTypeAndDisplay = (item: Pesanan) => {
+    // Jika layanan adalah object dengan tipe
+    if (typeof item.layanan === "object" && (item.layanan as any)?.tipe) {
+      const tipe = (item.layanan as any).tipe;
+      if (tipe === "Satuan") {
+        return {
+          tipe: "Satuan",
+          display: `${item.banyak_satuan || 0} item`,
+          value: item.banyak_satuan || 0,
+        };
+      } else {
+        return {
+          tipe: "Kiloan",
+          display: `${item.berat || 0} kg`,
+          value: item.berat || 0,
+        };
+      }
+    }
 
+    // Default ke Kiloan jika tidak ada info tipe
+    return {
+      tipe: "Kiloan",
+      display: `${item.berat || 0} kg`,
+      value: item.berat || 0,
+    };
+  };
   const closeNotification = () => {
     setNotification((prev) => ({ ...prev, show: false }));
   };
@@ -794,7 +943,7 @@ export default function Dashboard() {
                         Layanan
                       </th>
                       <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Berat
+                        Kuantitas
                       </th>
                       <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Harga
@@ -854,7 +1003,9 @@ export default function Dashboard() {
                               : (item.layanan as any)?.nama_layanan ||
                                 "Layanan tidak tersedia"}
                           </td>
-                          <td className="px-4 py-3">{item.berat || 0} kg</td>
+                          <td className="px-4 py-3">
+                            {getLayananTypeAndDisplay(item).display}
+                          </td>{" "}
                           <td className="px-4 py-3">
                             Rp{" "}
                             {item.jumlah_harga
@@ -1103,16 +1254,29 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Weight Modal for Kiloan Services */}
       {showWeightModal && selectedPesananForWeight && (
-        <WeightPriceModal
+        <WeightModal
           show={showWeightModal}
           pesananId={selectedPesananForWeight.id}
           namaPelanggan={selectedPesananForWeight.nama_pelanggan}
           layananHarga={selectedPesananForWeight.layanan_harga}
           layananNama={selectedPesananForWeight.layanan_nama}
-          layananTipe={selectedPesananForWeight.layanan_tipe}
           onClose={handleWeightModalClose}
           onConfirm={handleWeightConfirm}
+        />
+      )}
+
+      {/* Quantity Modal for Satuan Services */}
+      {showQuantityModal && selectedPesananForQuantity && (
+        <QuantityModal
+          show={showQuantityModal}
+          pesananId={selectedPesananForQuantity.id}
+          namaPelanggan={selectedPesananForQuantity.nama_pelanggan}
+          layananHarga={selectedPesananForQuantity.layanan_harga}
+          layananNama={selectedPesananForQuantity.layanan_nama}
+          onClose={handleQuantityModalClose}
+          onConfirm={handleQuantityConfirm}
         />
       )}
 

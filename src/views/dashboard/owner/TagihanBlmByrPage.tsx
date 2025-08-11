@@ -11,7 +11,7 @@ import { useStateContext } from "../../../contexts/ContextsProvider";
 // Tambahkan interface untuk notifikasi
 interface Notification {
   message: string;
-  type: 'success' | 'error';
+  type: "success" | "error";
 }
 
 interface Tagihan {
@@ -22,6 +22,7 @@ interface Tagihan {
   total: number;
   overdue: string;
   berat?: number; // Tambahkan berat sebagai opsional
+  banyak_satuan?: number; // Tambahkan satuan sebagai opsional
 }
 
 interface Pelanggan {
@@ -33,12 +34,15 @@ interface Pelanggan {
   status: string;
   tagihan: Tagihan[];
   total_berat?: number;
+  total_satuan?: number; // Tambahkan total satuan
 }
 
 export default function TagihanBlmByrPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Pelanggan | null>(
+    null
+  );
   const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -55,6 +59,30 @@ export default function TagihanBlmByrPage() {
   });
 
   const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
+
+  // Fungsi untuk menentukan unit berdasarkan jenis layanan
+  const getUnitDisplay = (layanan: string, berat?: number, satuan?: number) => {
+    const layananLower = layanan.toLowerCase();
+
+    // Check if it's kiloan service
+    if (layananLower.includes("kiloan") || layananLower.includes("kg")) {
+      return berat ? `${berat} kg` : "Berat tidak tersedia";
+    }
+
+    // Check if it's satuan service
+    if (layananLower.includes("satuan") || layananLower.includes("item")) {
+      return satuan ? `${satuan} item` : "Jumlah tidak tersedia";
+    }
+
+    // Default: prioritize berat if available, otherwise satuan
+    if (berat && berat > 0) {
+      return `${berat} kg`;
+    } else if (satuan && satuan > 0) {
+      return `${satuan} item`;
+    }
+
+    return "Tidak tersedia";
+  };
 
   const fetchTagihanBelumBayar = async () => {
     try {
@@ -94,25 +122,29 @@ export default function TagihanBlmByrPage() {
             tagihan: [],
             total_tagihan: 0,
             total_berat: 0,
+            total_satuan: 0,
           };
         }
 
         // Tambahkan tagihan ke grup
         acc[phone].tagihan.push({
           id_pesanan: item.id.toString(),
-          jenis: typeof item.layanan === 'string' 
-            ? item.layanan 
-            : (item.layanan as any)?.nama_layanan || "-",
+          jenis:
+            typeof item.layanan === "string"
+              ? item.layanan
+              : (item.layanan as any)?.nama_layanan || "-",
           tanggal: item.created_at,
           jatuh_tempo: item.updated_at,
           total: parseFloat(item.jumlah_harga) || 0,
           overdue: "-",
           berat: item.berat || 0,
+          banyak_satuan: item.banyak_satuan || 0,
         });
 
         // Update total
         acc[phone].total_tagihan += parseFloat(item.jumlah_harga) || 0;
         acc[phone].total_berat += parseFloat(item.berat) || 0;
+        acc[phone].total_satuan += parseFloat(item.banyak_satuan) || 0;
 
         return acc;
       }, {});
@@ -128,6 +160,7 @@ export default function TagihanBlmByrPage() {
           status: "Selesai",
           tagihan: group.tagihan,
           total_berat: group.total_berat,
+          total_satuan: group.total_satuan,
         })
       ) as Pelanggan[];
 
@@ -140,8 +173,37 @@ export default function TagihanBlmByrPage() {
     }
   };
 
+  // Fungsi untuk menampilkan unit di tabel customer
+  const getCustomerUnitDisplay = (customer: Pelanggan) => {
+    // Ambil jenis layanan dari tagihan pertama untuk menentukan tipe dominan
+    const firstLayanan = customer.tagihan[0]?.jenis || "";
+    const layananLower = firstLayanan.toLowerCase();
+
+    if (layananLower.includes("kiloan") || layananLower.includes("kg")) {
+      return customer.total_berat
+        ? `${customer.total_berat} kg`
+        : "Berat tidak tersedia";
+    } else if (
+      layananLower.includes("satuan") ||
+      layananLower.includes("item")
+    ) {
+      return customer.total_satuan
+        ? `${customer.total_satuan} item`
+        : "Jumlah tidak tersedia";
+    }
+
+    // Default: tampilkan yang tersedia
+    if (customer.total_berat && customer.total_berat > 0) {
+      return `${customer.total_berat} kg`;
+    } else if (customer.total_satuan && customer.total_satuan > 0) {
+      return `${customer.total_satuan} item`;
+    }
+
+    return "Tidak tersedia";
+  };
+
   // Fungsi untuk menampilkan notifikasi
-  const showNotification = (message: string, type: 'success' | 'error') => {
+  const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
     // Hilangkan notifikasi setelah 3 detik
     setTimeout(() => {
@@ -160,7 +222,10 @@ export default function TagihanBlmByrPage() {
       showNotification("Pesanan berhasil ditandai sebagai lunas!", "success");
     } catch (error: any) {
       console.error("Gagal mengupdate status pesanan:", error);
-      showNotification(error.message || "Gagal mengupdate status pesanan", "error");
+      showNotification(
+        error.message || "Gagal mengupdate status pesanan",
+        "error"
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -186,9 +251,13 @@ export default function TagihanBlmByrPage() {
       );
     } catch (error: any) {
       console.error("Gagal mengupdate status pesanan:", error);
-      showNotification(error.message || "Gagal mengupdate status pesanan", "error");
+      showNotification(
+        error.message || "Gagal mengupdate status pesanan",
+        "error"
+      );
     } finally {
       setIsUpdating(false);
+      setSelectedCustomer(null); // tutup popup
     }
   };
 
@@ -229,12 +298,16 @@ export default function TagihanBlmByrPage() {
       {notification && (
         <div
           className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-            notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            notification.type === "success" ? "bg-green-500" : "bg-red-500"
           } text-white`}
         >
           <div className="flex items-center gap-2">
             <Icon
-              icon={notification.type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'}
+              icon={
+                notification.type === "success"
+                  ? "mdi:check-circle"
+                  : "mdi:alert-circle"
+              }
               className="w-5 h-5"
             />
             <p>{notification.message}</p>
@@ -262,7 +335,11 @@ export default function TagihanBlmByrPage() {
             aria-expanded={showOwnerMenu}
             aria-label="User menu"
           >
-            <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+            <Icon
+              icon="mdi:account-circle-outline"
+              width={24}
+              className="text-gray-700"
+            />
             <span className="text-sm font-semibold text-gray-700">
               {user?.nama_laundry || "Owner"}
             </span>
@@ -312,12 +389,7 @@ export default function TagihanBlmByrPage() {
             iconColor="#DC2525"
           />
           <CardStat
-            icon={
-              <Icon
-                icon="hugeicons:task-01"
-                width={24}
-              />
-            }
+            icon={<Icon icon="hugeicons:task-01" width={24} />}
             label="Total Tagihan"
             value={`Rp ${stats.nilai_tagihan.toLocaleString("id-ID")}`}
             subtitle="Belum Lunas"
@@ -352,15 +424,6 @@ export default function TagihanBlmByrPage() {
             <div className="w-full md:w-1/2">
               <Search value={searchText} onChange={handleSearchChange} />
             </div>
-            {/* <div className="w-full md:w-auto">
-              <button
-                onClick={handleFilterClick}
-                className="flex items-center gap-1 border rounded px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <Icon icon="mdi:filter-variant" width={16} />
-                Filter
-              </button>
-            </div> */}
           </div>
 
           <div className="overflow-x-auto mt-6">
@@ -372,125 +435,269 @@ export default function TagihanBlmByrPage() {
                 </div>
               </div>
             ) : (
-              <table className="min-w-full border text-sm rounded-lg overflow-hidden">
-                <thead className="bg-gray-100 text-gray-600 text-sm">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Pelanggan</th>
-                    <th className="px-4 py-3 text-left">Jumlah Tagihan</th>
-                    <th className="px-4 py-3 text-left">Total Tagihan</th>
-                    <th className="px-4 py-3 text-left">Berat</th>
-                    <th className="px-4 py-3 text-left">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="text-gray-700">
-                  {filteredPelanggan.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-gray-500"
+              <div className="space-y-3">
+                {filteredPelanggan.length === 0 ? (
+                  <div className="bg-white rounded-lg border p-8 text-center">
+                    <Icon
+                      icon="mdi:inbox-outline"
+                      className="w-12 h-12 mx-auto text-gray-300 mb-3"
+                    />
+                    <p className="text-gray-500">
+                      Tidak ada data tagihan yang ditemukan
+                    </p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Semua tagihan sudah dibayar atau belum ada pesanan yang
+                      selesai
+                    </p>
+                  </div>
+                ) : (
+                  filteredPelanggan.map((cust) => (
+                    <div
+                      key={cust.id}
+                      className="bg-white rounded-lg border hover:shadow-sm transition-shadow"
+                    >
+                      {/* Customer Header */}
+                      <div
+                        className="bg-red-50 border-l-4 border-red-400 p-4 cursor-pointer hover:bg-red-100 transition-colors"
+                        onClick={() => toggleRow(cust.id)}
                       >
-                        Tidak ada data tagihan yang ditemukan
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredPelanggan.map((cust) => (
-                      <React.Fragment key={cust.id}>
-                        <tr
-                          className="border-b bg-red-50 hover:bg-red-100 cursor-pointer"
-                          onClick={() => toggleRow(cust.id)}
-                        >
-                          <td className="px-4 py-3">
-                            <p className="font-semibold">{cust.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {cust.phone}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3">
-                            {cust.jumlah_tagihan} tagihan
-                          </td>
-                          <td className="px-4 py-3 font-medium">
-                            Rp {cust.total_tagihan.toLocaleString("id-ID")}
-                          </td>
-                          <td className="px-4 py-3 font-medium">
-                            {cust.total_berat
-                              ? `${cust.total_berat} kg`
-                              : "Berat tidak tersedia"}
-                          </td>
-                          <td className="px-4 py-3 flex gap-2">
-                            <button
-                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMarkAllAsLunas(cust);
-                              }}
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? "Memproses..." : "Lunas Semua"}
-                            </button>
-                            <button
-                              className="text-gray-700 hover:text-black"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCustomer(cust);
-                              }}
-                            >
-                              <Icon icon="proicons:eye" width={18} />
-                            </button>
-                          </td>
-                        </tr>
-                        {openRowId === cust.id && (
-                          <tr>
-                            <td colSpan={5}>
-                              <div className="   ">
-                                {cust.tagihan.map((tgh, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex justify-between items-center border rounded p-3 bg-white shadow-sm"
-                                  >
-                                    <div>
-                                      <p className="font-semibold">
-                                        {tgh.id_pesanan}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        {tgh.jenis}
-                                      </p>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-3">
+                            <div className="bg-red-100 p-2 rounded-full">
+                              <Icon
+                                icon="mdi:account-circle"
+                                className="w-6 h-6 text-red-500"
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-800">
+                                {cust.name}
+                              </h3>
+                              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                <div className="flex items-center gap-1">
+                                  <Icon icon="mdi:phone" className="w-3 h-3" />
+                                  <span>{cust.phone}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Icon
+                                    icon="mdi:calendar-clock"
+                                    className="w-3 h-3"
+                                  />
+                                  <span>{cust.jumlah_tagihan} pesanan</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <div className="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                                Rp {cust.total_tagihan.toLocaleString("id-ID")}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAllAsLunas(cust);
+                                }}
+                                disabled={isUpdating}
+                              >
+                                <Icon
+                                  icon="mdi:check-circle"
+                                  className="w-3 h-3"
+                                />
+                                {isUpdating ? "Memproses..." : "Lunas Semua"}
+                              </button>
+
+                              <button
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCustomer(cust);
+                                }}
+                              >
+                                <Icon icon="mdi:eye" className="w-3 h-3" />
+                              </button>
+
+                              <button className="text-gray-400 hover:text-gray-600 p-1 transition-colors">
+                                <Icon
+                                  icon={
+                                    openRowId === cust.id
+                                      ? "mdi:chevron-up"
+                                      : "mdi:chevron-down"
+                                  }
+                                  className="w-4 h-4"
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {openRowId === cust.id && (
+                        <div className="border-t bg-gray-50">
+                          <div className="p-4">
+                            <h4 className="text-gray-700 mb-3 flex items-center gap-2">
+                              <Icon
+                                icon="mdi:format-list-bulleted"
+                                className="w-4 h-4"
+                              />
+                              Detail Pesanan ({cust.tagihan.length})
+                            </h4>
+                            <div className="grid gap-3">
+                              {cust.tagihan.map((tgh, idx) => (
+                                <div
+                                  key={idx}
+                                  className="bg-white rounded border p-3 hover:shadow-sm transition-shadow"
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="bg-blue-100 px-2 py-1 rounded">
+                                          <span className="text-blue-700 text-sm">
+                                            #{tgh.id_pesanan}
+                                          </span>
+                                        </div>
+                                        <div className="bg-purple-100 px-2 py-1 rounded">
+                                          <span className="text-purple-700 text-sm">
+                                            {tgh.jenis}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                        <div className="flex items-center gap-2">
+                                          <Icon
+                                            icon="mdi:calendar"
+                                            className="w-3 h-3 text-gray-400"
+                                          />
+                                          <div>
+                                            <p className="text-gray-500 text-xs">
+                                              Tanggal
+                                            </p>
+                                            <p className="text-gray-700">
+                                              {new Date(
+                                                tgh.tanggal
+                                              ).toLocaleDateString("id-ID", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                              })}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          <Icon
+                                            icon="mdi:scale"
+                                            className="w-3 h-3 text-gray-400"
+                                          />
+                                          <div>
+                                            <p className="text-gray-500 text-xs">
+                                              Kuantitas
+                                            </p>
+                                            <p className="text-blue-600">
+                                              {getUnitDisplay(
+                                                tgh.jenis,
+                                                tgh.berat,
+                                                tgh.banyak_satuan
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          <Icon
+                                            icon="mdi:currency-usd"
+                                            className="w-3 h-3 text-gray-400"
+                                          />
+                                          <div>
+                                            <p className="text-gray-500 text-xs">
+                                              Harga
+                                            </p>
+                                            <p className="text-green-600">
+                                              Rp{" "}
+                                              {tgh.total.toLocaleString(
+                                                "id-ID"
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          <Icon
+                                            icon="mdi:clock-outline"
+                                            className="w-3 h-3 text-gray-400"
+                                          />
+                                          <div>
+                                            <p className="text-gray-500 text-xs">
+                                              Status
+                                            </p>
+                                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">
+                                              Belum Bayar
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="text-sm">
-                                        Tanggal: {tgh.tanggal}
-                                      </p>
-                                    </div>
-                                    <div className="text-sm font-medium">
-                                      Rp {tgh.total.toLocaleString("id-ID")}
-                                    </div>
-                                    <div className="text-sm font-medium">
-                                      {tgh.berat} Kg
-                                    </div>
-                                    <div>
+
+                                    <div className="ml-3">
                                       <button
-                                        className="text-sm px-3 py-1 bg-green-500 hover:bg-green-200 rounded text-white"
+                                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleMarkAsLunas(tgh.id_pesanan);
                                         }}
                                         disabled={isUpdating}
                                       >
+                                        <Icon
+                                          icon="mdi:check"
+                                          className="w-3 h-3"
+                                        />
                                         {isUpdating
                                           ? "Memproses..."
                                           : "Tandai Lunas"}
                                       </button>
                                     </div>
                                   </div>
-                                ))}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Summary Section */}
+                            <div className="mt-3 p-3 bg-red-50 rounded border border-red-200">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <Icon
+                                    icon="mdi:calculator"
+                                    className="w-4 h-4 text-red-500"
+                                  />
+                                  <span className="text-red-700">
+                                    Total Tagihan
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xl text-red-600">
+                                    Rp{" "}
+                                    {cust.total_tagihan.toLocaleString("id-ID")}
+                                  </p>
+                                  <p className="text-sm text-red-500">
+                                    {cust.jumlah_tagihan} pesanan{" "}
+                                  </p>
+                                </div>
                               </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -498,7 +705,8 @@ export default function TagihanBlmByrPage() {
 
       {selectedCustomer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white w-[90%] max-w-2xl rounded-lg p-6 shadow-lg relative">
+          <div className="bg-white w-[90%] max-w-2xl rounded-lg shadow-lg relative flex flex-col max-h-[90vh]">
+            {/* Tombol Close */}
             <button
               className="absolute top-2 right-3 text-xl text-gray-600 hover:text-black"
               onClick={() => setSelectedCustomer(null)}
@@ -506,34 +714,37 @@ export default function TagihanBlmByrPage() {
               &times;
             </button>
 
-            <h2 className="text-xl font-bold mb-4">
-              Detail Tagihan - {selectedCustomer.name}
-            </h2>
-            <div className="mb-4 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Nama Pelanggan</p>
-                <p className="font-semibold">{selectedCustomer.name}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Telepon</p>
-                <p>{selectedCustomer.phone}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Total Tagihan</p>
-                <p className="text-red-600 font-semibold">
-                  Rp {selectedCustomer.total_tagihan.toLocaleString("id-ID")}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Jumlah Pesanan</p>
-                <p className="font-semibold">
-                  {selectedCustomer.tagihan.length} pesanan
-                </p>
+            {/* Header & Info Pelanggan */}
+            <div className="p-6 pb-3 border-b">
+              <h2 className="text-xl font-bold mb-4">
+                Detail Tagihan - {selectedCustomer.name}
+              </h2>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Nama Pelanggan</p>
+                  <p className="font-semibold">{selectedCustomer.name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Telepon</p>
+                  <p>{selectedCustomer.phone}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Total Tagihan</p>
+                  <p className="text-red-600 font-semibold">
+                    Rp {selectedCustomer.total_tagihan.toLocaleString("id-ID")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Jumlah Pesanan</p>
+                  <p className="font-semibold">
+                    {selectedCustomer.tagihan.length} pesanan
+                  </p>
+                </div>
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold mb-2">Rincian Tagihan</h3>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
+            {/* List Pesanan Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
               {selectedCustomer.tagihan.map((tgh, idx) => (
                 <div
                   key={idx}
@@ -543,25 +754,21 @@ export default function TagihanBlmByrPage() {
                     <p className="font-semibold">{tgh.id_pesanan}</p>
                     <p className="text-xs text-gray-500">{tgh.jenis}</p>
                   </div>
-                  <div>
-                    <p className="text-sm">Tanggal: {tgh.tanggal}</p>
-                    {/* <p className="text-xs text-gray-500">
-                      Due: {tgh.jatuh_tempo}
-                    </p> */}
-                  </div>
-                  <div className="text-sm font-medium">
+                  <p className="text-sm">
+                    Tanggal:{" "}
+                    {new Date(tgh.tanggal).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+
+                  <div className="text-sm font-medium text-right">
                     <p>Rp {tgh.total.toLocaleString("id-ID")}</p>
                     <p className="text-xs text-blue-600">
-                      {tgh.berat
-                        ? `Berat: ${tgh.berat} kg`
-                        : "Berat tidak tersedia"}
+                      {getUnitDisplay(tgh.jenis, tgh.berat, tgh.banyak_satuan)}
                     </p>
                   </div>
-                  {/* <div>
-                    <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
-                      Overdue {tgh.overdue}
-                    </span>
-                  </div> */}
                   <div>
                     <button
                       className="text-sm px-3 py-1 bg-green-300 hover:bg-green-200 rounded text-gray-800"
@@ -573,15 +780,17 @@ export default function TagihanBlmByrPage() {
                   </div>
                 </div>
               ))}
-              <div className="flex justify-end mt-4">
-                <button
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                  onClick={() => handleMarkAllAsLunas(selectedCustomer)}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? "Memproses..." : "Tandai Semua Lunas"}
-                </button>
-              </div>
+            </div>
+
+            {/* Tombol Tandai Semua Lunas */}
+            <div className="p-4 border-t flex justify-end bg-white">
+              <button
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                onClick={() => handleMarkAllAsLunas(selectedCustomer)}
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Memproses..." : "Tandai Semua Lunas"}
+              </button>
             </div>
           </div>
         </div>

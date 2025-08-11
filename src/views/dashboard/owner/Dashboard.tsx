@@ -73,6 +73,31 @@ export default function OwnerDashboard() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const getLayananTypeAndDisplay = (item: Pesanan) => {
+    // Jika layanan adalah object dengan tipe
+    if (typeof item.layanan === "object" && (item.layanan as any)?.tipe) {
+      const tipe = (item.layanan as any).tipe;
+      if (tipe === "Satuan") {
+        return {
+          tipe: "Satuan",
+          display: `${item.banyak_satuan || 0} item`,
+          value: item.banyak_satuan || 0,
+        };
+      } else {
+        return {
+          tipe: "Kiloan",
+          display: `${item.berat || 0} kg`,
+          value: item.berat || 0,
+        };
+      }
+    }
+
+    return {
+      tipe: "Kiloan",
+      display: `${item.berat || 0} kg`,
+      value: item.berat || 0,
+    };
+  };
 
   useEffect(() => {
     const fetchPesanan = async (showLoader = true) => {
@@ -103,7 +128,11 @@ export default function OwnerDashboard() {
         if (Array.isArray(lunasData)) {
           const totalPendapatan = lunasData
             .filter((item: any) => item.status === "lunas")
-            .reduce((acc: number, item: any) => acc + (parseFloat(item.jumlah_harga) || 0), 0);
+            .reduce(
+              (acc: number, item: any) =>
+                acc + (parseFloat(item.jumlah_harga) || 0),
+              0
+            );
 
           setStats((prevStats) => ({
             ...prevStats,
@@ -232,8 +261,14 @@ export default function OwnerDashboard() {
       <div className="flex-1 overflow-auto">
         <nav className="sticky top-0 z-10 w-full flex items-center justify-between bg-white px-6 py-6 shadow mb-2">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Laundry Logo" className="w-7 h-7 object-contain" />
-            <span className="text-lg font-bold text-gray-900">Laundry Owner</span>
+            <img
+              src={logo}
+              alt="Laundry Logo"
+              className="w-7 h-7 object-contain"
+            />
+            <span className="text-lg font-bold text-gray-900">
+              Laundry Owner
+            </span>
             <span className="ml-2 px-2 py-0.5 bg-green-100 text-xs text-gray-700 rounded">
               Dashboard
             </span>
@@ -246,7 +281,11 @@ export default function OwnerDashboard() {
               aria-expanded={showOwnerMenu}
               aria-label="User menu"
             >
-              <Icon icon="mdi:account-circle-outline" width={24} className="text-gray-700" />
+              <Icon
+                icon="mdi:account-circle-outline"
+                width={24}
+                className="text-gray-700"
+              />
               <span className="text-sm font-semibold text-gray-700">
                 {user?.nama_laundry || "Owner"}
               </span>
@@ -293,9 +332,20 @@ export default function OwnerDashboard() {
               iconColor="#0065F8"
             />
             <CardStat
-              icon={<Icon icon="material-symbols:warning-outline-rounded" width={24} />}
+              icon={
+                <Icon
+                  icon="material-symbols:warning-outline-rounded"
+                  width={24}
+                />
+              }
               label="Tagihan pesanan"
-              value={Array.isArray(pesanan) ? pesanan.filter((p) => p.status === "selesai").length.toString() : "0"}
+              value={
+                Array.isArray(pesanan)
+                  ? pesanan
+                      .filter((p) => p.status === "selesai")
+                      .length.toString()
+                  : "0"
+              }
               subtitle="Belum lunas"
               iconColor="#EB5B00"
             />
@@ -342,8 +392,12 @@ export default function OwnerDashboard() {
           <div className="bg-white shadow-md rounded-lg p-4 border mt-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold text-black">Pesanan Terbaru</h1>
-                <p className="text-gray-500">Lihat semua pesanan laundry pelanggan</p>
+                <h1 className="text-3xl font-bold text-black">
+                  Pesanan Terbaru
+                </h1>
+                <p className="text-gray-500">
+                  Lihat semua pesanan laundry pelanggan
+                </p>
               </div>
             </div>
             <div className="flex justify-between mt-4">
@@ -428,7 +482,7 @@ export default function OwnerDashboard() {
                       Layanan
                     </th>
                     <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Berat
+                      Kuantitas
                     </th>
                     <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Harga
@@ -455,7 +509,10 @@ export default function OwnerDashboard() {
                     <tr>
                       <td colSpan={8} className="text-center py-10">
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-500 mb-2" />
+                          <Icon
+                            icon="mdi:alert-circle-outline"
+                            className="w-8 h-8 text-red-500 mb-2"
+                          />
                           <p className="text-red-500">{error}</p>
                         </div>
                       </td>
@@ -482,7 +539,9 @@ export default function OwnerDashboard() {
                             : (item.layanan as any)?.nama_layanan ||
                               "Layanan tidak tersedia"}
                         </td>
-                        <td className="px-4 py-3">{item.berat || 0} kg</td>
+                        <td className="px-4 py-3">
+                          {getLayananTypeAndDisplay(item).display}
+                        </td>{" "}
                         <td className="px-4 py-3">
                           Rp{" "}
                           {item.jumlah_harga
