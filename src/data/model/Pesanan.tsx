@@ -11,6 +11,7 @@ export interface Pesanan {
   id_layanan: number;
   layanan: string;
   berat?: number;
+  banyak_satuan?: number; // NEW: Added satuan field for item quantity
   jumlah_harga?: number;
   status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas";
   jenis_pembayaran?: "cash" | "transfer";
@@ -33,8 +34,8 @@ export interface Layanan {
   nama_layanan: string;
   harga_layanan: number;
   keterangan_layanan: string;
-  tipe: "Kiloan" | "Satuan"; // NEW: Added tipe field
-  waktu_pengerjaan?: number; // NEW: Added optional waktu_pengerjaan field
+  tipe: "Kiloan" | "Satuan"; // Added tipe field
+  waktu_pengerjaan?: number; // Added optional waktu_pengerjaan field
   id_owner: number;
   created_at?: string;
   updated_at?: string;
@@ -66,6 +67,7 @@ export class PesananImpl implements Pesanan {
     public updated_at: string,
     public id_admin?: number,
     public berat?: number,
+    public banyak_satuan?: number,
     public jumlah_harga?: number,
     public jenis_pembayaran?: "cash" | "transfer",
     public owner?: {
@@ -94,6 +96,7 @@ export class PesananImpl implements Pesanan {
       json["updated_at"],
       json["id_admin"] ? parseInt(json["id_admin"].toString()) : undefined,
       json["berat"] ? parseFloat(json["berat"].toString()) : undefined,
+      json["banyak_satuan"] ? parseInt(json["banyak_satuan"].toString()) : undefined, // NEW: Added satuan parsing
       json["jumlah_harga"]
         ? parseFloat(json["jumlah_harga"].toString())
         : undefined,
@@ -125,6 +128,7 @@ export class PesananImpl implements Pesanan {
       alamat: this.alamat,
       layanan: this.layanan,
       berat: this.berat,
+      banyak_satuan: this.banyak_satuan, // NEW: Added satuan to JSON output
       jumlah_harga: this.jumlah_harga,
       status: this.status,
       jenis_pembayaran: this.jenis_pembayaran,
@@ -135,6 +139,3 @@ export class PesananImpl implements Pesanan {
     };
   }
 }
-
-// ❌ HAPUS useState dari file model - ini harus di component!
-// const [pesanan, setPesanan] = useState<Pesanan[]>([]);

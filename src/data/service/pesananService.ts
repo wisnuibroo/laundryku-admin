@@ -13,6 +13,8 @@ export interface AddPesananInput {
   id_layanan?: number; // ID layanan (required by API)
   layanan?: string; // Nama layanan (optional)
   berat?: number;
+  satuan?: number; // Frontend field for quantity
+  banyak_satuan?: number; // Backend field name
   total_harga?: number; // akan dipetakan ke jumlah_harga
   jumlah_harga?: number; // field langsung
   jenis_pembayaran?: "cash" | "transfer";
@@ -42,6 +44,12 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       id_layanan: Number(data.id_layanan), // Required by API
       layanan: data.layanan ? data.layanan.trim() : undefined, // Optional
       berat: Number(data.berat || 0),
+      // Map satuan to banyak_satuan for backend compatibility
+      banyak_satuan: data.satuan
+        ? Number(data.satuan)
+        : data.banyak_satuan
+        ? Number(data.banyak_satuan)
+        : undefined,
       jumlah_harga: Number(data.jumlah_harga || data.total_harga || 0),
       status: data.status || "pending",
       jenis_pembayaran:
@@ -60,6 +68,7 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       alamat: typeof payload.alamat,
       id_layanan: typeof payload.id_layanan,
       layanan: typeof payload.layanan,
+      banyak_satuan: typeof payload.banyak_satuan,
     });
 
     const response = await axiosInstance.post("/pesanan", payload);
@@ -135,8 +144,6 @@ export const getPesanan = async (id_owner?: number): Promise<Pesanan[]> => {
   }
 };
 
-// Replace the existing updatePesanan function in your pesananService.ts with this improved version
-
 export const updatePesanan = async (
   id: number,
   data: Partial<AddPesananInput>
@@ -155,9 +162,17 @@ export const updatePesanan = async (
     if (data.nomor) payload.nomor = data.nomor;
     if (data.alamat) payload.alamat = data.alamat;
     if (data.layanan) payload.layanan = data.layanan;
-    if (data.id_layanan) payload.id_layanan = Number(data.id_layanan); // 🔥 IMPORTANT: Include id_layanan
+    if (data.id_layanan) payload.id_layanan = Number(data.id_layanan);
     if (data.id_owner) payload.id_owner = Number(data.id_owner);
     if (data.berat !== undefined) payload.berat = Number(data.berat);
+
+    // Handle quantity mapping - prioritize satuan over banyak_satuan
+    if (data.satuan !== undefined) {
+      payload.banyak_satuan = Number(data.satuan);
+    } else if (data.banyak_satuan !== undefined) {
+      payload.banyak_satuan = Number(data.banyak_satuan);
+    }
+
     if (data.total_harga !== undefined)
       payload.jumlah_harga = Number(data.total_harga);
     if (data.jumlah_harga !== undefined)
