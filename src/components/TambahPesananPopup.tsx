@@ -2,19 +2,18 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
-import { useNavigate } from "react-router-dom";
+
 import {
   addPesanan,
   AddPesananInput,
   getPesanan,
 } from "../data/service/pesananService";
 import {
-  findPelangganByNomor,
   getPelangganList,
   PelangganData,
 } from "../data/service/pelangganService";
 import { Layanan, Pesanan } from "../data/model/Pesanan";
-import { getLayananByOwner } from "../data/service/ApiService";
+
 
 interface TambahPesananPopupProps {
   onClose?: () => void;
@@ -49,7 +48,6 @@ export default function TambahPesananPopup({
   });
 
   const { user, userType } = useStateContext();
-  const navigate = useNavigate();
 
   const selectedLayananInfo = useMemo(() => {
     return layananList.find((l) => l.id.toString() === layanan);
