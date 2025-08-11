@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { useStateContext } from "../../../contexts/ContextsProvider";
 import { Layanan } from "../../../data/model/Pesanan";
 import {
-  getLayanan,
   getLayananByOwner,
 } from "../../../data/service/ApiService";
 import axiosInstance from "../../../lib/axios";
@@ -258,39 +257,7 @@ export default function LayananPage() {
     }
   };
 
-  const handleToggleStatus = async (id: number, currentStatus: string) => {
-    try {
-      const newStatus = currentStatus === "aktif" ? "nonaktif" : "aktif";
 
-      const token = localStorage.getItem("ACCESS_TOKEN");
-      const response = await fetch(
-        `https://laundryku.rplrus.com/api/layanan/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      // Update local state
-      setLayananList((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus as any } : item
-        )
-      );
-    } catch (err: any) {
-      console.error("Error updating service status:", err);
-      setError(err.message || "Gagal mengubah status layanan");
-    }
-  };
 
   const filteredLayanan = layananList.filter((layanan) =>
     [layanan.nama_layanan, layanan.keterangan_layanan].some((field) =>
@@ -308,13 +275,7 @@ export default function LayananPage() {
     return "Khusus";
   };
 
-  // Popularitas konsisten berdasarkan ID layanan (tidak berubah setiap refresh)
-  const calculatePopularity = (layananId: number, harga: number) => {
-    // Buat seed berdasarkan ID layanan untuk konsistensi
-    const seed = layananId * 17 + harga / 1000;
-    const popularity = (seed % 50) + 30; // Range 30-80%
-    return Math.floor(popularity);
-  };
+
 
   const getCategoryColor = (kategori: string) => {
     switch (kategori.toLowerCase()) {
@@ -331,12 +292,7 @@ export default function LayananPage() {
     }
   };
 
-  const getPopularityColor = (popularitas: number) => {
-    if (popularitas >= 80) return "bg-green-500";
-    if (popularitas >= 60) return "bg-blue-500";
-    if (popularitas >= 40) return "bg-yellow-500";
-    return "bg-red-500";
-  };
+
 
   // NEW: Get tipe color
   const getTipeColor = (tipe: string) => {
@@ -512,10 +468,6 @@ export default function LayananPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredLayanan.map((layanan) => {
                   const kategori = estimateCategory(layanan.nama_layanan);
-                  const popularitas = calculatePopularity(
-                    layanan.id,
-                    layanan.harga_layanan
-                  );
 
                   return (
                     <tr key={layanan.id} className="hover:bg-gray-50">

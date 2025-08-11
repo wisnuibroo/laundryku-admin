@@ -15,7 +15,6 @@ interface WeightPriceModalProps {
 
 export default function WeightPriceModal({
   show,
-  pesananId,
   namaPelanggan,
   layananHarga,
   layananNama,

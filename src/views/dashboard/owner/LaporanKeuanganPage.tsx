@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -121,8 +121,6 @@ export default function LaporanKeuanganPage() {
       pengeluaran: report.pengeluaran,
       laba: report.laba,
     }));
-
-  const currentYear = new Date().getFullYear();
 
   // Toggle visibility data
   const toggleDataVisibility = (dataKey: keyof typeof visibleData) => {

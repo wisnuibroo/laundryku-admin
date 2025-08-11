@@ -8,10 +8,7 @@ import KelolaKaryawanPage from "./views/dashboard/owner/KelolaKaryawanPage";
 import LaporanKeuanganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
 import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
-import LaporanKeunganPage from "./views/dashboard/owner/LaporanKeuanganPage";
 import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
-import TambahPesananPopup from "./components/TambahPesananPopup";
-import EditPesananPopup from "./components/EditPesananPopup";
 import LayananPage from "./views/dashboard/owner/LayananPage";
  
 
