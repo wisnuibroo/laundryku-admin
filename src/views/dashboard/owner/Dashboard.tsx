@@ -376,16 +376,9 @@ export default function OwnerDashboard() {
             <CardManage
               icon="mdi:credit-card"
               title="Tagihan"
-              subtitle="Kelola pembayaran"
+              subtitle="Kelola Tagihan pelanggan"
               bgColor="#E53935"
               to="/dashboard/owner/tagihan/belum-bayar"
-            />
-            <CardManage
-              icon="mdi:check-bold"
-              title="Lunas"
-              subtitle="Pembayaran"
-              bgColor="#43A047"
-              to="/dashboard/owner/tagihan/lunas"
             />
           </div>
 

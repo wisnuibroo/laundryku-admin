@@ -339,7 +339,7 @@ export default function PengeluaranPage() {
             className="flex items-center gap-2 px-4 py-2 rounded border border-gray-300 bg-white text-black font-semibold shadow"
           >
             <Icon icon="mdi:credit-card-outline" width={18} />
-            Bulanan
+            Statistik
           </button>
           <button
             onClick={() => navigate("/dashboard/owner/laporan-pengeluaran")}
