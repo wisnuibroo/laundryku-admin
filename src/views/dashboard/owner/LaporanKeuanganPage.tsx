@@ -455,7 +455,7 @@ export default function LaporanKeuanganPage() {
             className="flex items-center gap-2 px-4 py-2 rounded bg-blue-700 text-white font-semibold shadow"
           >
             <Icon icon="mdi:chart-line" width={18} />
-            Bulanan
+            Statistik
           </button>
           <button
             onClick={() => navigate("/dashboard/owner/laporan-pengeluaran")}
