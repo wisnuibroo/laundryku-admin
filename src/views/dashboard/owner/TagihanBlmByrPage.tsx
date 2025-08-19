@@ -49,6 +49,7 @@ export default function TagihanBlmByrPage() {
   // Tambahkan state untuk notifikasi
   const [notification, setNotification] = useState<Notification | null>(null);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useStateContext();
 
   const [stats, setStats] = useState({
@@ -84,9 +85,10 @@ export default function TagihanBlmByrPage() {
     return "Tidak tersedia";
   };
 
-  const fetchTagihanBelumBayar = async () => {
+  const fetchTagihanBelumBayar = async (showLoader = true) => {
     try {
-      setIsLoading(true);
+      if (showLoader) setIsLoading(true);
+      if (!showLoader) setIsRefreshing(true);
       const userString = localStorage.getItem("user");
       if (!userString) {
         setIsLoading(false);
@@ -169,7 +171,8 @@ export default function TagihanBlmByrPage() {
     } catch (error) {
       console.error("Gagal ambil data tagihan:", error);
     } finally {
-      setIsLoading(false);
+      if (showLoader) setIsLoading(false);
+      if (!showLoader) setIsRefreshing(false);
     }
   };
 
@@ -190,7 +193,7 @@ export default function TagihanBlmByrPage() {
       await updatePesanan(parseInt(idPesanan), { status: "lunas" });
 
       // Refresh data setelah update
-      await fetchTagihanBelumBayar();
+      await fetchTagihanBelumBayar(false);
 
       showNotification("Pesanan berhasil ditandai sebagai lunas!", "success");
     } catch (error: any) {
@@ -216,7 +219,7 @@ export default function TagihanBlmByrPage() {
       await Promise.all(updatePromises);
 
       // Refresh data setelah update
-      await fetchTagihanBelumBayar();
+      await fetchTagihanBelumBayar(false);
 
       showNotification(
         `Semua ${customer.tagihan.length} pesanan ${customer.name} berhasil ditandai sebagai lunas!`,
@@ -235,7 +238,14 @@ export default function TagihanBlmByrPage() {
   };
 
   useEffect(() => {
-    fetchTagihanBelumBayar();
+    fetchTagihanBelumBayar(true);
+    
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchTagihanBelumBayar(false);
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -346,6 +356,14 @@ export default function TagihanBlmByrPage() {
       </nav>
 
       <div className="p-6">
+        {/* Auto-refresh indicator */}
+        {isRefreshing && (
+          <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+            <span className="text-sm text-blue-600">Memperbarui data tagihan...</span>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <CardStat
             icon={<Icon icon="stash:user-group-duotone" width={24} />}

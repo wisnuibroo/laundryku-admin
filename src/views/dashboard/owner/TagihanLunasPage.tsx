@@ -42,6 +42,7 @@ export default function TagihanLunasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false); // Tambahkan state untuk dropdown menu
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState({
     total_tagihan: 0,
     total_pendapatan: 0,
@@ -106,9 +107,10 @@ export default function TagihanLunasPage() {
     setOpenRowId(openRowId === id ? null : id);
   };
 
-  const fetchTagihanLunas = async () => {
+  const fetchTagihanLunas = async (showLoader = true) => {
     try {
-      setIsLoading(true);
+      if (showLoader) setIsLoading(true);
+      if (!showLoader) setIsRefreshing(true);
       const userString = localStorage.getItem("user");
       if (!userString) {
         setIsLoading(false);
@@ -204,12 +206,20 @@ export default function TagihanLunasPage() {
     } catch (error) {
       console.error("Gagal ambil data tagihan lunas:", error);
     } finally {
-      setIsLoading(false);
+      if (showLoader) setIsLoading(false);
+      if (!showLoader) setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchTagihanLunas();
+    fetchTagihanLunas(true);
+    
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchTagihanLunas(false);
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -294,6 +304,14 @@ export default function TagihanLunasPage() {
       </nav>
 
       <div className="p-6">
+        {/* Auto-refresh indicator */}
+        {isRefreshing && (
+          <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+            <span className="text-sm text-blue-600">Memperbarui data tagihan lunas...</span>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <CardStat
             icon={<Icon icon="hugeicons:task-01" width={24} />}

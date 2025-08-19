@@ -20,6 +20,7 @@ export default function LayananPage() {
   const [submitting, setSubmitting] = useState(false);
   const [layananList, setLayananList] = useState<Layanan[]>([]);
   const [loadingLayanan, setLoadingLayanan] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Form state for adding new service
   const [formData, setFormData] = useState<{
@@ -44,16 +45,27 @@ export default function LayananPage() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchLayanan();
+      fetchLayanan(true);
+      
+      // Auto-refresh every 30 seconds
+      const intervalId = setInterval(() => {
+        fetchLayanan(false);
+      }, 30000);
+      
+      return () => clearInterval(intervalId);
     } else {
       setLoading(false);
     }
   }, [user?.id]);
 
-  const fetchLayanan = async () => {
+  const fetchLayanan = async (showLoader = true) => {
     try {
-      setLoadingLayanan(true);
-      setLoading(true);
+      if (showLoader) {
+        setLoadingLayanan(true);
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       console.log("🔍 Fetching layanan for owner ID:", user?.id);
 
       let data: Layanan[] = [];
@@ -128,8 +140,12 @@ export default function LayananPage() {
       setError(`Gagal memuat data layanan: ${(error as Error).message}`);
       setLayananList([]);
     } finally {
-      setLoadingLayanan(false);
-      setLoading(false);
+      if (showLoader) {
+        setLoadingLayanan(false);
+        setLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   };
   [user?.id]; // ✅ Dependency user.id untuk re-fetch jika user berubah
@@ -144,7 +160,19 @@ export default function LayananPage() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "harga_layanan") {
+      // Hapus semua karakter non-digit
+      const rawValue = value.replace(/\D/g, "");
+      // Format dengan titik ribuan
+      const formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formattedValue,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,7 +184,7 @@ export default function LayananPage() {
       return;
     }
 
-    if (!formData.harga_layanan || Number(formData.harga_layanan) <= 0) {
+    if (!formData.harga_layanan || Number(formData.harga_layanan.replace(/\./g, "")) <= 0) {
       setError("Harga layanan harus diisi dan lebih dari 0");
       return;
     }
@@ -178,7 +206,7 @@ export default function LayananPage() {
       // Data yang akan dikirim sesuai dengan validasi controller PHP
       const layananData = {
         nama_layanan: formData.nama_layanan.trim(),
-        harga_layanan: formData.harga_layanan.toString(), // String sesuai validasi PHP
+        harga_layanan: formData.harga_layanan.replace(/\./g, "").toString(), // Hapus titik dan kirim sebagai string
         keterangan_layanan: formData.keterangan_layanan.trim(),
         tipe: formData.tipe, // NEW: Added tipe field
         waktu_pengerjaan: formData.waktu_pengerjaan
@@ -207,7 +235,7 @@ export default function LayananPage() {
         tipe: "Kiloan",
       });
 
-      await fetchLayanan();
+      await fetchLayanan(false);
     } catch (err: any) {
       console.error("❌ Error creating service:", err);
       console.error("❌ Error response:", err.response?.data);
@@ -250,7 +278,7 @@ export default function LayananPage() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      await fetchLayanan();
+      await fetchLayanan(false);
     } catch (err: any) {
       console.error("Error deleting service:", err);
       setError(err.message || "Gagal menghapus layanan");
@@ -398,6 +426,14 @@ export default function LayananPage() {
       </nav>
 
       <div className="p-6">
+        {/* Auto-refresh indicator */}
+        {isRefreshing && (
+          <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+            <span className="text-sm text-blue-600">Memperbarui data layanan...</span>
+          </div>
+        )}
+        
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <p>{error}</p>
@@ -628,13 +664,12 @@ export default function LayananPage() {
                       Harga (Rp) *
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       name="harga_layanan"
                       value={formData.harga_layanan}
                       onChange={handleInputChange}
-                      placeholder="5000"
+                      placeholder="5.000"
                       required
-                      min="1"
                       className="w-full border p-2 rounded focus:outline-none focus:border-blue-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">

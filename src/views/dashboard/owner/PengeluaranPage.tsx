@@ -40,6 +40,7 @@ export default function PengeluaranPage() {
   const [error, setError] = useState<string | null>(null);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useStateContext();
 
   // Get current year
@@ -64,8 +65,16 @@ export default function PengeluaranPage() {
 
   // Fetch data
   useEffect(() => {
-    fetchPengeluaran();
+    fetchPengeluaran(true);
     fetchStats();
+    
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchPengeluaran(false);
+      fetchStats();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -74,9 +83,10 @@ export default function PengeluaranPage() {
     }
   }, [pengeluaran]);
 
-  const fetchPengeluaran = async () => {
+  const fetchPengeluaran = async (showLoader = true) => {
     try {
-      setIsLoading(true);
+      if (showLoader) setIsLoading(true);
+      if (!showLoader) setIsRefreshing(true);
       const response = await axiosInstance.get("/pengeluaran");
       if (response.data.status) {
         setPengeluaran(response.data.data);
@@ -86,7 +96,8 @@ export default function PengeluaranPage() {
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan saat mengambil data");
     } finally {
-      setIsLoading(false);
+      if (showLoader) setIsLoading(false);
+      if (!showLoader) setIsRefreshing(false);
     }
   };
 
@@ -126,17 +137,6 @@ export default function PengeluaranPage() {
 
     const monthlyStats: { [key: number]: MonthlyData } = {};
 
-    // Initialize all months for current year
-    for (let i = 0; i < 12; i++) {
-      monthlyStats[i] = {
-        month: i,
-        year: currentYear,
-        monthName: months[i],
-        totalPengeluaran: 0,
-        pengeluaranList: [],
-      };
-    }
-
     // Filter and group pengeluaran by month for current year
     pengeluaran
       .filter((item) => {
@@ -147,11 +147,22 @@ export default function PengeluaranPage() {
         const itemDate = new Date(item.tanggal);
         const monthIndex = itemDate.getMonth();
 
+        // Only create month entry if it has data
+        if (!monthlyStats[monthIndex]) {
+          monthlyStats[monthIndex] = {
+            month: monthIndex,
+            year: currentYear,
+            monthName: months[monthIndex],
+            totalPengeluaran: 0,
+            pengeluaranList: [],
+          };
+        }
+
         monthlyStats[monthIndex].totalPengeluaran += Number(item.jumlah) || 0;
         monthlyStats[monthIndex].pengeluaranList.push(item);
       });
 
- 
+    // Only show months that have data
     const monthlyArray = Object.values(monthlyStats).sort(
       (a, b) => a.month - b.month
     );
@@ -160,7 +171,6 @@ export default function PengeluaranPage() {
 
 
 
-  // Ganti handleInputChange jadi seperti ini
 const handleInputChange = (
   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 ) => {
@@ -195,7 +205,7 @@ const handleInputChange = (
     const response = await axiosInstance.post("/pengeluaran", payload);
     if (response.data.status) {
       setOpenDialog(false);
-      fetchPengeluaran();
+      fetchPengeluaran(false);
       fetchStats();
       setFormData({
         kategori: "",
@@ -323,6 +333,14 @@ const handleInputChange = (
       </nav>
 
       <div className="p-6">
+        {/* Auto-refresh indicator */}
+        {isRefreshing && (
+          <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+            <span className="text-sm text-blue-600">Memperbarui data pengeluaran...</span>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <CardStat
             icon={<Icon icon="tdesign:money" width={24} />}

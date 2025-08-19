@@ -49,6 +49,7 @@ export default function LaporanKeuanganPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [chartType, setChartType] = useState<"line" | "row">("line");
 
   // State untuk kontrol data yang ditampilkan di chart
@@ -72,12 +73,20 @@ export default function LaporanKeuanganPage() {
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
-    fetchLaporanKeuangan();
+    fetchLaporanKeuangan(true);
+    
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchLaporanKeuangan(false);
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
-  const fetchLaporanKeuangan = async () => {
+  const fetchLaporanKeuangan = async (showLoader = true) => {
     try {
-      setIsLoading(true);
+      if (showLoader) setIsLoading(true);
+      if (!showLoader) setIsRefreshing(true);
       const response = await axiosInstance.get(
         `/laporan-keuangan?tahun=${currentYear}`
       );
@@ -95,7 +104,8 @@ export default function LaporanKeuanganPage() {
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan saat mengambil data");
     } finally {
-      setIsLoading(false);
+      if (showLoader) setIsLoading(false);
+      if (!showLoader) setIsRefreshing(false);
     }
   };
 
@@ -411,6 +421,14 @@ export default function LaporanKeuanganPage() {
       </nav>
 
       <div className="p-6">
+        {/* Auto-refresh indicator */}
+        {isRefreshing && (
+          <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+            <span className="text-sm text-blue-600">Memperbarui laporan keuangan...</span>
+          </div>
+        )}
+        
         {/* Card Stat */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <CardStat

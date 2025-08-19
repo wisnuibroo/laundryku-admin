@@ -58,6 +58,7 @@ export default function OwnerDashboard() {
   const [error, setError] = useState<string>("");
   const { user, token } = useStateContext();
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     total_pesanan: 0,
     total_pendapatan: 0,
@@ -102,6 +103,7 @@ export default function OwnerDashboard() {
   useEffect(() => {
     const fetchPesanan = async (showLoader = true) => {
       if (showLoader) setLoading(true);
+      if (!showLoader) setIsRefreshing(true);
       try {
         const localToken = localStorage.getItem("token");
         if (!localToken && !token) {
@@ -158,6 +160,7 @@ export default function OwnerDashboard() {
         setPesanan([]);
       } finally {
         if (showLoader) setLoading(false);
+        if (!showLoader) setIsRefreshing(false);
       }
     };
 
@@ -327,6 +330,14 @@ export default function OwnerDashboard() {
         </nav>
 
         <div className="p-6">
+          {/* Auto-refresh indicator */}
+          {isRefreshing && (
+            <div className="flex items-center justify-center mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <Icon icon="eos-icons:loading" className="w-4 h-4 text-blue-600 mr-2" />
+              <span className="text-sm text-blue-600">Memperbarui data...</span>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <CardStat
               icon={<Icon icon="streamline-cyber:money-bag-1" width={24} />}
