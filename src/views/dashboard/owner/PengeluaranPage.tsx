@@ -151,7 +151,7 @@ export default function PengeluaranPage() {
         monthlyStats[monthIndex].pengeluaranList.push(item);
       });
 
-    // Convert to array and sort by month
+ 
     const monthlyArray = Object.values(monthlyStats).sort(
       (a, b) => a.month - b.month
     );
@@ -160,43 +160,63 @@ export default function PengeluaranPage() {
 
 
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
+  // Ganti handleInputChange jadi seperti ini
+const handleInputChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value } = e.target;
+
+  if (name === "jumlah") {
+    // Hapus semua karakter non-digit
+    const rawValue = value.replace(/\D/g, "");
+    // Format dengan titik ribuan
+    const formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    setFormData((prev) => ({
+      ...prev,
+      [name]: formattedValue,
+    }));
+  } else {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }
+};
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await axiosInstance.post("/pengeluaran", formData);
-      if (response.data.status) {
-        setOpenDialog(false);
-        fetchPengeluaran();
-        fetchStats();
-        setFormData({
-          kategori: "",
-          jumlah: "",
-          keterangan: "",
-          tanggal: new Date().toISOString().split("T")[0],
-        });
-      } else {
-        setError(response.data.message || "Gagal menambahkan pengeluaran");
-      }
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat menambahkan data");
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    const payload = {
+      ...formData,
+      jumlah: formData.jumlah.replace(/\./g, ""), // kirim tanpa titik
+    };
+
+    const response = await axiosInstance.post("/pengeluaran", payload);
+    if (response.data.status) {
+      setOpenDialog(false);
+      fetchPengeluaran();
+      fetchStats();
+      setFormData({
+        kategori: "",
+        jumlah: "",
+        keterangan: "",
+        tanggal: new Date().toISOString().split("T")[0],
+      });
+    } else {
+      setError(response.data.message || "Gagal menambahkan pengeluaran");
     }
-  };
+  } catch (err: any) {
+    setError(err.message || "Terjadi kesalahan saat menambahkan data");
+  }
+};
+
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
   };
 
-  // Filter pengeluaran berdasarkan pencarian dan bulan yang dipilih
+
   const getFilteredPengeluaranForMonth = (monthData: MonthlyData) => {
     return monthData.pengeluaranList.filter(
       (item) =>
@@ -206,7 +226,7 @@ export default function PengeluaranPage() {
     );
   };
 
-  // Filter monthly data berdasarkan pencarian - hanya tampilkan bulan yang ada pengeluaran matching
+
   const getFilteredMonthlyData = () => {
     if (!searchText.trim()) {
       return monthlyData;
@@ -240,6 +260,8 @@ export default function PengeluaranPage() {
   const toggleMonthExpansion = (monthIndex: number) => {
     setExpandedMonth(expandedMonth === monthIndex ? null : monthIndex);
   };
+
+  
 
   return (
     <div className="flex-1 overflow-auto">
@@ -388,7 +410,7 @@ export default function PengeluaranPage() {
                       Jumlah (Rp)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       name="jumlah"
                       value={formData.jumlah}
                       onChange={handleInputChange}

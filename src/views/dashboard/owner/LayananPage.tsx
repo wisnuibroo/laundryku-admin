@@ -318,10 +318,10 @@ export default function LayananPage() {
             />
             <Icon
               icon={"material-symbols:local-laundry-service"}
-              className="w-7 h-7 text-[#9929EA]"
+              className="w-7 h-7 text-[#0432b3]"
             />
             <span className="text-lg font-bold text-gray-900">
-              Kelola Layanan
+              Daftar Layanan
             </span>
           </div>
         </nav>
