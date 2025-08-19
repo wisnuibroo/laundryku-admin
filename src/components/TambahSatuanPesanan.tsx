@@ -4,7 +4,6 @@ import Notification from "./Notification";
 
 interface QuantityModalProps {
   show: boolean;
-  pesananId: number;
   namaPelanggan: string;
   layananHarga: number; // Harga per item
   layananNama: string;
@@ -14,7 +13,6 @@ interface QuantityModalProps {
 
 export default function QuantityModal({
   show,
-  pesananId,
   namaPelanggan,
   layananHarga,
   layananNama,

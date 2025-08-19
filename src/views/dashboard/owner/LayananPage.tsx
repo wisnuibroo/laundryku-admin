@@ -451,9 +451,6 @@ export default function LayananPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Harga
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Waktu
-                  </th>
                   {/* <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Popularitas
                   </th> */}
@@ -523,19 +520,7 @@ export default function LayananPage() {
                           per {layanan.tipe === "Satuan" ? "item" : "kg"}
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Icon
-                            icon="material-symbols:schedule"
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm">
-                            {layanan.waktu_pengerjaan
-                              ? `${layanan.waktu_pengerjaan} hari`
-                              : "1-2 hari"}
-                          </span>
-                        </div>
-                      </td>
+
                       {/* <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-16 bg-gray-200 rounded-full h-2">
@@ -658,7 +643,7 @@ export default function LayananPage() {
                     </p>
                   </div>
 
-                  {/* NEW: Waktu Pengerjaan */}
+                  {/* NEW: Waktu Pengerjaan
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">
                       Waktu Pengerjaan (hari)
@@ -676,7 +661,7 @@ export default function LayananPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       Estimasi waktu pengerjaan dalam hari (opsional)
                     </p>
-                  </div>
+                  </div> */}
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">

@@ -173,34 +173,7 @@ export default function TagihanBlmByrPage() {
     }
   };
 
-  // Fungsi untuk menampilkan unit di tabel customer
-  const getCustomerUnitDisplay = (customer: Pelanggan) => {
-    // Ambil jenis layanan dari tagihan pertama untuk menentukan tipe dominan
-    const firstLayanan = customer.tagihan[0]?.jenis || "";
-    const layananLower = firstLayanan.toLowerCase();
 
-    if (layananLower.includes("kiloan") || layananLower.includes("kg")) {
-      return customer.total_berat
-        ? `${customer.total_berat} kg`
-        : "Berat tidak tersedia";
-    } else if (
-      layananLower.includes("satuan") ||
-      layananLower.includes("item")
-    ) {
-      return customer.total_satuan
-        ? `${customer.total_satuan} item`
-        : "Jumlah tidak tersedia";
-    }
-
-    // Default: tampilkan yang tersedia
-    if (customer.total_berat && customer.total_berat > 0) {
-      return `${customer.total_berat} kg`;
-    } else if (customer.total_satuan && customer.total_satuan > 0) {
-      return `${customer.total_satuan} item`;
-    }
-
-    return "Tidak tersedia";
-  };
 
   // Fungsi untuk menampilkan notifikasi
   const showNotification = (message: string, type: "success" | "error") => {

@@ -73,33 +73,33 @@ export default function TagihanLunasPage() {
   };
 
   // Fungsi untuk menampilkan unit di tabel customer
-  const getCustomerUnitDisplay = (customer: Pelanggan) => {
-    // Ambil jenis layanan dari tagihan pertama untuk menentukan tipe dominan
-    const firstLayanan = customer.tagihan[0]?.jenis || "";
-    const layananLower = firstLayanan.toLowerCase();
+  // const getCustomerUnitDisplay = (customer: Pelanggan) => {
+  //   // Ambil jenis layanan dari tagihan pertama untuk menentukan tipe dominan
+  //   const firstLayanan = customer.tagihan[0]?.jenis || "";
+  //   const layananLower = firstLayanan.toLowerCase();
 
-    if (layananLower.includes("kiloan") || layananLower.includes("kg")) {
-      return customer.total_berat
-        ? `${customer.total_berat} kg`
-        : "Berat tidak tersedia";
-    } else if (
-      layananLower.includes("satuan") ||
-      layananLower.includes("item")
-    ) {
-      return customer.total_satuan
-        ? `${customer.total_satuan} item`
-        : "Jumlah tidak tersedia";
-    }
+  //   if (layananLower.includes("kiloan") || layananLower.includes("kg")) {
+  //     return customer.total_berat
+  //       ? `${customer.total_berat} kg`
+  //       : "Berat tidak tersedia";
+  //   } else if (
+  //     layananLower.includes("satuan") ||
+  //     layananLower.includes("item")
+  //   ) {
+  //     return customer.total_satuan
+  //       ? `${customer.total_satuan} item`
+  //       : "Jumlah tidak tersedia";
+  //   }
 
-    // Default: tampilkan yang tersedia
-    if (customer.total_berat && customer.total_berat > 0) {
-      return `${customer.total_berat} kg`;
-    } else if (customer.total_satuan && customer.total_satuan > 0) {
-      return `${customer.total_satuan} item`;
-    }
+  //   // Default: tampilkan yang tersedia
+  //   if (customer.total_berat && customer.total_berat > 0) {
+  //     return `${customer.total_berat} kg`;
+  //   } else if (customer.total_satuan && customer.total_satuan > 0) {
+  //     return `${customer.total_satuan} item`;
+  //   }
 
-    return "Tidak tersedia";
-  };
+  //   return "Tidak tersedia";
+  // };
 
   // Tambahkan fungsi untuk toggle expandable rows
   const toggleRow = (id: number) => {
@@ -132,8 +132,19 @@ export default function TagihanLunasPage() {
         return;
       }
 
-      // Filter data untuk pesanan dengan status "lunas"
-      const lunasData = data.filter((item: any) => item.status === "lunas");
+      // Get current month and year
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      // Filter data untuk pesanan dengan status "lunas" dan bulan saat ini
+      const lunasData = data.filter((item: any) => {
+        if (item.status !== "lunas") return false;
+        
+        // Filter by current month and year
+        const itemDate = new Date(item.updated_at || item.created_at);
+        return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+      });
 
       // Kelompokkan berdasarkan nomor telepon
       const groupedByPhone = lunasData.reduce((acc: any, item: any) => {
@@ -295,7 +306,7 @@ export default function TagihanLunasPage() {
             icon={<Icon icon="tdesign:money" width={24} />}
             label="Total Pendapatan"
             value={`Rp ${stats.total_pendapatan.toLocaleString("id-ID")}`}
-            subtitle="Dari tagihan lunas"
+            subtitle={`Bulan ${new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`}
             iconColor="#06923E"
           />
         </div>

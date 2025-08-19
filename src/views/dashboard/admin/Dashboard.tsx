@@ -1271,7 +1271,6 @@ export default function Dashboard() {
       {showQuantityModal && selectedPesananForQuantity && (
         <QuantityModal
           show={showQuantityModal}
-          pesananId={selectedPesananForQuantity.id}
           namaPelanggan={selectedPesananForQuantity.nama_pelanggan}
           layananHarga={selectedPesananForQuantity.layanan_harga}
           layananNama={selectedPesananForQuantity.layanan_nama}

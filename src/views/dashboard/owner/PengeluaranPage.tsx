@@ -39,9 +39,11 @@ export default function PengeluaranPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
   const { user } = useStateContext();
+
+  // Get current year
+  const currentYear = new Date().getFullYear();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,13 +66,13 @@ export default function PengeluaranPage() {
   useEffect(() => {
     fetchPengeluaran();
     fetchStats();
-  }, [selectedYear]);
+  }, []);
 
   useEffect(() => {
     if (pengeluaran.length > 0) {
       processMonthlyData();
     }
-  }, [pengeluaran, selectedYear]);
+  }, [pengeluaran]);
 
   const fetchPengeluaran = async () => {
     try {
@@ -91,7 +93,7 @@ export default function PengeluaranPage() {
   const fetchStats = async () => {
     try {
       const response = await axiosInstance.get(
-        `/laporan-keuangan?tahun=${selectedYear}`
+        `/laporan-keuangan?tahun=${currentYear}`
       );
       if (response.data.status) {
         const { total } = response.data.data;
@@ -124,22 +126,22 @@ export default function PengeluaranPage() {
 
     const monthlyStats: { [key: number]: MonthlyData } = {};
 
-    // Initialize all months for selected year
+    // Initialize all months for current year
     for (let i = 0; i < 12; i++) {
       monthlyStats[i] = {
         month: i,
-        year: selectedYear,
+        year: currentYear,
         monthName: months[i],
         totalPengeluaran: 0,
         pengeluaranList: [],
       };
     }
 
-    // Filter and group pengeluaran by month for selected year
+    // Filter and group pengeluaran by month for current year
     pengeluaran
       .filter((item) => {
         const itemDate = new Date(item.tanggal);
-        return itemDate.getFullYear() === selectedYear;
+        return itemDate.getFullYear() === currentYear;
       })
       .forEach((item) => {
         const itemDate = new Date(item.tanggal);
@@ -156,17 +158,7 @@ export default function PengeluaranPage() {
     setMonthlyData(monthlyArray);
   };
 
-  // Get available years from data
-  const getAvailableYears = () => {
-    const years = new Set<number>();
-    pengeluaran.forEach((item) => {
-      const year = new Date(item.tanggal).getFullYear();
-      years.add(year);
-    });
-    const currentYear = new Date().getFullYear();
-    years.add(currentYear);
-    return Array.from(years).sort((a, b) => b - a);
-  };
+
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -314,21 +306,21 @@ export default function PengeluaranPage() {
             icon={<Icon icon="tdesign:money" width={24} />}
             label="Total Pendapatan"
             value={formatRupiah(stats.total_pendapatan)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#06923E"
           />
           <CardStat
             icon={<Icon icon="humbleicons:calendar" width={24} />}
             label="Total Pengeluaran"
             value={formatRupiah(stats.total_pengeluaran)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#ED3500"
           />
           <CardStat
             icon={<Icon icon="humbleicons:calendar" width={24} />}
             label="Keuntungan"
             value={formatRupiah(stats.laba_bersih)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#0065F8"
           />
         </div>
@@ -355,19 +347,6 @@ export default function PengeluaranPage() {
             <h3 className="text-3xl font-semibold">Breakdown Pengeluaran</h3>
 
             <div className="flex gap-2">
-              {/* Year Filter */}
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                {getAvailableYears().map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-
               <div className="relative">
                 <Search value={searchText} onChange={handleSearchChange} />
               </div>
@@ -488,8 +467,8 @@ export default function PengeluaranPage() {
               />
               <p className="mt-2">
                 {searchText
-                  ? `Tidak ada pengeluaran yang cocok dengan pencarian "${searchText}" untuk tahun ${selectedYear}`
-                  : `Belum ada data pengeluaran untuk tahun ${selectedYear}`}
+                  ? `Tidak ada pengeluaran yang cocok dengan pencarian "${searchText}" untuk tahun ${currentYear}`
+                  : `Belum ada data pengeluaran untuk tahun ${currentYear}`}
               </p>
             </div>
           ) : (

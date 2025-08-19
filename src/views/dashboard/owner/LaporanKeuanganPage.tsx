@@ -48,9 +48,6 @@ export default function LaporanKeuanganPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
-  );
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [chartType, setChartType] = useState<"line" | "row">("line");
 
@@ -71,28 +68,18 @@ export default function LaporanKeuanganPage() {
 
   const [reports, setReports] = useState<Report[]>([]);
 
-  // Generate array tahun untuk dropdown (2 tahun ke depan, tahun ini, 3 tahun ke belakang)
-  const generateYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    // Tambah tahun ini dan 3 tahun ke belakang
-    for (let i = 0; i < 5; i++) {
-      years.push(currentYear - i);
-    }
-    return years;
-  };
-
-  const yearOptions = generateYearOptions();
+  // Get current year
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     fetchLaporanKeuangan();
-  }, [selectedYear]);
+  }, []);
 
   const fetchLaporanKeuangan = async () => {
     try {
       setIsLoading(true);
       const response = await axiosInstance.get(
-        `/laporan-keuangan?tahun=${selectedYear}`
+        `/laporan-keuangan?tahun=${currentYear}`
       );
       if (response.data.status) {
         const { laporan_bulanan, total } = response.data.data;
@@ -151,7 +138,7 @@ export default function LaporanKeuanganPage() {
                 >
                   <div className="mb-3">
                     <h4 className="text-xl font-semibold text-gray-800">
-                      {nama_bulan} {selectedYear}
+                      {nama_bulan} {currentYear}
                     </h4>
                   </div>
 
@@ -430,21 +417,21 @@ export default function LaporanKeuanganPage() {
             icon={<Icon icon="tdesign:money" width={24} />}
             label="Total Pendapatan"
             value={formatRupiah(stats.total_pendapatan)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#10B981"
           />
           <CardStat
             icon={<Icon icon="mdi:cash-minus" width={24} />}
             label="Total Pengeluaran"
             value={formatRupiah(stats.total_pengeluaran)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#EF4444"
           />
           <CardStat
             icon={<Icon icon="mdi:trending-up" width={24} />}
             label="Keuntungan"
             value={formatRupiah(stats.laba_bersih)}
-            subtitle={`Tahun ${selectedYear}`}
+            subtitle={`Tahun ${currentYear}`}
             iconColor="#3B82F6"
           />
         </div>
@@ -473,68 +460,34 @@ export default function LaporanKeuanganPage() {
                 Statistik Keuangan
               </h3>
               <p className="text-sm text-gray-500">
-                Tren pendapatan, pengeluaran, dan profit bulanan
+                Tren pendapatan, pengeluaran, dan profit bulanan tahun {currentYear}
               </p>
             </div>
 
-            {/* Controls Container */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              {/* Year Selector */}
-              <div className="flex items-center gap-2">
-                <Icon
-                  icon="mdi:calendar"
-                  width={16}
-                  className="text-gray-500"
-                />
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-w-[100px]"
-                >
-                  {yearOptions.map((year) => {
-                    const currentYear = new Date().getFullYear();
-                    const isCurrentYear = year === currentYear;
-                    const isFutureYear = year > currentYear;
-
-                    return (
-                      <option key={year} value={year}>
-                        {year}{" "}
-                        {isCurrentYear
-                          ? "(Sekarang)"
-                          : isFutureYear
-                          ? "(Proyeksi)"
-                          : ""}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              {/* Chart Type Selector */}
-              <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-                <button
-                  onClick={() => setChartType("line")}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    chartType === "line"
-                      ? "bg-white shadow text-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  <Icon icon="mdi:chart-line" width={16} />
-                  Chart
-                </button>
-                <button
-                  onClick={() => setChartType("row")}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    chartType === "row"
-                      ? "bg-white shadow text-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  <Icon icon="mdi:table" width={16} />
-                  Table
-                </button>
-              </div>
+            {/* Chart Type Selector */}
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setChartType("line")}
+                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  chartType === "line"
+                    ? "bg-white shadow text-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <Icon icon="mdi:chart-line" width={16} />
+                Chart
+              </button>
+              <button
+                onClick={() => setChartType("row")}
+                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  chartType === "row"
+                    ? "bg-white shadow text-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <Icon icon="mdi:table" width={16} />
+                Table
+              </button>
             </div>
           </div>
 
@@ -616,7 +569,7 @@ export default function LaporanKeuanganPage() {
                 className="w-12 h-12 mx-auto mb-4"
               />
               <p className="text-lg font-medium">
-                Belum ada data untuk tahun {selectedYear}
+                Belum ada data untuk tahun {currentYear}
               </p>
               <p className="text-sm">
                 Data statistik akan muncul setelah ada transaksi

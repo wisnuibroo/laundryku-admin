@@ -263,9 +263,9 @@ export default function Login() {
                 placeholder={
                   isLogin
                     ? role === "admin"
-                      ? "Email Admin"
-                      : "Email Owner"
-                    : "Username Owner"
+                      ? "Email Karyawan"
+                      : "Email Pemilik"
+                    : "Username Pemilik"
                 }
                 className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
               />

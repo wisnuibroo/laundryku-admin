@@ -126,8 +126,19 @@ export default function OwnerDashboard() {
         });
         const lunasData = responseLunas.data.data;
         if (Array.isArray(lunasData)) {
+          // Get current month and year
+          const currentDate = new Date();
+          const currentMonth = currentDate.getMonth();
+          const currentYear = currentDate.getFullYear();
+
           const totalPendapatan = lunasData
-            .filter((item: any) => item.status === "lunas")
+            .filter((item: any) => {
+              if (item.status !== "lunas") return false;
+              
+              // Filter by current month and year
+              const itemDate = new Date(item.updated_at || item.created_at);
+              return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+            })
             .reduce(
               (acc: number, item: any) =>
                 acc + (parseFloat(item.jumlah_harga) || 0),
@@ -321,7 +332,7 @@ export default function OwnerDashboard() {
               icon={<Icon icon="streamline-cyber:money-bag-1" width={24} />}
               label="Total Pendapatan"
               value={formatCurrency(stats.total_pendapatan)}
-              subtitle="Dari tagihan lunas"
+              subtitle={`Bulan ${new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`}
               iconColor="#06923E"
             />
             <CardStat
@@ -360,18 +371,18 @@ export default function OwnerDashboard() {
               to="/dashboard/owner/kelolakaryawan"
             />
             <CardManage
-              icon="uil:chart-bar"
-              title="Laporan Keuangan"
-              subtitle="Analisis bisnis"
-              bgColor="#217ccc"
-              to="/dashboard/owner/laporan-keuangan"
-            />
-            <CardManage
               icon="material-symbols:local-laundry-service"
               title="Daftar Layanan"
               subtitle="Kelola layanan"
               bgColor="#0432b3"
               to="/dashboard/owner/layanan"
+            />
+            <CardManage
+              icon="uil:chart-bar"
+              title="Laporan Keuangan"
+              subtitle="Analisis bisnis"
+              bgColor="#217ccc"
+              to="/dashboard/owner/laporan-keuangan"
             />
             <CardManage
               icon="mdi:credit-card"
