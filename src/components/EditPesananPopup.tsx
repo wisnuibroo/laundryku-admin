@@ -29,6 +29,7 @@ export default function EditPesananPopup({
   const [phone, setPhone] = useState("");
   const [alamat, setAlamat] = useState("");
   const [layanan, setLayanan] = useState("");
+  const [catatan, setCatatan] = useState(""); // TAMBAHAN: State untuk catatan
   const [layananList, setLayananList] = useState<Layanan[]>([]);
   const [loadingLayanan, setLoadingLayanan] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -187,6 +188,7 @@ export default function EditPesananPopup({
       setNama(pesananData.nama_pelanggan || "");
       setPhone(pesananData.nomor || "");
       setAlamat(pesananData.alamat || "");
+      setCatatan(pesananData.catatan || ""); // TAMBAHAN: Set catatan dari data pesanan
 
       // Set layanan berdasarkan id_layanan jika tersedia
       if (pesananData.id_layanan) {
@@ -279,6 +281,7 @@ export default function EditPesananPopup({
           alamat,
           layanan: selectedLayanan.nama_layanan, // Simpan nama layanan
           id_layanan: selectedLayanan.id, // 🔥 PENTING: Simpan ID layanan untuk API
+          catatan: catatan.trim(), // TAMBAHAN: Simpan catatan
           id_owner:
             userType === "admin" ? Number(user.id_owner) : Number(user.id),
         };
@@ -332,6 +335,7 @@ export default function EditPesananPopup({
       phone,
       alamat,
       layanan,
+      catatan, // TAMBAHAN: catatan di dependency array
       layananList,
       onUpdated,
       onClose,
@@ -419,6 +423,22 @@ export default function EditPesananPopup({
             </div>
           )}
         </div>
+      </div>
+
+      {/* TAMBAHAN: Field untuk catatan */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">
+          Catatan (Opsional)
+        </label>
+        <textarea
+          value={catatan}
+          onChange={(e) => setCatatan(e.target.value)}
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+          rows={3}
+          disabled={loading}
+          placeholder="Masukkan catatan khusus untuk pesanan ini (jika ada)"
+          autoComplete="off"
+        />
       </div>
 
       <div className="mb-6">{/* Bagian harga dan berat dihapus */}</div>
