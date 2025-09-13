@@ -943,6 +943,9 @@ export default function Dashboard() {
                         Layanan
                       </th>
                       <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Catatan
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Kuantitas
                       </th>
                       <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1003,6 +1006,7 @@ export default function Dashboard() {
                               : (item.layanan as any)?.nama_layanan ||
                                 "Layanan tidak tersedia"}
                           </td>
+                          <td className="px-4 py-3">{item.catatan}</td>
                           <td className="px-4 py-3">
                             {getLayananTypeAndDisplay(item).display}
                           </td>{" "}

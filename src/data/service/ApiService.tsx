@@ -125,6 +125,7 @@ interface TambahPesananInput {
   jumlah_harga?: number;
   status?: "pending" | "diproses" | "selesai" | "lunas";
   jenis_pembayaran?: "cash" | "transfer";
+  catatan: string;
 }
 
 export const tambahPesanan = async (

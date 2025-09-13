@@ -30,6 +30,7 @@ export default function TambahPesananPopup({
   const [phone, setPhone] = useState("");
   const [alamat, setAlamat] = useState("");
   const [layanan, setLayanan] = useState("");
+  const [catatan, setCatatan] = useState(""); // TAMBAHAN: State untuk catatan
   const [layananList, setLayananList] = useState<Layanan[]>([]);
   const [loadingLayanan, setLoadingLayanan] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -312,6 +313,7 @@ export default function TambahPesananPopup({
           status: "pending",
           berat: 0,
           jumlah_harga: 0,
+          catatan: catatan.trim(), // TAMBAHAN: Menambahkan catatan ke data pesanan
         };
 
         if (userType === "admin" && user && user.id) {
@@ -364,6 +366,7 @@ export default function TambahPesananPopup({
         setPhone("");
         setAlamat("");
         setLayanan("");
+        setCatatan(""); // TAMBAHAN: Reset field catatan setelah submit
 
         if (onAdded) onAdded();
       } catch (error: any) {
@@ -391,7 +394,7 @@ export default function TambahPesananPopup({
         setLoading(false);
       }
     },
-    [user?.id, userType, nama, phone, alamat, layanan, layananList, onAdded]
+    [user?.id, userType, nama, phone, alamat, layanan, catatan, layananList, onAdded] // TAMBAHAN: catatan di dependency array
   );
 
   const formContent = useMemo(
@@ -580,6 +583,22 @@ export default function TambahPesananPopup({
           )}
         </div>
 
+        {/* TAMBAHAN: Field untuk catatan */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">
+            Catatan (Opsional)
+          </label>
+          <textarea
+            value={catatan}
+            onChange={(e) => setCatatan(e.target.value)}
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+            rows={3}
+            disabled={loading}
+            placeholder="Masukkan catatan khusus untuk pesanan ini (jika ada)"
+            autoComplete="off"
+          />
+        </div>
+
         <div className="flex justify-end gap-2">
           {isModal && onClose && (
             <button
@@ -606,6 +625,7 @@ export default function TambahPesananPopup({
       phone,
       alamat,
       layanan,
+      catatan, // TAMBAHAN: catatan di dependency array
       layananByType,
       layananList,
       loading,

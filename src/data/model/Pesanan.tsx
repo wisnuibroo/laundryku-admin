@@ -15,6 +15,7 @@ export interface Pesanan {
   jumlah_harga?: number;
   status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas";
   jenis_pembayaran?: "cash" | "transfer";
+  catatan?: string;
   created_at: string;
   updated_at: string;
   owner?: {
@@ -70,6 +71,7 @@ export class PesananImpl implements Pesanan {
     public banyak_satuan?: number,
     public jumlah_harga?: number,
     public jenis_pembayaran?: "cash" | "transfer",
+    public catatan?: string,
     public owner?: {
       id: number;
       username: string;
@@ -81,6 +83,7 @@ export class PesananImpl implements Pesanan {
       nama_laundry: string;
     }
   ) {}
+  
 
   static fromJson(json: Record<string, any>): PesananImpl {
     return new PesananImpl(
@@ -101,6 +104,7 @@ export class PesananImpl implements Pesanan {
         ? parseFloat(json["jumlah_harga"].toString())
         : undefined,
       json["jenis_pembayaran"],
+      json["catatan"],
       json["owner"]
         ? {
             id: parseInt(json["owner"]["id"].toString()),

@@ -18,6 +18,7 @@ export interface AddPesananInput {
   total_harga?: number; // akan dipetakan ke jumlah_harga
   jumlah_harga?: number; // field langsung
   jenis_pembayaran?: "cash" | "transfer";
+  catatan?: string;
   status?: "pending" | "diproses" | "selesai" | "lunas";
 }
 
@@ -32,6 +33,7 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
       alamat: typeof data.alamat,
       id_layanan: typeof data.id_layanan,
       layanan: typeof data.layanan,
+      catatan: typeof data.catatan,
     });
 
     // Map data sesuai dengan field yang dibutuhkan PesananController
@@ -56,6 +58,7 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
         data.jenis_pembayaran?.toLowerCase() === "tunai"
           ? "cash"
           : data.jenis_pembayaran?.toLowerCase(),
+      catatan: data.catatan    
     };
 
     console.log("Mapped payload for API:", payload);
@@ -178,13 +181,14 @@ export const updatePesanan = async (
     if (data.jumlah_harga !== undefined)
       payload.jumlah_harga = Number(data.jumlah_harga);
     if (data.status) payload.status = data.status;
+    
     if (data.jenis_pembayaran) {
       payload.jenis_pembayaran =
         data.jenis_pembayaran.toLowerCase() === "tunai"
           ? "cash"
           : data.jenis_pembayaran.toLowerCase();
     }
-
+    if (data.catatan) payload.catatan = data.catatan;
     console.log("📊 Mapped payload for API:", payload);
 
     const response = await axiosInstance.put(`/pesanan/${id}`, payload);
