@@ -2,21 +2,26 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Icon } from "@iconify/react";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
-import { useStateContext } from "../contexts/ContextsProvider";
 import axiosInstance from "../lib/axios";
 
-export default function Login() {
-  const { setUser, setToken, setUserType } = useStateContext();
+export default function Register() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [role, setRole] = useState<"admin" | "owner">("admin");
+  const [successMessage, setSuccessMessage] = useState<string>("");
   const [formData, setFormData] = useState<{
+    username: string;
     email: string;
     password: string;
+    confirmPassword: string;
+    laundryName: string;
   }>({
+    username: "",
     email: "",
     password: "",
+    confirmPassword: "",
+    laundryName: "",
   });
 
   const navigate = useNavigate();
@@ -28,68 +33,51 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     setLoading(true);
 
-    // Bersihkan semua data lama
-    setUser(null);
-    setToken(null);
-    setUserType(null);
-    localStorage.clear();
+    // Validasi form
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword || !formData.laundryName) {
+      setError("Semua field harus diisi!");
+      setLoading(false);
+      return;
+    }
 
-    if (!formData.email || !formData.password) {
-      setError("Email dan password harus diisi!");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Password dan konfirmasi password tidak cocok!");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password minimal 6 karakter!");
       setLoading(false);
       return;
     }
 
     try {
-      if (role === "admin") {
-        const response = await axiosInstance.post("/admin/login", {
-          email: formData.email,
-          password: formData.password,
-        });
+      await axiosInstance.post("/owner/register", {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+        nama_laundry: formData.laundryName,
+      });
 
-        const { admin, token } = response.data;
-        console.log("Admin login response:", response.data);
+      setSuccessMessage("Registrasi berhasil! Silakan login dengan akun Anda.");
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        laundryName: "",
+      });
 
-        // Validasi data admin
-        if (!admin || !admin.id || !admin.id_owner) {
-          setError("Data admin tidak lengkap. Silakan hubungi owner Anda.");
-          setLoading(false);
-          return;
-        }
+      // Redirect ke login setelah 2 detik
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
 
-        // Set data ke context dan localStorage
-        setUser(admin);
-        setToken(token);
-        setUserType("admin");
-
-        // Navigasi ke dashboard admin
-        navigate("/dashboard/admin");
-      } else {
-        const response = await axiosInstance.post("/owner/login", {
-          email: formData.email,
-          password: formData.password,
-        });
-
-        const { owner, token } = response.data;
-        console.log("Owner login response:", response.data);
-
-        // Validasi data owner
-        if (!owner || !owner.id || !owner.nama_laundry) {
-          setError("Data owner tidak lengkap. Silakan hubungi support.");
-          setLoading(false);
-          return;
-        }
-
-        // Set data ke context dan localStorage
-        setUser(owner);
-        setToken(token);
-        setUserType("owner");
-
-        // Navigasi ke dashboard owner
-        navigate("/dashboard/owner");
-      }
     } catch (err: any) {
       const message =
         err.response?.data?.message ||
@@ -123,44 +111,40 @@ export default function Login() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 w-full max-w-5xl">
-        {/* Login Card */}
+        {/* Register Card */}
         <div className="bg-white rounded-xl shadow-lg p-8 flex-1 max-w-md mx-auto">
           <h2 className="text-xl font-bold mb-2 text-gray-800">
-            Masuk ke Sistem
+            Daftar Akun Owner
           </h2>
           <p className="text-gray-500 text-sm mb-4">
-            Pilih peran Anda untuk mengakses fitur yang sesuai
+            Buat akun owner baru untuk laundry Anda
           </p>
 
-          {/* Role Selection */}
-          <div className="flex mb-6 rounded-lg overflow-hidden border border-gray-200">
-            <button
-              type="button"
-              className={`flex-1 py-2 text-center font-semibold ${
-                role === "admin"
-                  ? "bg-blue-100 text-[#222831]"
-                  : "bg-white text-[#222831]"
-              } transition`}
-              onClick={() => setRole("admin")}
-            >
-              Karyawan
-            </button>
-            <button
-              type="button"
-              className={`flex-1 py-2 text-center font-semibold ${
-                role === "owner"
-                  ? "bg-green-100 text-[#222831]"
-                  : "bg-white text-[#222831]"
-              } transition`}
-              onClick={() => setRole("owner")}
-            >
-              Pemilik
-            </button>
+          {/* Info untuk register owner */}
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-md px-3 py-2 mb-6 text-xs">
+            <Icon icon="mdi:store" className="text-green-500" />
+            <span>Daftar sebagai Owner Laundry</span>
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* Email Field */}
+            {/* Username Field */}
             <div className="relative mt-2">
+              <Icon
+                icon="mdi:account"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
+              />
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Username Owner"
+                className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
+              />
+            </div>
+
+            {/* Email Field */}
+            <div className="relative mt-4">
               <Icon
                 icon="mdi:email"
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
@@ -170,9 +154,23 @@ export default function Login() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder={
-                  role === "admin" ? "Email Karyawan" : "Email Pemilik"
-                }
+                placeholder="Email"
+                className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
+              />
+            </div>
+
+            {/* Nama Laundry Field */}
+            <div className="relative mt-4">
+              <Icon
+                icon="mdi:store"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
+              />
+              <input
+                type="text"
+                name="laundryName"
+                value={formData.laundryName}
+                onChange={handleChange}
+                placeholder="Nama Laundry"
                 className="w-full pl-10 pr-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
               />
             </div>
@@ -188,7 +186,7 @@ export default function Login() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Password"
+                placeholder="Password (minimal 6 karakter)"
                 className="w-full pl-10 pr-10 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
               />
               <button
@@ -200,23 +198,38 @@ export default function Login() {
               </button>
             </div>
 
-            {/* Role info */}
-            {role === "admin" && (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-md px-3 py-2 mt-4 text-xs">
-                <Icon icon="mdi:shield-account" className="text-blue-500" />
-                <span>Akses Admin: Kelola pesanan & pelanggan</span>
-              </div>
-            )}
-            {role === "owner" && (
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-md px-3 py-2 mt-4 text-xs">
-                <Icon icon="mdi:chart-bar" className="text-green-500" />
-                <span>Akses Owner: Statistik & manajemen karyawan</span>
-              </div>
-            )}
+            {/* Confirm Password Field */}
+            <div className="relative mt-4">
+              <Icon
+                icon="mdi:lock"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
+              />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Konfirmasi Password"
+                className="w-full pl-10 pr-10 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ADB5] bg-gray-50"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <IoEyeOutline /> : <IoEyeOffOutline />}
+              </button>
+            </div>
 
             {error && (
               <div className="mt-4 text-sm text-center text-red-500">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mt-4 text-sm text-center text-green-500">
+                {successMessage}
               </div>
             )}
 
@@ -227,23 +240,22 @@ export default function Login() {
                 loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#3d3d3d]"
               }`}
             >
-              {loading ? "Mencoba Login..." : "Masuk ke Dashboard"}
+              {loading ? "Mendaftar..." : "Daftar Sebagai Owner"}
             </button>
           </form>
 
-          {/* Link to Register */}
+          {/* Link to Login */}
           <div className="mt-4 text-center">
             <button
               type="button"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/login")}
               className="text-[#00ADB5] hover:text-[#008C94] text-sm font-medium"
             >
-              Ingin mendaftar laundry baru? Daftar di sini
+              Sudah punya akun? Masuk di sini
             </button>
           </div>
         </div>
 
-        {/* Fitur Cards */}
         <div className="flex-1 flex flex-col gap-6">
           <div className="bg-white rounded-xl shadow p-6">
             <h3 className="font-bold text-lg mb-2 flex items-center gap-2">

@@ -10,6 +10,8 @@ import TagihanBlmByrPage from "./views/dashboard/owner/TagihanBlmByrPage";
 import TagihanLunasPage from "./views/dashboard/owner/TagihanLunasPage";
 import PengeluaranPage from "./views/dashboard/owner/PengeluaranPage";
 import LayananPage from "./views/dashboard/owner/LayananPage";
+import Register from "./views/Register";
+import LandingPage from "./views/LandingPage";
  
 
 
@@ -22,7 +24,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <Navigate to="/login" />,
+        element: <Navigate to="/landing/page" />,
       },
       {
         path: "/dashboard/admin",
@@ -59,8 +61,16 @@ const router = createBrowserRouter([
     ],
   },
   {
+    path: "/landing/page",
+    element: <LandingPage />,
+  },
+  {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
   },
   {
     path: "*",
