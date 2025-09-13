@@ -212,7 +212,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleStatusChange = async (
+const handleStatusChange = async (
     id: number,
     newStatus: "pending" | "diproses" | "selesai",
     pesananData?: Pesanan
@@ -229,23 +229,49 @@ export default function Dashboard() {
           return;
         }
 
+        // Check if quantity and price already exist
+        const hasQuantity = (pesananItem.berat ?? 0) > 0 || (pesananItem.banyak_satuan ?? 0) > 0;
+        const hasPrice = (pesananItem.jumlah_harga ?? 0) > 0;
+        
+        if (hasQuantity && hasPrice) {
+          // Directly complete the order without showing modal
+          await updateStatusPesanan(id, newStatus);
+          setPesanan((prev) => {
+            if (Array.isArray(prev)) {
+              return prev.map((item) =>
+                item.id === id ? { ...item, status: newStatus } : item
+              );
+            }
+            return [];
+          });
+
+          setNotification({
+            show: true,
+            message: `Pesanan ${pesananItem.nama_pelanggan} berhasil diselesaikan`,
+            type: "success",
+          });
+
+          setTimeout(() => {
+            setNotification((prev) => ({ ...prev, show: false }));
+          }, 3000);
+          return;
+        }
+
+        // If no quantity/price, proceed with modal logic
         let layananHarga = 0;
         let layananNama = "";
-        let layananTipe: "Kiloan" | "Satuan" = "Kiloan"; // Default to Kiloan
+        let layananTipe: "Kiloan" | "Satuan" = "Kiloan";
 
-        // Prioritas: ambil dari object layanan dulu, lalu fetch dari API jika perlu
         if (
           typeof pesananItem.layanan === "object" &&
           (pesananItem.layanan as any)?.tipe
         ) {
-          // Jika layanan sudah berupa object dengan tipe
           layananNama =
             (pesananItem.layanan as any)?.nama_layanan ||
             "Layanan tidak tersedia";
           layananHarga = (pesananItem.layanan as any)?.harga_layanan || 0;
           layananTipe = (pesananItem.layanan as any)?.tipe || "Kiloan";
         } else {
-          // Jika layanan hanya string, fetch dari API
           layananNama =
             typeof pesananItem.layanan === "string"
               ? pesananItem.layanan
@@ -282,7 +308,7 @@ export default function Dashboard() {
               if (matchedLayanan) {
                 layananHarga = matchedLayanan.harga_layanan || 0;
                 layananNama = matchedLayanan.nama_layanan;
-                layananTipe = matchedLayanan.tipe || "Kiloan"; // Fetch tipe from API
+                layananTipe = matchedLayanan.tipe || "Kiloan";
               }
             }
           } catch (error) {
@@ -326,7 +352,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Handle other status changes
+      // Handle other status changes (pending -> diproses)
       await updateStatusPesanan(id, newStatus);
       setPesanan((prev) => {
         if (Array.isArray(prev)) {
@@ -616,30 +642,37 @@ export default function Dashboard() {
     localStorage.removeItem("user");
     navigate("/login");
   };
-  const getLayananTypeAndDisplay = (item: Pesanan) => {
-    // Jika layanan adalah object dengan tipe
+const getLayananTypeAndDisplay = (item: Pesanan) => {
+    // Check if quantity exists
+    const hasKiloQuantity = item.berat && item.berat > 0;
+    const hasSatuanQuantity = item.banyak_satuan && item.banyak_satuan > 0;
+    
+    // If layanan is object with tipe
     if (typeof item.layanan === "object" && (item.layanan as any)?.tipe) {
       const tipe = (item.layanan as any).tipe;
       if (tipe === "Satuan") {
         return {
           tipe: "Satuan",
-          display: `${item.banyak_satuan || 0} item`,
+          display: hasSatuanQuantity ? `${item.banyak_satuan} item` : "Belum diinput",
           value: item.banyak_satuan || 0,
+          hasQuantity: hasSatuanQuantity
         };
       } else {
         return {
           tipe: "Kiloan",
-          display: `${item.berat || 0} kg`,
+          display: hasKiloQuantity ? `${item.berat} kg` : "Belum diinput",
           value: item.berat || 0,
+          hasQuantity: hasKiloQuantity
         };
       }
     }
 
-    // Default ke Kiloan jika tidak ada info tipe
+    // Default to Kiloan if no type info
     return {
       tipe: "Kiloan",
-      display: `${item.berat || 0} kg`,
+      display: hasKiloQuantity ? `${item.berat} kg` : "Belum diinput",
       value: item.berat || 0,
+      hasQuantity: hasKiloQuantity
     };
   };
   const closeNotification = () => {
