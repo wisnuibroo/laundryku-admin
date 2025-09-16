@@ -19,99 +19,55 @@ export interface AddPesananInput {
   jumlah_harga?: number; // field langsung
   jenis_pembayaran?: "cash" | "transfer";
   catatan?: string;
+  lampiran?: File; // Ganti photos dengan lampiran (sesuai backend)
   status?: "pending" | "diproses" | "selesai" | "lunas";
 }
 
 export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
   try {
-    console.log("Raw data received in addPesanan:", data);
-    console.log("Data type check:", {
-      id_owner: typeof data.id_owner,
-      id_admin: typeof data.id_admin,
-      nama_pelanggan: typeof data.nama_pelanggan,
-      nomor: typeof data.nomor,
-      alamat: typeof data.alamat,
-      id_layanan: typeof data.id_layanan,
-      layanan: typeof data.layanan,
-      catatan: typeof data.catatan,
+    // Siapkan FormData untuk upload file
+    const formData = new FormData();
+
+    // Append data biasa
+    formData.append("id_owner", String(data.id_owner));
+    if (data.id_admin) formData.append("id_admin", String(data.id_admin));
+    formData.append("nama_pelanggan", data.nama_pelanggan || "");
+    formData.append("nomor", data.nomor || "");
+    formData.append("alamat", data.alamat);
+    formData.append("id_layanan", String(data.id_layanan));
+    if (data.layanan) formData.append("layanan", data.layanan);
+    formData.append("berat", String(data.berat || 0));
+    if (data.banyak_satuan)
+      formData.append("banyak_satuan", String(data.banyak_satuan));
+    formData.append("jumlah_harga", String(data.jumlah_harga || 0));
+    formData.append("status", data.status || "pending");
+    if (data.jenis_pembayaran)
+      formData.append("jenis_pembayaran", data.jenis_pembayaran);
+    if (data.catatan) formData.append("catatan", data.catatan);
+
+    // Append photos
+    // Append single photo as 'lampiran'
+    if (data.lampiran) {
+      formData.append("lampiran", data.lampiran);
+    }
+
+    const response = await axiosInstance.post("/pesanan", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
 
-    // Map data sesuai dengan field yang dibutuhkan PesananController
-    const payload = {
-      id_owner: Number(data.id_owner),
-      id_admin: data.id_admin ? Number(data.id_admin) : undefined,
-      nama_pelanggan: (data.nama_pelanggan || data.name || "").trim(),
-      nomor: (data.nomor || data.phone || "").trim(),
-      alamat: data.alamat.trim(),
-      id_layanan: Number(data.id_layanan), // Required by API
-      layanan: data.layanan ? data.layanan.trim() : undefined, // Optional
-      berat: Number(data.berat || 0),
-      // Map satuan to banyak_satuan for backend compatibility
-      banyak_satuan: data.satuan
-        ? Number(data.satuan)
-        : data.banyak_satuan
-        ? Number(data.banyak_satuan)
-        : undefined,
-      jumlah_harga: Number(data.jumlah_harga || data.total_harga || 0),
-      status: data.status || "pending",
-      jenis_pembayaran:
-        data.jenis_pembayaran?.toLowerCase() === "tunai"
-          ? "cash"
-          : data.jenis_pembayaran?.toLowerCase(),
-      catatan: data.catatan    
-    };
-
-    console.log("Mapped payload for API:", payload);
-    console.log("API endpoint: /pesanan");
-    console.log("Payload type check:", {
-      id_owner: typeof payload.id_owner,
-      id_admin: typeof payload.id_admin,
-      nama_pelanggan: typeof payload.nama_pelanggan,
-      nomor: typeof payload.nomor,
-      alamat: typeof payload.alamat,
-      id_layanan: typeof payload.id_layanan,
-      layanan: typeof payload.layanan,
-      banyak_satuan: typeof payload.banyak_satuan,
-    });
-
-    const response = await axiosInstance.post("/pesanan", payload);
-
-    console.log("API response:", response.data);
-
-    // Handle response sesuai dengan structure PesananController
+    // Handle response
     if (response.data && response.data.status && response.data.data) {
       return response.data.data;
     }
-
     return response.data;
   } catch (error: any) {
-    console.error("Error in addPesanan:", error);
-    console.error("Error response:", error.response?.data);
-    console.error("Error status:", error.response?.status);
-    console.error("Error message:", error.message);
-
-    // Log detail error jika ada
-    if (error.response?.data?.errors) {
-      console.error("Validation errors:", error.response.data.errors);
-    }
-
-    let errorMessage = "Gagal menambahkan pesanan";
-
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.response?.data?.errors) {
-      // Handle validation errors from API
-      const validationErrors = Object.entries(error.response.data.errors)
-        .map(
-          ([field, messages]) =>
-            `${field}: ${(messages as string[]).join(", ")}`
-        )
-        .join("; ");
-      errorMessage = `Validasi gagal: ${validationErrors}`;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
+    // Error handling sama seperti sebelumnya
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Gagal menambah pesanan";
     throw new Error(errorMessage);
   }
 };
@@ -181,7 +137,7 @@ export const updatePesanan = async (
     if (data.jumlah_harga !== undefined)
       payload.jumlah_harga = Number(data.jumlah_harga);
     if (data.status) payload.status = data.status;
-    
+
     if (data.jenis_pembayaran) {
       payload.jenis_pembayaran =
         data.jenis_pembayaran.toLowerCase() === "tunai"

@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { useStateContext } from "../contexts/ContextsProvider";
 import Notification from "./Notification";
+import SinglePhotoUpload from "./SinglePhotoUpload";
 
 import {
   addPesanan,
@@ -30,6 +31,7 @@ export default function TambahPesananPopup({
   const [alamat, setAlamat] = useState("");
   const [layanan, setLayanan] = useState("");
   const [catatan, setCatatan] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
 
   // States untuk kuantitas opsional
   const [inputQuantityNow, setInputQuantityNow] = useState<boolean>(false);
@@ -334,6 +336,25 @@ export default function TambahPesananPopup({
           }
         }
       }
+      if (photo) {
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+        ];
+
+        if (!allowedTypes.includes(photo.type)) {
+          validationErrors.push(
+            "Format foto tidak didukung. Gunakan JPG, PNG, atau WebP."
+          );
+        }
+
+        if (photo.size > maxFileSize) {
+          validationErrors.push("Foto terlalu besar. Maksimal 5MB.");
+        }
+      }
 
       if (validationErrors.length > 0) {
         setNotification({
@@ -389,6 +410,7 @@ export default function TambahPesananPopup({
           banyak_satuan: banyakSatuanValue,
           jumlah_harga: jumlahHarga,
           catatan: catatan.trim(),
+          lampiran: photo ?? undefined, // Tambah foto
         };
 
         if (userType === "admin" && user && user.id) {
@@ -431,11 +453,17 @@ export default function TambahPesananPopup({
 
         await addPesanan(pesananData);
 
-        const successMessage = inputQuantityNow
-          ? `Pesanan berhasil ditambahkan dengan kuantitas dan total harga ${formatRupiah(
-              jumlahHarga
-            )}!`
-          : "Pesanan berhasil ditambahkan! Kuantitas dan harga akan diinput saat pesanan diselesaikan.";
+        const successMessage = photo
+          ? `Pesanan berhasil ditambahkan dengan foto!${
+              inputQuantityNow
+                ? ` Total harga ${formatRupiah(jumlahHarga)}`
+                : " Kuantitas akan diinput nanti."
+            }`
+          : `Pesanan berhasil ditambahkan!${
+              inputQuantityNow
+                ? ` Total harga ${formatRupiah(jumlahHarga)}`
+                : " Kuantitas akan diinput nanti."
+            }`;
 
         setNotification({
           show: true,
@@ -452,6 +480,7 @@ export default function TambahPesananPopup({
         setBerat("");
         setJumlahSatuan("");
         setInputQuantityNow(false);
+        setPhoto(null); // Reset photo
 
         if (onAdded) onAdded();
       } catch (error: any) {
@@ -487,6 +516,7 @@ export default function TambahPesananPopup({
       alamat,
       layanan,
       catatan,
+      photo, // Tambah photos ke dependencies
       inputQuantityNow,
       berat,
       jumlahSatuan,
@@ -832,7 +862,11 @@ export default function TambahPesananPopup({
             autoComplete="off"
           />
         </div>
-
+        <SinglePhotoUpload
+          photo={photo}
+          onPhotoChange={setPhoto}
+          disabled={loading}
+        />
         {/* Sticky Button Area for Mobile */}
         <div className="sticky bottom-0 left-0 right-0 bg-white pt-4 pb-2 border-t sm:border-t-0 sm:static sm:bg-transparent sm:pt-0 sm:pb-0">
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
