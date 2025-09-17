@@ -16,6 +16,7 @@ export interface Pesanan {
   status: "pending" | "diproses" | "selesai" | "dikembalikan" | "lunas";
   jenis_pembayaran?: "cash" | "transfer";
   catatan?: string;
+  lampiran?: string; // Added lampiran field for photo/evidence
   created_at: string;
   updated_at: string;
   owner?: {
@@ -72,6 +73,7 @@ export class PesananImpl implements Pesanan {
     public jumlah_harga?: number,
     public jenis_pembayaran?: "cash" | "transfer",
     public catatan?: string,
+    public lampiran?: string, // Added lampiran parameter
     public owner?: {
       id: number;
       username: string;
@@ -105,6 +107,7 @@ export class PesananImpl implements Pesanan {
         : undefined,
       json["jenis_pembayaran"],
       json["catatan"],
+      json["lampiran"], // Added lampiran parsing
       json["owner"]
         ? {
             id: parseInt(json["owner"]["id"].toString()),
@@ -136,6 +139,8 @@ export class PesananImpl implements Pesanan {
       jumlah_harga: this.jumlah_harga,
       status: this.status,
       jenis_pembayaran: this.jenis_pembayaran,
+      catatan: this.catatan,
+      lampiran: this.lampiran, // Added lampiran to JSON output
       created_at: this.created_at,
       updated_at: this.updated_at,
       owner: this.owner,
