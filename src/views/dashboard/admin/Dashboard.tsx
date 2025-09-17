@@ -133,10 +133,15 @@ export default function Dashboard() {
   // Helper function to get full photo URL
   const getPhotoUrl = (lampiran: string | undefined) => {
     if (!lampiran) return null;
-    // If it's already a full URL, return as is
-    if (lampiran.startsWith('http')) return lampiran;
-    // Otherwise, construct the full URL
-    return `https://laundryku.rplrus.com/storage/${lampiran}`;
+    if (lampiran.startsWith("http")) return lampiran;
+
+    console.log("Original lampiran value:", lampiran);
+
+    // Extract filename dari "pesanan/filename.jpg"
+    const filename = lampiran.replace("pesanan/", "");
+
+    // Akses via route public
+    return `https://laundryku.rplrus.com/file/pesanan/${filename}`;
   };
 
   useEffect(() => {
@@ -252,7 +257,7 @@ export default function Dashboard() {
 
   // Group orders by customer
   const groupedOrders = groupOrdersByCustomer(filteredPesanan);
-  
+
   // Pagination logic for grouped data
   const totalItems = groupedOrders.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -266,7 +271,7 @@ export default function Dashboard() {
     }
   };
 
-const handleStatusChange = async (
+  const handleStatusChange = async (
     id: number,
     newStatus: "pending" | "diproses" | "selesai",
     pesananData?: Pesanan
@@ -284,9 +289,10 @@ const handleStatusChange = async (
         }
 
         // Check if quantity and price already exist
-        const hasQuantity = (pesananItem.berat ?? 0) > 0 || (pesananItem.banyak_satuan ?? 0) > 0;
+        const hasQuantity =
+          (pesananItem.berat ?? 0) > 0 || (pesananItem.banyak_satuan ?? 0) > 0;
         const hasPrice = (pesananItem.jumlah_harga ?? 0) > 0;
-        
+
         if (hasQuantity && hasPrice) {
           // Directly complete the order without showing modal
           await updateStatusPesanan(id, newStatus);
@@ -700,23 +706,25 @@ const handleStatusChange = async (
     // Check if quantity exists
     const hasKiloQuantity = item.berat && item.berat > 0;
     const hasSatuanQuantity = item.banyak_satuan && item.banyak_satuan > 0;
-    
+
     // If layanan is object with tipe
     if (typeof item.layanan === "object" && (item.layanan as any)?.tipe) {
       const tipe = (item.layanan as any).tipe;
       if (tipe === "Satuan") {
         return {
           tipe: "Satuan",
-          display: hasSatuanQuantity ? `${item.banyak_satuan} item` : "Belum diinput",
+          display: hasSatuanQuantity
+            ? `${item.banyak_satuan} item`
+            : "Belum diinput",
           value: item.banyak_satuan || 0,
-          hasQuantity: hasSatuanQuantity
+          hasQuantity: hasSatuanQuantity,
         };
       } else {
         return {
           tipe: "Kiloan",
           display: hasKiloQuantity ? `${item.berat} kg` : "Belum diinput",
           value: item.berat || 0,
-          hasQuantity: hasKiloQuantity
+          hasQuantity: hasKiloQuantity,
         };
       }
     }
@@ -726,7 +734,7 @@ const handleStatusChange = async (
       tipe: "Kiloan",
       display: hasKiloQuantity ? `${item.berat} kg` : "Belum diinput",
       value: item.berat || 0,
-      hasQuantity: hasKiloQuantity
+      hasQuantity: hasKiloQuantity,
     };
   };
 
@@ -1037,7 +1045,7 @@ const handleStatusChange = async (
                     {paginatedGroupedOrders.map((customerGroup: any) => {
                       const customerKey = `${customerGroup.customerName}_${customerGroup.customerPhone}`;
                       const isExpanded = openCustomerId === customerKey;
-                      
+
                       return (
                         <div
                           key={customerKey}
@@ -1062,7 +1070,10 @@ const handleStatusChange = async (
                                   </h3>
                                   <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
                                     <div className="flex items-center gap-1">
-                                      <Icon icon="mdi:phone" className="w-3 h-3" />
+                                      <Icon
+                                        icon="mdi:phone"
+                                        className="w-3 h-3"
+                                      />
                                       <span>{customerGroup.customerPhone}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -1070,7 +1081,9 @@ const handleStatusChange = async (
                                         icon="mdi:package-variant"
                                         className="w-3 h-3"
                                       />
-                                      <span>{customerGroup.totalOrders} pesanan</span>
+                                      <span>
+                                        {customerGroup.totalOrders} pesanan
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
@@ -1079,7 +1092,10 @@ const handleStatusChange = async (
                               <div className="flex items-center space-x-3">
                                 <div className="text-right">
                                   <div className="bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                                    Rp {customerGroup.totalAmount.toLocaleString("id-ID")}
+                                    Rp{" "}
+                                    {customerGroup.totalAmount.toLocaleString(
+                                      "id-ID"
+                                    )}
                                   </div>
                                 </div>
 
@@ -1145,151 +1161,219 @@ const handleStatusChange = async (
                                       </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                      {customerGroup.orders.map((item: Pesanan) => (
-                                        <tr
-                                          key={item.id}
-                                          className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
-                                        >
-                                          <td className="px-3 py-2">
-                                            ORD-{String(item.id).padStart(3, "0")}
-                                          </td>
-                                          <td className="px-3 py-2">{item.alamat}</td>
-                                          <td className="px-3 py-2">
-                                            {typeof item.layanan === "string"
-                                              ? item.layanan
-                                              : (item.layanan as any)?.nama_layanan ||
-                                                "Layanan tidak tersedia"}
-                                          </td>
-                                          <td className="px-3 py-2">{item.catatan}</td>
-                                          <td className="px-3 py-2">
-                                            {(item as any).lampiran ? (
-                                              <button
-                                                onClick={() => openPhotoModal(getPhotoUrl((item as any).lampiran)!)}
-                                                className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-xs"
-                                                title="Lihat Bukti"
-                                              >
-                                                <Icon icon="mdi:image" width="14" />
-                                                Lihat
-                                              </button>
-                                            ) : (
-                                              <span className="text-gray-400 text-xs">Tidak ada</span>
-                                            )}
-                                          </td>
-                                          <td className="px-3 py-2">
-                                            {getLayananTypeAndDisplay(item).display}
-                                          </td>
-                                          <td className="px-3 py-2">
-                                            Rp{" "}
-                                            {item.jumlah_harga
-                                              ? Math.round(item.jumlah_harga).toLocaleString()
-                                              : "0"}
-                                          </td>
-                                          <td className="px-3 py-2">
-                                            {item.status === "selesai" ? (
-                                              <span
-                                                className="px-3 py-1 rounded-md text-sm font-medium inline-flex items-center"
-                                                style={{
-                                                  backgroundColor: "#D1FAE5",
-                                                  color: "#065F46",
-                                                  border: "1px solid #10B981",
-                                                }}
-                                              >
-                                                <Icon
-                                                  icon="mdi:check-circle"
-                                                  className="w-4 h-4 mr-1"
-                                                />
-                                                Selesai
-                                              </span>
-                                            ) : (
-                                              <select
-                                                value={item.status}
-                                                disabled={loading}
-                                                onChange={(e) => {
-                                                  const newStatus = e.target.value as
-                                                    | "pending"
-                                                    | "diproses"
-                                                    | "selesai";
-                                                  handleStatusChange(item.id, newStatus, item);
-                                                }}
-                                                className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                                style={{
-                                                  backgroundColor:
-                                                    item.status === "pending"
-                                                      ? "#FEF3C7"
-                                                      : item.status === "diproses"
-                                                      ? "#DBEAFE"
-                                                      : "",
-                                                  borderColor:
-                                                    item.status === "pending"
-                                                      ? "#F59E0B"
-                                                      : item.status === "diproses"
-                                                      ? "#3B82F6"
-                                                      : "",
-                                                  color:
-                                                    item.status === "pending"
-                                                      ? "#92400E"
-                                                      : item.status === "diproses"
-                                                      ? "#1E40AF"
-                                                      : "",
-                                                }}
-                                              >
-                                                {item.status === "pending" && (
-                                                  <>
-                                                    <option value="pending">Pending</option>
-                                                    <option value="diproses">Proses</option>
-                                                  </>
+                                      {customerGroup.orders.map(
+                                        (item: Pesanan) => {
+                                          console.log(
+                                            "Item lampiran data:",
+                                            item.lampiran
+                                          ); // Tambah di sini
+                                          return (
+                                            <tr
+                                              key={item.id}
+                                              className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                                            >
+                                              <td className="px-3 py-2">
+                                                ORD-
+                                                {String(item.id).padStart(
+                                                  3,
+                                                  "0"
                                                 )}
-                                                {item.status === "diproses" && (
-                                                  <>
-                                                    <option value="diproses">Proses</option>
-                                                    <option value="selesai">Selesai</option>
-                                                  </>
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {item.alamat}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {typeof item.layanan ===
+                                                "string"
+                                                  ? item.layanan
+                                                  : (item.layanan as any)
+                                                      ?.nama_layanan ||
+                                                    "Layanan tidak tersedia"}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {item.catatan}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {(item as any).lampiran ? (
+                                                  <button
+                                                    onClick={() =>
+                                                      openPhotoModal(
+                                                        getPhotoUrl(
+                                                          (item as any).lampiran
+                                                        )!
+                                                      )
+                                                    }
+                                                    className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-xs"
+                                                    title="Lihat Bukti"
+                                                  >
+                                                    <Icon
+                                                      icon="mdi:image"
+                                                      width="14"
+                                                    />
+                                                    Lihat
+                                                  </button>
+                                                ) : (
+                                                  <span className="text-gray-400 text-xs">
+                                                    Tidak ada
+                                                  </span>
                                                 )}
-                                              </select>
-                                            )}
-                                          </td>
-                                          <td className="px-3 py-2">
-                                            {item.created_at
-                                              ? new Date(item.created_at).toLocaleDateString(
-                                                  "id-ID",
-                                                  {
-                                                    year: "numeric",
-                                                    month: "short",
-                                                    day: "numeric",
-                                                  }
-                                                )
-                                              : "-"}
-                                          </td>
-                                          <td className="px-3 py-2">
-                                            <div className="flex space-x-2">
-                                              {item.status === "pending" && (
-                                                <button
-                                                  className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
-                                                  title="Edit Pesanan"
-                                                  onClick={() => {
-                                                    setEditPesananId(item.id);
-                                                    setShowEditModal(true);
-                                                  }}
-                                                >
-                                                  <Icon icon="mdi:pencil" width="18" />
-                                                </button>
-                                              )}
-                                              <button
-                                                className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
-                                                title="Hapus Pesanan"
-                                                onClick={() =>
-                                                  handleDeletePesanan(
-                                                    item.id,
-                                                    item.nama_pelanggan
-                                                  )
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {
+                                                  getLayananTypeAndDisplay(item)
+                                                    .display
                                                 }
-                                              >
-                                                <Icon icon="mdi:trash" width="18" />
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      ))}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                Rp{" "}
+                                                {item.jumlah_harga
+                                                  ? Math.round(
+                                                      item.jumlah_harga
+                                                    ).toLocaleString()
+                                                  : "0"}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {item.status === "selesai" ? (
+                                                  <span
+                                                    className="px-3 py-1 rounded-md text-sm font-medium inline-flex items-center"
+                                                    style={{
+                                                      backgroundColor:
+                                                        "#D1FAE5",
+                                                      color: "#065F46",
+                                                      border:
+                                                        "1px solid #10B981",
+                                                    }}
+                                                  >
+                                                    <Icon
+                                                      icon="mdi:check-circle"
+                                                      className="w-4 h-4 mr-1"
+                                                    />
+                                                    Selesai
+                                                  </span>
+                                                ) : (
+                                                  <select
+                                                    value={item.status}
+                                                    disabled={loading}
+                                                    onChange={(e) => {
+                                                      const newStatus = e.target
+                                                        .value as
+                                                        | "pending"
+                                                        | "diproses"
+                                                        | "selesai";
+                                                      handleStatusChange(
+                                                        item.id,
+                                                        newStatus,
+                                                        item
+                                                      );
+                                                    }}
+                                                    className="border px-2 py-1 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                                    style={{
+                                                      backgroundColor:
+                                                        item.status ===
+                                                        "pending"
+                                                          ? "#FEF3C7"
+                                                          : item.status ===
+                                                            "diproses"
+                                                          ? "#DBEAFE"
+                                                          : "",
+                                                      borderColor:
+                                                        item.status ===
+                                                        "pending"
+                                                          ? "#F59E0B"
+                                                          : item.status ===
+                                                            "diproses"
+                                                          ? "#3B82F6"
+                                                          : "",
+                                                      color:
+                                                        item.status ===
+                                                        "pending"
+                                                          ? "#92400E"
+                                                          : item.status ===
+                                                            "diproses"
+                                                          ? "#1E40AF"
+                                                          : "",
+                                                    }}
+                                                  >
+                                                    {item.status ===
+                                                      "pending" && (
+                                                      <>
+                                                        <option value="pending">
+                                                          Pending
+                                                        </option>
+                                                        <option value="diproses">
+                                                          Proses
+                                                        </option>
+                                                      </>
+                                                    )}
+                                                    {item.status ===
+                                                      "diproses" && (
+                                                      <>
+                                                        <option value="diproses">
+                                                          Proses
+                                                        </option>
+                                                        <option value="selesai">
+                                                          Selesai
+                                                        </option>
+                                                      </>
+                                                    )}
+                                                  </select>
+                                                )}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {item.created_at
+                                                  ? new Date(
+                                                      item.created_at
+                                                    ).toLocaleDateString(
+                                                      "id-ID",
+                                                      {
+                                                        year: "numeric",
+                                                        month: "short",
+                                                        day: "numeric",
+                                                      }
+                                                    )
+                                                  : "-"}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                <div className="flex space-x-2">
+                                                  {item.status ===
+                                                    "pending" && (
+                                                    <button
+                                                      className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
+                                                      title="Edit Pesanan"
+                                                      onClick={() => {
+                                                        setEditPesananId(
+                                                          item.id
+                                                        );
+                                                        setShowEditModal(true);
+                                                      }}
+                                                    >
+                                                      <Icon
+                                                        icon="mdi:pencil"
+                                                        width="18"
+                                                      />
+                                                    </button>
+                                                  )}
+                                                  <button
+                                                    className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                                    title="Hapus Pesanan"
+                                                    onClick={() =>
+                                                      handleDeletePesanan(
+                                                        item.id,
+                                                        item.nama_pelanggan
+                                                      )
+                                                    }
+                                                  >
+                                                    <Icon
+                                                      icon="mdi:trash"
+                                                      width="18"
+                                                    />
+                                                  </button>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
+                                      )}
                                     </tbody>
                                   </table>
                                 </div>
@@ -1309,7 +1393,9 @@ const handleStatusChange = async (
                                     <div className="text-right">
                                       <p className="text-xl text-blue-600">
                                         Rp{" "}
-                                        {customerGroup.totalAmount.toLocaleString("id-ID")}
+                                        {customerGroup.totalAmount.toLocaleString(
+                                          "id-ID"
+                                        )}
                                       </p>
                                       <p className="text-sm text-blue-500">
                                         {customerGroup.totalOrders} pesanan
@@ -1481,53 +1567,61 @@ const handleStatusChange = async (
         />
       )}
 
-       <Notification
-         show={notification.show}
-         message={notification.message}
-         type={notification.type}
-         onClose={closeNotification}
-       />
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={closeNotification}
+      />
 
-       {/* Photo Modal */}
-       {showPhotoModal && selectedPhoto && (
-         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-           <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] overflow-hidden">
-             <div className="flex justify-between items-center p-4 border-b">
-               <h3 className="text-lg font-semibold text-gray-800">Bukti Pesanan</h3>
-               <button
-                 onClick={closePhotoModal}
-                 className="text-gray-500 hover:text-gray-700 transition-colors"
-               >
-                 <Icon icon="mdi:close" width="24" />
-               </button>
-             </div>
-             <div className="p-4">
-               <div className="flex justify-center">
-                 {selectedPhoto.toLowerCase().includes('.pdf') ? (
-                   <div className="text-center">
-                     <Icon icon="mdi:file-pdf-box" width="64" className="text-red-500 mx-auto mb-4" />
-                     <p className="text-gray-600 mb-4">File PDF - Klik untuk membuka</p>
-                     <a
-                       href={selectedPhoto}
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                     >
-                       <Icon icon="mdi:open-in-new" width="16" />
-                       Buka PDF
-                     </a>
-                   </div>
-                 ) : (
-                   <img
-                     src={selectedPhoto}
-                     alt="Bukti Pesanan"
-                     className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                     onError={(e) => {
-                       const target = e.target as HTMLImageElement;
-                       target.style.display = 'none';
-                       const parent = target.parentElement;
-                       if (parent) {
-                         parent.innerHTML = `
+      {/* Photo Modal */}
+      {showPhotoModal && selectedPhoto && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Bukti Pesanan
+              </h3>
+              <button
+                onClick={closePhotoModal}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <Icon icon="mdi:close" width="24" />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex justify-center">
+                {selectedPhoto.toLowerCase().includes(".pdf") ? (
+                  <div className="text-center">
+                    <Icon
+                      icon="mdi:file-pdf-box"
+                      width="64"
+                      className="text-red-500 mx-auto mb-4"
+                    />
+                    <p className="text-gray-600 mb-4">
+                      File PDF - Klik untuk membuka
+                    </p>
+                    <a
+                      href={selectedPhoto}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                      <Icon icon="mdi:open-in-new" width="16" />
+                      Buka PDF
+                    </a>
+                  </div>
+                ) : (
+                  <img
+                    src={selectedPhoto}
+                    alt="Bukti Pesanan"
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
                            <div class="text-center p-8">
                              <div class="text-gray-400 mb-4">
                                <svg class="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
@@ -1544,16 +1638,15 @@ const handleStatusChange = async (
                              </a>
                            </div>
                          `;
-                       }
-                     }}
-                   />
-                 )}
-               </div>
-             </div>
-           </div>
-         </div>
-       )}
-     </div>
-   );
- }
-
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
