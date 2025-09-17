@@ -48,6 +48,11 @@ export const addPesanan = async (data: AddPesananInput): Promise<Pesanan> => {
     // Append photos
     // Append single photo as 'lampiran'
     if (data.lampiran) {
+      console.log(
+        "About to upload file:",
+        data.lampiran.name,
+        data.lampiran.size
+      );
       formData.append("lampiran", data.lampiran);
     }
 
@@ -81,6 +86,7 @@ export const getPesanan = async (id_owner?: number): Promise<Pesanan[]> => {
     console.log("Fetching pesanan with id_owner:", id_owner);
     const response = await axiosInstance.get(`/pesanan?id_owner=${id_owner}`);
     console.log("API Response:", response.data);
+    console.log("API Response with lampiran:", response.data); // Tambah ini
 
     // Handle response sesuai dengan structure PesananController
     if (
